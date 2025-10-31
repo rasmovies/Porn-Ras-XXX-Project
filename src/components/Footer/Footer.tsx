@@ -243,11 +243,11 @@ const Footer: React.FC = () => {
           <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#ff6b6b', mb: 3, fontWeight: 'bold' }}>
             Notice to Users
           </Typography>
+          <Typography variant="h4" component="h3" gutterBottom sx={{ color: 'white', mb: 3, fontWeight: 'bold' }}>
+            The Steps We're Taking to Stop the Publication of CSAM and NCM
+          </Typography>
           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
             <strong>CONTENT WARNING:</strong> This message contains references to sensitive content, including sexually explicit content involving minors and non-consensual acts.
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
-            Aylo owns and operates several free, ad-based websites, including Pornhub.com, Youporn.com, Redtube.com, Tube8.com, and Thumbzilla.com, as well as subscription-based websites associated with its free sites, including Pornhubpremium.com ("Websites").
           </Typography>
           <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
             The Federal Trade Commission ("FTC") and the Utah Division of Consumer Protection ("Utah") allege that some of our Websites made available videos and photos containing child sexual abuse material ("CSAM") as well as non-consensual material ("NCM"), such as revenge porn and spy camera videos.
