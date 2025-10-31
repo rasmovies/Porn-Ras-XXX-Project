@@ -5,9 +5,6 @@ import {
   Typography,
   Box,
   Button,
-  Select,
-  MenuItem,
-  FormControl,
   Link,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'motion/react';
@@ -19,7 +16,7 @@ interface AgeVerificationModalProps {
 }
 
 const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onConfirm, onDeny }) => {
-  const [language, setLanguage] = useState('English');
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   return (
     <AnimatePresence>
@@ -73,69 +70,18 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   }
                 }}
               >
-                {/* Language Selector */}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <Select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      sx={{
-                        color: 'white',
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.3)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.5)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#ff6b6b',
-                        },
-                        '& .MuiSelect-icon': {
-                          color: 'white',
-                        }
-                      }}
-                    >
-                      <MenuItem value="English">English</MenuItem>
-                      <MenuItem value="Turkish">Türkçe</MenuItem>
-                      <MenuItem value="Spanish">Español</MenuItem>
-                      <MenuItem value="French">Français</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-
                 {/* Logo */}
-                <Box sx={{ mb: 4 }}>
-                  <Typography
-                    variant="h3"
-                    component="h1"
+                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+                  <Box
+                    component="img"
+                    src="/PORNRAS.png"
+                    alt="PORNRAS Logo"
                     sx={{
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: { xs: '2rem', sm: '3rem' },
-                      mb: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1
+                      height: { xs: '50px', sm: '60px' },
+                      width: 'auto',
+                      maxWidth: '200px',
                     }}
-                  >
-                    Adult
-                    <Box
-                      component="span"
-                      sx={{
-                        background: 'linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%)',
-                        color: 'white',
-                        px: 2,
-                        py: 0.5,
-                        borderRadius: 1,
-                        fontSize: { xs: '1.5rem', sm: '2rem' },
-                        fontWeight: 'bold',
-                        boxShadow: '0 0 20px rgba(255, 107, 107, 0.3)'
-                      }}
-                    >
-                      Tube
-                    </Box>
-                  </Typography>
+                  />
                 </Box>
 
                 {/* Main Heading */}
@@ -156,6 +102,7 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                 {/* Notice Button */}
                 <Button
                   variant="outlined"
+                  onClick={() => setNoticeOpen(true)}
                   sx={{
                     borderColor: '#ff6b6b',
                     color: '#ff6b6b',
@@ -290,7 +237,7 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                 </Typography>
 
                 {/* Footer */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3 }}>
                   <Typography
                     variant="body2"
                     sx={{
@@ -298,17 +245,7 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                       fontSize: '0.8rem'
                     }}
                   >
-                    © AdultTube.com, 2025
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: 'rgba(255, 255, 255, 0.5)',
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    RTA®
+                    © PORNRAS.com, 2025
                   </Typography>
                 </Box>
               </Box>
@@ -316,6 +253,86 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
           </motion.div>
         </Dialog>
       )}
+
+      {/* Notice to Users Dialog */}
+      <Dialog
+        open={noticeOpen}
+        onClose={() => setNoticeOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#1a1a1a',
+            color: 'white',
+            borderRadius: '12px',
+          }
+        }}
+      >
+        <DialogContent sx={{ p: 4 }}>
+          <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#ff6b6b', mb: 3, fontWeight: 'bold' }}>
+            Notice to Users
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
+            <strong>CONTENT WARNING:</strong> This message contains references to sensitive content, including sexually explicit content involving minors and non-consensual acts.
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
+            Aylo owns and operates several free, ad-based websites, including Pornhub.com, Youporn.com, Redtube.com, Tube8.com, and Thumbzilla.com, as well as subscription-based websites associated with its free sites, including Pornhubpremium.com ("Websites").
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
+            The Federal Trade Commission ("FTC") and the Utah Division of Consumer Protection ("Utah") allege that some of our Websites made available videos and photos containing child sexual abuse material ("CSAM") as well as non-consensual material ("NCM"), such as revenge porn and spy camera videos.
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2, lineHeight: 1.8 }}>
+            We've entered into an agreement with the FTC and Utah that requires us to take steps to keep CSAM and NCM off of our Websites. To resolve the case, we must have a comprehensive program with robust safeguards to:
+          </Typography>
+          <Box component="ul" sx={{ pl: 3, mb: 2, color: 'rgba(255,255,255,0.9)' }}>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Verify that uploaders of pornographic content to our Websites are at least 18 years old;
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Verify that performers in pornographic content on our Websites are at least 18 years old;
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Verify that performers in pornographic content on our Websites have given written consent to the production and publication of the pornographic content;
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Allow performers to request to have content they appear in removed from our Websites{' '}
+              <Link href="https://www.pornras.com/content-removal" target="_blank" rel="noopener" sx={{ color: '#ff6b6b' }}>
+                [https://www.pornras.com/content-removal]
+              </Link>
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Allow registered users to report CSAM and/or NCM on our Websites by flagging content, comments, and direct messages;
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Allow users to request removal of CSAM and/or NCM from our Websites{' '}
+              <Link href="https://www.pornras.com/content-removal" target="_blank" rel="noopener" sx={{ color: '#ff6b6b' }}>
+                [https://www.pornras.com/content-removal]
+              </Link>
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Remove actual or suspected CSAM and/or NCM Aylo becomes aware of from all of our Websites; and
+            </Typography>
+            <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
+              Publish a report twice a year describing how we are taking steps to prevent CSAM and/or NCM from appearing on our platforms.
+            </Typography>
+          </Box>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.8 }}>
+            An independent third party will audit our practices to make sure we are taking steps to prevent CSAM and NCM from appearing on our Websites. These audits will happen every two years for the next 10 years.
+          </Typography>
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              onClick={() => setNoticeOpen(false)}
+              variant="contained"
+              sx={{
+                bgcolor: '#ff6b6b',
+                '&:hover': { bgcolor: '#ff5555' }
+              }}
+            >
+              Close
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </AnimatePresence>
   );
 };

@@ -143,7 +143,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               />
             </motion.div>
             <Box sx={{ flexGrow: 1 }} />
-            <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <Box sx={{ display: { xs: 'none', sm: 'none', md: 'flex' } }}>
               {menuItems.map((item, index) => (
                 <motion.div
                   key={item.text}
@@ -160,7 +160,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Button>
           </motion.div>
         ))}
-      </Box>
+            </Box>
+            {/* Mobile Menu Button */}
+            <IconButton
+              color="inherit"
+              edge="end"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              sx={{ display: { xs: 'flex', md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
       {isAuthenticated && (
         <>
           <IconButton color="inherit" onClick={handleNotificationClick}>
@@ -233,10 +242,48 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </>
       )}
     </Toolbar>
-  </AppBar>
+      </AppBar>
 </motion.div>
 
-      {/* Sidebar removed */}
+      {/* Mobile Menu Drawer */}
+      <Box
+        sx={{
+          display: { xs: mobileOpen ? 'block' : 'none', md: 'none' },
+          position: 'fixed',
+          top: '64px',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          bgcolor: 'rgba(0, 0, 0, 0.95)',
+          zIndex: theme.zIndex.drawer,
+          overflowY: 'auto',
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          {menuItems.map((item) => (
+            <Button
+              key={item.text}
+              fullWidth
+              color="inherit"
+              onClick={() => {
+                handleMenuClick(item);
+                setMobileOpen(false);
+              }}
+              sx={{
+                justifyContent: 'flex-start',
+                mb: 1,
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 107, 107, 0.1)',
+                },
+              }}
+              startIcon={item.icon}
+            >
+              {item.text}
+            </Button>
+          ))}
+        </Box>
+      </Box>
 
       <Box
         sx={{

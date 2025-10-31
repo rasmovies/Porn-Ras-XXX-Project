@@ -9,6 +9,7 @@ import './styles/global.css';
 import './styles/theme.css';
 import './styles/components.css';
 import './styles/animations.css';
+import './styles/responsive.css';
 
 // Video.js styles
 import 'video.js/dist/video-js.css';
@@ -29,6 +30,10 @@ import Channels from './pages/Channels';
 import ChannelProfile from './pages/ChannelProfile';
 import Categories from './pages/Categories';
 import CategoryProfile from './pages/CategoryProfile';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import DMCA from './pages/DMCA';
+import Section2257 from './pages/2257';
 import NotFound from './pages/NotFound';
 
 // Layout
@@ -106,6 +111,10 @@ function App() {
                   <Route path="/channels/:channelName" element={<ChannelProfile />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/categories/:categoryName" element={<CategoryProfile />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/dmca" element={<DMCA />} />
+                  <Route path="/2257" element={<Section2257 />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="*" element={<NotFound />} />
