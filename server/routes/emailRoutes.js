@@ -213,11 +213,8 @@
 </html>
 ```
 
-Diğer şablonları da mevcut yerel dosyalarından kopyala.
 
-### Render ayarları
-- **Root Directory:** `server`
-- **Build Command:** `npm install`
-- **Start Command:** `node server.js`
 
-Bu dosyalar GitHub’da yerini aldığında Render deploy’u artık `emailRoutes` modülünü bulacak ve server başlatılacak. Deploy bittikten sonra API URL’sini alıp Vercel’de `REACT_APP_API_BASE_URL` olarak tanımlamayı unutma.
+
+
+
