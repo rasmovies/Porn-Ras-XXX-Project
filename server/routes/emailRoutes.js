@@ -80,7 +80,7 @@
    module.exports = router;
    ```
 
-2. **`server/services/emailService.js`**
+
    ```javascript
    const path = require('path');
    const fs = require('fs').promises;
