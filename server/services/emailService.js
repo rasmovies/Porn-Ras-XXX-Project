@@ -11,6 +11,7 @@
      PROTON_SMTP_PASSWORD ='MoQL_M-Loyi1fB3b9tKWew',
      PROTON_FROM_EMAIL = 'pornras@proton.me',
      PROTON_FROM_NAME = 'PORNRAS',
+    REACT_APP_API_BASE_URL = 'https://server-dlcvvf7tu-ras-projects-6ebe5a01.vercel.app',
    } = process.env;
 
    if (!PROTON_FROM_EMAIL) {
