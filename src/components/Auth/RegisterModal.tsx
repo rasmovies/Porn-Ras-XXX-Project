@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'motion/react';
+import { emailApi } from '../../services/emailApi';
 
 interface RegisterModalProps {
   open: boolean;
@@ -29,24 +30,73 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Register form submit başladı');
+    
+    if (isSubmitting) {
+      console.log('⚠️ Zaten submit ediliyor, işlem iptal edildi');
+      return;
+    }
+
     if (!username || !email || !password || !confirmPassword) {
+      console.log('❌ Form validation hatası: Tüm alanlar doldurulmalı');
       setError('Please fill in all fields');
       return;
     }
     if (password !== confirmPassword) {
+      console.log('❌ Form validation hatası: Şifreler eşleşmiyor');
       setError('Passwords do not match');
       return;
     }
     if (!agreeToTerms) {
+      console.log('❌ Form validation hatası: Şartlar kabul edilmeli');
       setError('Please agree to the terms and conditions');
       return;
     }
-    // Simulate registration
+    
+    console.log('✅ Form validation başarılı');
     setError('');
-    onClose();
+    setSuccessMessage('');
+
+    const token =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
+    const verifyUrl = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+
+    console.log('📧 Email gönderimi başlatılıyor...', { email, username, verifyUrl });
+    setIsSubmitting(true);
+    
+    emailApi
+      .sendVerificationEmail({
+        email,
+        username,
+        verifyUrl,
+      })
+      .then((result) => {
+        console.log('✅ Email gönderimi başarılı:', result);
+        setSuccessMessage('Registration received! Please check your inbox to confirm your email.');
+        setTimeout(() => {
+          onClose();
+        }, 2500);
+      })
+      .catch((apiError: Error) => {
+        console.error('❌ Email gönderimi hatası:', apiError);
+        console.error('Error details:', {
+          message: apiError?.message,
+          stack: apiError?.stack,
+          name: apiError?.name,
+        });
+        setError(apiError.message || 'Unable to send confirmation email. Please try again.');
+      })
+      .finally(() => {
+        console.log('🏁 Email gönderimi işlemi tamamlandı');
+        setIsSubmitting(false);
+      });
   };
 
   return (
@@ -165,6 +215,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                 {error && (
                   <Alert severity="error" sx={{ mb: 3, background: 'rgba(255, 0, 0, 0.1)', border: '1px solid rgba(255, 0, 0, 0.3)' }}>
                     {error}
+                  </Alert>
+                )}
+                {successMessage && (
+                  <Alert severity="success" sx={{ mb: 3, background: 'rgba(76, 175, 80, 0.1)', border: '1px solid rgba(76, 175, 80, 0.3)' }}>
+                    {successMessage}
                   </Alert>
                 )}
 
@@ -333,6 +388,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                         transform: 'translateY(-2px)',
                       }
                     }}
+                  disabled={isSubmitting}
                   >
                     Create Account
                   </Button>
