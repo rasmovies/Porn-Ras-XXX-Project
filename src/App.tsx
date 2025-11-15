@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Styles
 import './styles/global.css';
@@ -34,6 +35,10 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import DMCA from './pages/DMCA';
 import Section2257 from './pages/2257';
+import Chat from './pages/Chat';
+import Support from './pages/Support';
+import ContentRemoval from './pages/ContentRemoval';
+import VerifyEmail from './pages/VerifyEmail';
 import NotFound from './pages/NotFound';
 
 // Layout
@@ -70,62 +75,68 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <ErrorBoundary>
-        <AgeVerificationProvider>
-          <AuthProvider>
-            <Router>
-              <Layout>
+    <HelmetProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <ErrorBoundary>
+          <AgeVerificationProvider>
+            <AuthProvider>
+              <Router>
                 <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/video/:id" element={<VideoPlayer />} />
-                  <Route path="/search" element={<Search />} />
-                  <Route
-                    path="/upload"
-                    element={
-                      <ProtectedRoute requireAuth requireAdmin>
-                        <Upload />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute requireAuth>
-                        <Profile />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute requireAuth requireAdmin>
-                        <Admin />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="/models" element={<Models />} />
-                  <Route path="/models/:modelName" element={<ModelProfile />} />
-                  <Route path="/channels" element={<Channels />} />
-                  <Route path="/channels/:channelName" element={<ChannelProfile />} />
-                  <Route path="/categories" element={<Categories />} />
-                  <Route path="/categories/:categoryName" element={<CategoryProfile />} />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/dmca" element={<DMCA />} />
-                  <Route path="/2257" element={<Section2257 />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="*" element={<NotFound />} />
+                  <Route element={<Layout />}>
+                    <Route index element={<Home />} />
+                    <Route path="/video/:id" element={<VideoPlayer />} />
+                    <Route path="/search" element={<Search />} />
+                    <Route
+                      path="/upload"
+                      element={
+                        <ProtectedRoute requireAuth requireAdmin>
+                          <Upload />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute requireAuth>
+                          <Profile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute requireAuth requireAdmin>
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/models" element={<Models />} />
+                    <Route path="/models/:modelName" element={<ModelProfile />} />
+                    <Route path="/channels" element={<Channels />} />
+                    <Route path="/channels/:channelName" element={<ChannelProfile />} />
+                    <Route path="/categories" element={<Categories />} />
+                    <Route path="/categories/:categoryName" element={<CategoryProfile />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/dmca" element={<DMCA />} />
+                    <Route path="/2257" element={<Section2257 />} />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/support" element={<Support />} />
+                    <Route path="/content-removal" element={<ContentRemoval />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/verify" element={<VerifyEmail />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Route>
                 </Routes>
-              </Layout>
-              <Toaster position="top-right" />
-            </Router>
-            </AuthProvider>
-          </AgeVerificationProvider>
-        </ErrorBoundary>
+                <Toaster position="top-right" />
+              </Router>
+          </AuthProvider>
+        </AgeVerificationProvider>
+      </ErrorBoundary>
     </ThemeProvider>
+    </HelmetProvider>
   );
 }
 

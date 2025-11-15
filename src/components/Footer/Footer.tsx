@@ -1,24 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Container, Typography, Link, IconButton, Dialog, DialogContent, Button } from '@mui/material';
-import { 
-  Article as XIcon 
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-
-// Bluesky icon component
-const BlueskyIcon = () => (
-  <Box
-    component="svg"
-    viewBox="0 0 24 24"
-    sx={{
-      width: 18,
-      height: 18,
-      fill: 'currentColor',
-    }}
-  >
-    <path d="M12 2C6.477 2 2 6.477 2 12c0 5.523 4.477 10 10 10s10-4.477 10-10C22 6.477 17.523 2 12 2zm-2 16l-5-5 1.414-1.414L10 15.172l7.586-7.586L19 9l-9 9z" />
-  </Box>
-);
 
 const Footer: React.FC = () => {
   const navigate = useNavigate();
@@ -63,9 +45,6 @@ const Footer: React.FC = () => {
                 { label: 'DMCA', path: '/dmca' },
                 { label: '2257', path: '/2257' },
                 { label: 'EU DSA', path: '#' },
-                { label: 'Recommender System Guidelines', path: '#' },
-                { label: 'Cookie Notice', path: '#' },
-                { label: 'Accessibility', path: '#' },
               ].map((item) => (
                 <Link
                   key={item.label}
@@ -106,16 +85,20 @@ const Footer: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {[
-                'Content Removal',
-                'Contact Support',
-                'FAQ',
-                'Trust and Safety',
-                'Parental Controls',
-                'Manage Cookies',
+                { label: 'Content Removal', path: '/content-removal' },
+                { label: 'Contact Support', path: '/support' },
+                { label: 'FAQ', path: '#' },
+                { label: 'Trust and Safety', path: '#' },
               ].map((item) => (
                 <Link
-                  key={item}
-                  href="#"
+                  key={item.label}
+                  href={item.path}
+                  onClick={(e) => {
+                    if (item.path.startsWith('/')) {
+                      e.preventDefault();
+                      navigate(item.path);
+                    }
+                  }}
                   sx={{
                     color: '#ff6b6b',
                     textDecoration: 'none',
@@ -125,7 +108,7 @@ const Footer: React.FC = () => {
                     },
                   }}
                 >
-                  {item}
+                  {item.label}
                 </Link>
               ))}
             </Box>
@@ -153,42 +136,70 @@ const Footer: React.FC = () => {
           >
             {/* Social Media Icons */}
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton
-                size="small"
-                sx={{
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: '50%',
-                  color: 'white',
-                  '&:hover': {
-                    bgcolor: 'rgba(255,107,107,0.2)',
-                    borderColor: '#ff6b6b',
-                  },
-                }}
+              {/* X Logo */}
+              <Box
                 component="a"
                 href="https://x.com"
                 target="_blank"
                 rel="noopener noreferrer"
-              >
-                <XIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                size="small"
                 sx={{
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  width: 40,
+                  height: 40,
                   borderRadius: '50%',
-                  color: 'white',
+                  bgcolor: 'black',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none',
                   '&:hover': {
-                    bgcolor: 'rgba(255,107,107,0.2)',
-                    borderColor: '#ff6b6b',
+                    opacity: 0.8,
                   },
                 }}
+              >
+                <Box
+                  component="svg"
+                  viewBox="0 0 24 24"
+                  sx={{
+                    width: 24,
+                    height: 24,
+                  }}
+                >
+                  <path
+                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+                    fill="white"
+                  />
+                </Box>
+              </Box>
+              
+              {/* Bluesky Logo */}
+              <Box
                 component="a"
                 href="https://bsky.app"
                 target="_blank"
                 rel="noopener noreferrer"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    opacity: 0.85,
+                  },
+                }}
               >
-                <BlueskyIcon />
-              </IconButton>
+                <Box
+                  component="img"
+                  src="/images/bluesky-icon.svg"
+                  alt="Bluesky Logo"
+                  sx={{
+                    width: 40,
+                    height: 40,
+                  }}
+                />
+              </Box>
             </Box>
 
             {/* Copyright */}
@@ -198,7 +209,7 @@ const Footer: React.FC = () => {
                 color: 'rgba(255,255,255,0.7)',
               }}
             >
-              © PORNRAS.com, 2025
+              © pornras.com, 2025
             </Typography>
 
             {/* Notice to Users Button */}

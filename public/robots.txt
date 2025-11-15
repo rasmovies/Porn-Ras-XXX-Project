@@ -1,3 +1,13 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Disallow private/admin areas
+Disallow: /admin
+Disallow: /upload
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+
+# Sitemap location
+Sitemap: https://pornras.com/sitemap.xml

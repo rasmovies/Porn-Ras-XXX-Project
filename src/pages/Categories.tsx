@@ -12,6 +12,7 @@ import { VideoLibrary, Search } from '@mui/icons-material';
 import { Category, Video } from '../lib/supabase';
 import { categoryService, videoService } from '../services/database';
 import { motion } from 'motion/react';
+import SEO from '../components/SEO/SEO';
 
 interface CategoryWithVideoCount extends Category {
   videoCount: number;
@@ -148,16 +149,19 @@ const Categories: React.FC = () => {
           <Typography variant="h5" component="h2" gutterBottom sx={{ color: 'white', fontWeight: 'bold', mb: 3 }}>
             Most Popular Porn Categories
           </Typography>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(2, 1fr)', 
-              sm: 'repeat(3, 1fr)', 
-              md: 'repeat(4, 1fr)',
-              lg: 'repeat(4, 1fr)'
-            }, 
-            gap: 2 
-          }}>
+          <Box
+            className="category-grid category-grid--popular media-grid"
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { 
+                xs: 'repeat(2, minmax(0, 1fr))', 
+                sm: 'repeat(3, 1fr)', 
+                md: 'repeat(4, 1fr)',
+                lg: 'repeat(4, 1fr)'
+              }, 
+              gap: 2 
+            }}
+          >
             {mostPopularCategories.map((category, index) => (
               <motion.div
                 key={category.id}
@@ -271,16 +275,19 @@ const Categories: React.FC = () => {
           <Typography variant="h5" component="h2" gutterBottom sx={{ color: 'white', fontWeight: 'bold', mb: 3 }}>
             All Porn Categories
           </Typography>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(2, 1fr)', 
-              sm: 'repeat(3, 1fr)', 
-              md: 'repeat(4, 1fr)',
-              lg: 'repeat(4, 1fr)'
-            }, 
-            gap: 2 
-          }}>
+          <Box
+            className="category-grid media-grid"
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { 
+                xs: 'repeat(2, minmax(0, 1fr))', 
+                sm: 'repeat(3, 1fr)', 
+                md: 'repeat(4, 1fr)',
+                lg: 'repeat(4, 1fr)'
+              }, 
+              gap: 2 
+            }}
+          >
             {allCategories.map((category, index) => (
               <motion.div
                 key={category.id}

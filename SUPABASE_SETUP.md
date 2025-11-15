@@ -39,6 +39,14 @@ REACT_APP_ENV=development
 4. Copy and paste the contents of `database-schema.sql`
 5. Click "Run" to execute the SQL
 
+### Email Automation Tables
+
+To enable the email queue and logging used by the MailerSend integration, run the SQL in `add_email_automation.sql` as well:
+
+1. In the Supabase SQL Editor click "New query".
+2. Paste the file contents.
+3. Run the query to create `email_queue`, `email_logs`, `email_templates`, and `marketing_campaigns`.
+
 ## 5. Test the Connection
 
 1. Start your development server:

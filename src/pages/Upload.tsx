@@ -14,11 +14,18 @@ import {
   Chip,
   LinearProgress,
   Alert,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { CloudUpload, VideoFile, PlayArrow, Delete } from '@mui/icons-material';
+import { CloudUpload, VideoFile, PlayArrow, Delete, Edit } from '@mui/icons-material';
 import { motion } from 'motion/react';
-import { videoService, categoryService, modelService } from '../services/database';
-import { Video, Category, Model } from '../lib/supabase';
+import { videoService, categoryService, modelService, channelService, subscriptionService, channelSubscriptionService, notificationService } from '../services/database';
+import { blueskyApi } from '../services/emailApi';
+import { Video, Category, Model, Channel } from '../lib/supabase';
 import VideoCard from '../components/Video/VideoCard';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -49,28 +56,43 @@ const Upload: React.FC = () => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [videoDuration, setVideoDuration] = useState<string>('');
   const [streamtapeThumbnail, setStreamtapeThumbnail] = useState<string | null>(null);
+  const [streamtapeThumbnailUrl, setStreamtapeThumbnailUrl] = useState<string>('');
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [models, setModels] = useState<Model[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
+  const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [streamtapeVideos, setStreamtapeVideos] = useState<Video[]>([]);
   const [loadingStreamtapeVideos, setLoadingStreamtapeVideos] = useState(false);
   const [allVideos, setAllVideos] = useState<Video[]>([]);
   const [loadingAllVideos, setLoadingAllVideos] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
+  const [editCategoryIds, setEditCategoryIds] = useState<string[]>([]);
+  const [editModelIds, setEditModelIds] = useState<string[]>([]);
+  const [editChannelIds, setEditChannelIds] = useState<string[]>([]);
 
   // Load categories, models, and all videos from Supabase
   useEffect(() => {
     const loadData = async () => {
       setLoadingAllVideos(true);
       try {
-        const [categoriesData, modelsData, videosData] = await Promise.all([
+        const [categoriesData, modelsData, channelsData, videosData] = await Promise.all([
           categoryService.getAll(),
           modelService.getAll(),
+          channelService.getAll(),
           videoService.getAll()
         ]);
         setCustomCategories(categoriesData);
         setModels(modelsData);
+        setChannels(channelsData);
         setAllVideos(videosData);
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -83,8 +105,8 @@ const Upload: React.FC = () => {
         }
         if (savedModels) {
           const modelsData = JSON.parse(savedModels);
-          const modelNames = modelsData.map((model: {name: string, image: string | null}) => model.name);
-          setModels(modelNames);
+          // Keep full model objects, not just names
+          setModels(modelsData);
         }
       } finally {
         setLoadingAllVideos(false);
@@ -96,6 +118,69 @@ const Upload: React.FC = () => {
 
   const handleVideoClick = (videoId: string) => {
     navigate(`/video/${videoId}`);
+  };
+
+  const handleDeleteClick = (videoId: string) => {
+    setVideoToDelete(videoId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!videoToDelete) return;
+
+    try {
+      await videoService.delete(videoToDelete);
+      toast.success('Video başarıyla silindi');
+      // Reload videos list
+      const videos = await videoService.getAll();
+      setAllVideos(videos);
+      setDeleteDialogOpen(false);
+      setVideoToDelete(null);
+    } catch (error: any) {
+      console.error('Failed to delete video:', error);
+      toast.error('Video silinemedi');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setVideoToDelete(null);
+  };
+
+  const sendVideoNotifications = async (videoData: any, videoTitle: string) => {
+    try {
+      // Get subscriptions for the model if it exists
+      if (videoData.model_id) {
+        const modelSubscribers = await subscriptionService.getByModel(videoData.model_id);
+        for (const sub of modelSubscribers) {
+          const modelName = models.find(m => m.id === videoData.model_id)?.name || 'Unknown Model';
+          await notificationService.create({
+            user_id: sub.user_name,
+            type: 'video',
+            title: 'New Video Upload',
+            message: `${modelName} uploaded a new video.`
+          });
+        }
+      }
+
+      // Get subscriptions for the channel if it exists
+      if (videoData.channel_id) {
+        const channelSubscribers = await channelSubscriptionService.getByChannel(videoData.channel_id);
+        for (const sub of channelSubscribers) {
+          const channelName = channels.find(c => c.id === videoData.channel_id)?.name || 'Unknown Channel';
+          await notificationService.create({
+            user_id: sub.user_name,
+            type: 'video',
+            title: 'New Video Upload',
+            message: `${channelName} uploaded a new video.`
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Failed to send video notifications:', error);
+      // Don't show error to user as this is a background task
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +289,7 @@ const Upload: React.FC = () => {
         return newErrors;
       });
 
+      setStreamtapeThumbnailUrl(''); // Clear URL when file is selected
       const reader = new FileReader();
       reader.onload = (e) => {
         setStreamtapeThumbnail(e.target?.result as string);
@@ -212,8 +298,19 @@ const Upload: React.FC = () => {
     }
   };
 
+  const handleStreamtapeThumbnailUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    setStreamtapeThumbnailUrl(url);
+    if (url.trim()) {
+      setStreamtapeThumbnail(url.trim());
+    } else {
+      setStreamtapeThumbnail(null);
+    }
+  };
+
   const handleRemoveStreamtapeThumbnail = () => {
     setStreamtapeThumbnail(null);
+    setStreamtapeThumbnailUrl('');
   };
 
 
@@ -296,102 +393,173 @@ const Upload: React.FC = () => {
       }
     }
 
-    setIsPublishing(true);
+            setIsPublishing(true);
+  
+      try {
+        // Sanitize inputs
+        const sanitizedTitle = sanitizeInput(videoTitle);
+        const sanitizedDescription = sanitizeInput(videoDescription);
+  
+        const videoSlug = sanitizedTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .trim();
 
-    try {
-      // Sanitize inputs
-      const sanitizedTitle = sanitizeInput(videoTitle);
-      const sanitizedDescription = sanitizeInput(videoDescription);
-
-      const videoSlug = sanitizedTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .trim();
-
-      // Create video data for Supabase
-      const videoData = {
-        title: sanitizedTitle,
-        description: sanitizedDescription,
-        thumbnail: embedMode === 'streamtape' ? (streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail') : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail'),
-        streamtape_url: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : null,
-        duration: videoDuration || '0:00',
-        category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
-        model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
-        channel_id: null,
-        slug: videoSlug
-      };
+        // Use URL if available, otherwise use file preview
+        const thumbnailToUse = embedMode === 'streamtape' 
+          ? (streamtapeThumbnailUrl.trim() || streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail')
+          : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail');
+        
+        // Create video data for Supabase
+        const videoData = {
+          title: sanitizedTitle,
+          description: sanitizedDescription,
+          thumbnail: thumbnailToUse,
+          streamtape_url: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : null,
+          duration: videoDuration || '0:00',
+          category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
+          model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
+          channel_id: selectedChannelIds.length > 0 ? selectedChannelIds[0] : null,
+          slug: videoSlug
+        };
 
       // Save to Supabase
       const savedVideo = await videoService.create(videoData);
 
-      // Also save to localStorage for backward compatibility
-      const localStorageVideoData = {
-        id: savedVideo.id,
-        title: videoTitle,
-        description: videoDescription,
-        category: videoCategory,
-        customCategories: customCategories,
-        tags: videoTags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        models: models,
-        streamtapeUrl: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : null,
-        fileName: selectedFile?.name || null,
-        thumbnail: embedMode === 'streamtape' ? (streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail') : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail'),
-        thumbnailFile: thumbnailFile?.name || null,
-        duration: videoDuration || '0:00',
-        publishDate: new Date().toISOString(),
-        views: 0,
-        likes: 0,
-        dislikes: 0,
-        slug: videoSlug
-      };
+      // Send notifications to subscribers (non-blocking) BEFORE resetting form
+      sendVideoNotifications(videoData, sanitizedTitle).catch(err => {
+        console.error('Failed to send notifications:', err);
+      });
 
-      const existingVideos = JSON.parse(localStorage.getItem('videos') || '[]');
-      existingVideos.push(localStorageVideoData);
-      localStorage.setItem('videos', JSON.stringify(existingVideos));
+      // Share to Bluesky (non-blocking)
+      console.log('📤 Bluesky paylaşımı başlatılıyor...', {
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        thumbnail: thumbnailToUse,
+        slug: videoSlug,
+      });
+      
+      blueskyApi.shareVideo({
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        thumbnail: thumbnailToUse,
+        slug: videoSlug,
+      })
+      .then(result => {
+        console.log('✅ Bluesky paylaşımı başarılı:', result);
+      })
+      .catch(err => {
+        console.error('❌ Failed to share to Bluesky:', err);
+        console.error('Bluesky error details:', {
+          message: err?.message,
+          stack: err?.stack,
+        });
+        // Don't show error to user as this is a background task
+      });
 
       setIsPublishing(false);
-      alert(`Video published successfully to database! You can view it at: http://localhost:3000/video/${videoSlug}`);
       
-      // Reset form
+      // Reset form after notifications
       setVideoTitle('');
       setVideoDescription('');
       setVideoCategory('');
       setVideoTags('');
       setVideoDuration('');
-      setStreamtapeUrl('');
-      setSelectedFile(null);
-      setVideoPreview(null);
-      setUploadComplete(false);
-      setThumbnailFile(null);
-      setThumbnailPreview(null);
-      setStreamtapeThumbnail(null);
-      setSelectedCategoryIds([]);
-      setSelectedModelIds([]);
-    } catch (error) {
+              setStreamtapeUrl('');
+        setSelectedFile(null);
+        setVideoPreview(null);
+        setUploadComplete(false);
+        setThumbnailFile(null);
+        setThumbnailPreview(null);
+        setStreamtapeThumbnail(null);
+        setStreamtapeThumbnailUrl('');
+        setSelectedCategoryIds([]);
+        setSelectedModelIds([]);
+        setSelectedChannelIds([]);
+
+      // Show alert after form reset
+      setTimeout(() => {
+        alert(`Video published successfully to database! You can view it at: http://localhost:3000/video/${videoSlug}`);
+      }, 100);
+    } catch (error: any) {
       console.error('Failed to publish video:', error);
-      alert('Failed to publish video. Please try again.');
+      const errorMessage = error?.message || 'Bilinmeyen bir hata oluştu';
+      toast.error(`Video yüklenemedi: ${errorMessage}`);
       setIsPublishing(false);
     }
   };
 
+  const handleEditClick = (video: Video) => {
+    setEditingVideo(video);
+    setEditTitle(video.title);
+    setEditDescription(video.description || '');
+    setEditThumbnailUrl(video.thumbnail || '');
+    setEditCategoryIds(video.category_id ? [video.category_id] : []);
+    setEditModelIds(video.model_id ? [video.model_id] : []);
+    setEditChannelIds(video.channel_id ? [video.channel_id] : []);
+    setEditDialogOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditDialogOpen(false);
+    setEditingVideo(null);
+    setEditTitle('');
+    setEditDescription('');
+    setEditThumbnailUrl('');
+    setEditCategoryIds([]);
+    setEditModelIds([]);
+    setEditChannelIds([]);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingVideo) return;
+
+    try {
+      const updatedVideo = await videoService.update(editingVideo.id, {
+        title: sanitizeInput(editTitle),
+        description: sanitizeInput(editDescription),
+        thumbnail: editThumbnailUrl || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video',
+        category_id: editCategoryIds[0] || null,
+        model_id: editModelIds[0] || null,
+        channel_id: editChannelIds[0] || null,
+      });
+
+      // Update local state
+      setAllVideos(allVideos.map(v => v.id === editingVideo.id ? updatedVideo : v));
+      
+      toast.success('Video başarıyla güncellendi');
+      setEditDialogOpen(false);
+      setEditingVideo(null);
+      setEditTitle('');
+      setEditDescription('');
+      setEditThumbnailUrl('');
+      setEditCategoryIds([]);
+      setEditModelIds([]);
+      setEditChannelIds([]);
+    } catch (error: any) {
+      console.error('Failed to update video:', error);
+      toast.error('Video güncellenemedi');
+    }
+  };
+
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 2, md: 4 }, px: { xs: 2, md: 4 } }}>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
           Upload Video
         </Typography>
         
         {/* Upload Mode Selection */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Upload Method
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant={embedMode === 'file' ? 'contained' : 'outlined'}
               onClick={() => setEmbedMode('file')}
@@ -411,8 +579,8 @@ const Upload: React.FC = () => {
       </motion.div>
 
       <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
             {embedMode === 'file' ? 'Video File' : 'Streamtape URL'}
           </Typography>
           
@@ -425,7 +593,7 @@ const Upload: React.FC = () => {
                 sx={{
                   border: selectedFile ? '2px solid #4caf50' : '2px dashed #ccc',
                   borderRadius: 2,
-                  p: 4,
+                  p: { xs: 2, md: 4 },
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
@@ -657,33 +825,43 @@ const Upload: React.FC = () => {
                         </Button>
                       </Box>
                     </motion.div>
-                  ) : (
-                    <Box>
-                      <CloudUpload sx={{ fontSize: 48, mb: 2, color: 'text.secondary' }} />
-                      <Typography variant="h6" gutterBottom color="text.secondary">
-                        Upload Thumbnail
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Choose a thumbnail image for your video
-                      </Typography>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleStreamtapeThumbnailUpload}
-                        style={{ display: 'none' }}
-                        id="streamtape-thumbnail-upload"
-                      />
-                      <label htmlFor="streamtape-thumbnail-upload">
-                        <Button 
-                          variant="contained" 
-                          component="span" 
-                          startIcon={<CloudUpload />}
-                        >
-                          Choose Thumbnail
-                        </Button>
-                      </label>
-                    </Box>
-                  )}
+                                      ) : (
+                      <Box>
+                        <CloudUpload sx={{ fontSize: 48, mb: 2, color: 'text.secondary' }} />
+                        <Typography variant="h6" gutterBottom color="text.secondary">
+                          Upload Thumbnail
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Choose a thumbnail image for your video or enter a URL
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          label="Thumbnail URL (Optional)"
+                          placeholder="Enter thumbnail URL"
+                          value={streamtapeThumbnailUrl}
+                          onChange={handleStreamtapeThumbnailUrlChange}
+                          variant="outlined"
+                          size="small"
+                          sx={{ mb: 2 }}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleStreamtapeThumbnailUpload}
+                          style={{ display: 'none' }}
+                          id="streamtape-thumbnail-upload"
+                        />
+                        <label htmlFor="streamtape-thumbnail-upload">
+                          <Button 
+                            variant="contained" 
+                            component="span" 
+                            startIcon={<CloudUpload />}
+                          >
+                            Choose Thumbnail
+                          </Button>
+                        </label>
+                      </Box>
+                    )}
                 </Box>
               </Box>
             </Box>
@@ -797,8 +975,8 @@ const Upload: React.FC = () => {
 
       {/* Thumbnail Upload */}
       <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Video Thumbnail (Optional)
           </Typography>
           
@@ -810,7 +988,7 @@ const Upload: React.FC = () => {
               sx={{
                 border: thumbnailFile ? '2px solid #4caf50' : '2px dashed #ccc',
                 borderRadius: 2,
-                p: 4,
+                p: { xs: 2, md: 4 },
                 textAlign: 'center',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
@@ -890,8 +1068,8 @@ const Upload: React.FC = () => {
       </Card>
 
       <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Video Details
           </Typography>
           
@@ -1009,6 +1187,53 @@ const Upload: React.FC = () => {
                   </FormControl>
                 </Box>
 
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Channels</InputLabel>
+                    <Select 
+                      label="Channels"
+                      multiple
+                      value={selectedChannelIds}
+                      onChange={(e) => setSelectedChannelIds(Array.isArray(e.target.value) ? e.target.value : [])}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => {
+                            const channel = channels.find(c => c.id === value);
+                            return channel ? (
+                              <Chip key={value} label={channel.name} size="small" />
+                            ) : null;
+                          })}
+                        </Box>
+                      )}
+                      MenuProps={{
+                        PaperProps: {
+                          sx: {
+                            maxHeight: 400,
+                            '& .MuiMenuItem-root': {
+                              minHeight: 'auto',
+                              padding: '8px 16px',
+                            },
+                          },
+                        },
+                        anchorOrigin: {
+                          vertical: 'bottom',
+                          horizontal: 'left',
+                        },
+                        transformOrigin: {
+                          vertical: 'top',
+                          horizontal: 'left',
+                        },
+                      }}
+                    >
+                      {channels.map((channel) => (
+                        <MenuItem key={channel.id} value={channel.id}>
+                          {channel.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
                 <TextField
                   fullWidth
                   label="Video Duration"
@@ -1059,8 +1284,8 @@ const Upload: React.FC = () => {
 
       {/* All Videos Section */}
       <Card>
-        <CardContent>
-          <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold' }}>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
             All Uploaded Videos ({allVideos.length})
           </Typography>
 
@@ -1100,23 +1325,155 @@ const Upload: React.FC = () => {
                     ease: "easeOut"
                   }}
                 >
-                  <VideoCard 
-                    video={{
-                      ...video,
-                      thumbnail: video.thumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video',
-                      views: video.views || 0,
-                      duration: video.duration || '0:00',
-                      category: (video as any).category || 'Uncategorized',
-                      uploadDate: video.created_at || new Date().toISOString()
-                    }} 
-                    onClick={() => handleVideoClick(video.slug || video.id)}
-                  />
+                  <Box sx={{ position: 'relative' }}>
+                    <VideoCard 
+                      video={{
+                        ...video,
+                        thumbnail: video.thumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video',
+                        views: video.views || 0,
+                        duration: video.duration || '0:00',
+                        category: (video as any).category || 'Uncategorized',
+                        uploadDate: video.created_at || new Date().toISOString()
+                      }} 
+                      onClick={() => handleVideoClick(video.slug || video.id)}
+                    />
+                                         <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
+                       <IconButton
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleEditClick(video);
+                         }}
+                         sx={{
+                           bgcolor: 'rgba(0, 0, 0, 0.7)',
+                           color: 'white',
+                           '&:hover': {
+                             bgcolor: 'rgba(0, 0, 0, 0.9)',
+                           }
+                         }}
+                       >
+                         <Edit />
+                       </IconButton>
+                       <IconButton
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleDeleteClick(video.id);
+                         }}
+                         sx={{
+                           bgcolor: 'rgba(0, 0, 0, 0.7)',
+                           color: '#ff6b6b',
+                           '&:hover': {
+                             bgcolor: 'rgba(255, 107, 107, 0.9)',
+                             color: 'white',
+                           }
+                         }}
+                       >
+                         <Delete />
+                       </IconButton>
+                     </Box>
+                  </Box>
                 </motion.div>
               ))}
             </Box>
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+        <DialogTitle>Video Sil</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bu videoyu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} color="inherit">
+            İptal
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Sil
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Video Dialog */}
+      <Dialog open={editDialogOpen} onClose={handleCancelEdit} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Video</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Video Title"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Description"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              fullWidth
+              multiline
+              rows={4}
+            />
+            <TextField
+              label="Thumbnail URL"
+              value={editThumbnailUrl}
+              onChange={(e) => setEditThumbnailUrl(e.target.value)}
+              fullWidth
+              placeholder="Enter thumbnail image URL"
+            />
+            <FormControl fullWidth>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={editCategoryIds[0] || ''}
+                onChange={(e) => setEditCategoryIds(e.target.value ? [e.target.value] : [])}
+              >
+                <MenuItem value="">None</MenuItem>
+                {customCategories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Model</InputLabel>
+              <Select
+                value={editModelIds[0] || ''}
+                onChange={(e) => setEditModelIds(e.target.value ? [e.target.value] : [])}
+              >
+                <MenuItem value="">None</MenuItem>
+                {models.map((model) => (
+                  <MenuItem key={model.id} value={model.id}>
+                    {model.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Channel</InputLabel>
+              <Select
+                value={editChannelIds[0] || ''}
+                onChange={(e) => setEditChannelIds(e.target.value ? [e.target.value] : [])}
+              >
+                <MenuItem value="">None</MenuItem>
+                {channels.map((channel) => (
+                  <MenuItem key={channel.id} value={channel.id}>
+                    {channel.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelEdit}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained" disabled={!editTitle.trim()}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
