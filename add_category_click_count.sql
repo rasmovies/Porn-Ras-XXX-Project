@@ -8,3 +8,5 @@ CREATE INDEX IF NOT EXISTS idx_categories_click_count ON categories(click_count 
 -- Update existing categories to have click_count = 0 if NULL
 UPDATE categories SET click_count = 0 WHERE click_count IS NULL;
 
+
+

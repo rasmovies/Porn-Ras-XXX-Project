@@ -13,12 +13,12 @@ import {
   IconButton,
   Alert,
   Snackbar,
-  CardMedia,
 } from '@mui/material';
-import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, CheckCircle as SelectIcon, Image as ImageIcon } from '@mui/icons-material';
+import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { categoryService, modelService, channelService, profileService, banUserService, notificationService, settingsService, backgroundImageService } from '../services/database';
-import { Category, Model, Channel, Profile, BanUser, BackgroundImage } from '../lib/supabase';
+import { categoryService, modelService, channelService, profileService, banUserService, notificationService } from '../services/database';
+import { emailApi } from '../services/emailApi';
+import { Category, Model, Channel, Profile, BanUser } from '../lib/supabase';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
@@ -67,27 +67,35 @@ const Admin: React.FC = () => {
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editingModel, setEditingModel] = useState<string | null>(null);
+  const [editingChannel, setEditingChannel] = useState<string | null>(null);
   const [editCategoryValue, setEditCategoryValue] = useState('');
   const [editModelValue, setEditModelValue] = useState('');
+  const [editModelImagePreview, setEditModelImagePreview] = useState<string | null>(null);
+  const [editModelImageUrl, setEditModelImageUrl] = useState<string>('');
+  const [editChannelValue, setEditChannelValue] = useState('');
+  const [editChannelDescription, setEditChannelDescription] = useState('');
+  const [editChannelThumbnail, setEditChannelThumbnail] = useState<File | null>(null);
+  const [editChannelThumbnailPreview, setEditChannelThumbnailPreview] = useState<string | null>(null);
+  const [editChannelThumbnailUrl, setEditChannelThumbnailUrl] = useState<string>('');
   const [categoryThumbnail, setCategoryThumbnail] = useState<File | null>(null);
   const [categoryThumbnailPreview, setCategoryThumbnailPreview] = useState<string | null>(null);
-  const [modelImage, setModelImage] = useState<File | null>(null);
   const [modelImagePreview, setModelImagePreview] = useState<string | null>(null);
+  const [modelImageUrl, setModelImageUrl] = useState<string>('');
   const [channelThumbnail, setChannelThumbnail] = useState<File | null>(null);
   const [channelThumbnailPreview, setChannelThumbnailPreview] = useState<string | null>(null);
-  const [backgroundImage, setBackgroundImage] = useState<File | null>(null);
-  const [backgroundImagePreview, setBackgroundImagePreview] = useState<string | null>(null);
-  const [backgroundImageSize, setBackgroundImageSize] = useState<number>(0);
-  const [backgroundImages, setBackgroundImages] = useState<BackgroundImage[]>([]);
-  const [libraryImages, setLibraryImages] = useState<Array<{
-    file: File;
-    preview: string;
-    name: string;
-    size: number;
-  }>>([]);
-  const [heroTitle, setHeroTitle] = useState<string>('');
-  const [heroSubtitle, setHeroSubtitle] = useState<string>('');
+  const [channelThumbnailUrl, setChannelThumbnailUrl] = useState<string>('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const [marketingSubject, setMarketingSubject] = useState('');
+  const [marketingHeadline, setMarketingHeadline] = useState('');
+  const [marketingMessage, setMarketingMessage] = useState('');
+  const [marketingRecipientsInput, setMarketingRecipientsInput] = useState('');
+  const [marketingCtaUrl, setMarketingCtaUrl] = useState('');
+  const [marketingCtaLabel, setMarketingCtaLabel] = useState('');
+  const [marketingUnsubscribeUrl, setMarketingUnsubscribeUrl] = useState('');
+  const [marketingSending, setMarketingSending] = useState(false);
 
   // Load data from localStorage and Supabase on component mount
   useEffect(() => {
@@ -125,40 +133,6 @@ const Admin: React.FC = () => {
       } catch (error) {
         console.error('Failed to load bans from Supabase:', error);
       }
-
-      // Load background image from Supabase
-      try {
-        const bgImage = await settingsService.getValue('homepage_background_image');
-        if (bgImage) {
-          setBackgroundImagePreview(bgImage);
-        }
-      } catch (error) {
-        console.error('Failed to load background image:', error);
-      }
-
-      // Load hero title from Supabase
-      try {
-        const title = await settingsService.getValue('homepage_hero_title');
-        setHeroTitle(title || '');
-      } catch (error) {
-        console.error('Failed to load hero title:', error);
-      }
-
-      // Load hero subtitle from Supabase
-      try {
-        const subtitle = await settingsService.getValue('homepage_hero_subtitle');
-        setHeroSubtitle(subtitle || '');
-      } catch (error) {
-        console.error('Failed to load hero subtitle:', error);
-      }
-
-      // Load background images library
-      try {
-        const images = await backgroundImageService.getAll();
-        setBackgroundImages(images);
-      } catch (error) {
-        console.error('Failed to load background images:', error);
-      }
     };
 
     loadData();
@@ -189,6 +163,88 @@ const Admin: React.FC = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const generateToken = () =>
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2));
+
+  const parseRecipients = (input: string) =>
+    input
+      .split(/[\n,;]+/)
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+
+  const handleSendInviteEmail = async () => {
+    if (!inviteName.trim() || !inviteEmail.trim()) {
+      showSnackbar('Please enter inviter name and recipient email.', 'error');
+      return;
+    }
+
+    setInviteSending(true);
+    try {
+      const inviteUrl = `${window.location.origin}/register?invite=${encodeURIComponent(
+        inviteEmail.trim()
+      )}&token=${generateToken()}`;
+      await emailApi.sendInviteEmail({
+        inviterName: inviteName.trim(),
+        inviteeEmail: inviteEmail.trim(),
+        inviteUrl,
+      });
+      showSnackbar('Invite email sent successfully!');
+      setInviteEmail('');
+    } catch (error) {
+      console.error('Failed to send invite email:', error);
+      showSnackbar(
+        error instanceof Error ? error.message : 'Failed to send invite email.',
+        'error'
+      );
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
+  const handleSendMarketingEmail = async () => {
+    const recipients = parseRecipients(marketingRecipientsInput);
+    if (!marketingSubject.trim() || !marketingHeadline.trim() || !marketingMessage.trim()) {
+      showSnackbar('Please fill in subject, headline, and message.', 'error');
+      return;
+    }
+
+    if (recipients.length === 0) {
+      showSnackbar('Add at least one recipient email.', 'error');
+      return;
+    }
+
+    setMarketingSending(true);
+    try {
+      await emailApi.sendMarketingEmail({
+        subject: marketingSubject.trim(),
+        headline: marketingHeadline.trim(),
+        message: marketingMessage.trim(),
+        recipients,
+        ctaUrl: marketingCtaUrl.trim() || undefined,
+        ctaLabel: marketingCtaLabel.trim() || undefined,
+        unsubscribeUrl: marketingUnsubscribeUrl.trim() || undefined,
+      });
+      showSnackbar('Marketing campaign sent successfully!');
+      setMarketingSubject('');
+      setMarketingHeadline('');
+      setMarketingMessage('');
+      setMarketingRecipientsInput('');
+      setMarketingCtaUrl('');
+      setMarketingCtaLabel('');
+      setMarketingUnsubscribeUrl('');
+    } catch (error) {
+      console.error('Failed to send marketing email:', error);
+      showSnackbar(
+        error instanceof Error ? error.message : 'Failed to send marketing email.',
+        'error'
+      );
+    } finally {
+      setMarketingSending(false);
+    }
   };
 
   // Category functions
@@ -290,65 +346,59 @@ const Admin: React.FC = () => {
   };
 
   // Model functions
-  const handleModelImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate image file
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error || 'Geçersiz resim dosyası');
-        event.target.value = ''; // Reset input
-        return;
-      }
-
-      setModelImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setModelImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleModelImageUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    setModelImageUrl(url);
+    if (url.trim()) {
+      setModelImagePreview(url.trim());
+    } else {
+      setModelImagePreview(null);
     }
   };
 
   const handleRemoveModelImage = () => {
-    setModelImage(null);
     setModelImagePreview(null);
+    setModelImageUrl('');
   };
 
   const handleAddModel = async () => {
     if (newModel.trim() && !models.some(m => m.name === newModel.trim())) {
       try {
+        // Use only URL for image
+        const imageToUse = modelImageUrl.trim();
+        
         // First try to save to Supabase
         await modelService.create({
           name: newModel.trim(),
-          image: modelImagePreview
+          image: imageToUse
         });
         
         // Then update local state
         const newModelData: Model = {
           id: Date.now().toString(),
           name: newModel.trim(),
-          image: modelImagePreview,
+          image: imageToUse,
           created_at: new Date().toISOString()
         };
         setModels([...models, newModelData]);
         setNewModel('');
-        setModelImage(null);
         setModelImagePreview(null);
+        setModelImageUrl('');
         showSnackbar('Model added successfully!');
       } catch (error) {
         console.error('Failed to save model to Supabase:', error);
         // Fallback to local state only
+        const imageToUse = modelImageUrl.trim();
         const newModelData: Model = {
           id: Date.now().toString(),
           name: newModel.trim(),
-          image: modelImagePreview,
+          image: imageToUse,
           created_at: new Date().toISOString()
         };
         setModels([...models, newModelData]);
         setNewModel('');
-        setModelImage(null);
         setModelImagePreview(null);
+        setModelImageUrl('');
         showSnackbar('Model added successfully (local only)!');
       }
     } else if (models.some(m => m.name === newModel.trim())) {
@@ -356,12 +406,82 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleEditModel = (modelName: string) => {
-    setEditingModel(modelName);
-    setEditModelValue(modelName);
+  const handleEditModelImageUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    setEditModelImageUrl(url);
+    if (url.trim()) {
+      setEditModelImagePreview(url.trim());
+    } else {
+      setEditModelImagePreview(null);
+    }
   };
 
-  const handleSaveModel = () => {
+  const handleEditModel = (modelName: string) => {
+    const model = models.find(m => m.name === modelName);
+    setEditingModel(modelName);
+    setEditModelValue(modelName);
+    setEditModelImagePreview(model?.image || null);
+    setEditModelImageUrl(model?.image || '');
+  };
+
+  const handleSaveModel = async () => {
+    if (!editingModel) return;
+    
+    const model = models.find(m => m.name === editingModel);
+    if (!model) return;
+
+    const imageToUse = editModelImageUrl.trim() || model.image;
+
+    try {
+      // Update in Supabase
+      await modelService.update(model.id, {
+        name: editModelValue.trim(),
+        image: imageToUse
+      });
+
+      // Update local state
+      const updatedModels = models.map(m => 
+        m.id === model.id 
+          ? { ...m, name: editModelValue.trim(), image: imageToUse }
+          : m
+      );
+      setModels(updatedModels);
+      setEditingModel(null);
+      setEditModelValue('');
+      setEditModelImagePreview(null);
+      setEditModelImageUrl('');
+      showSnackbar('Model updated successfully!');
+    } catch (error) {
+      console.error('Failed to update model:', error);
+      showSnackbar('Failed to update model!', 'error');
+    }
+  };
+
+  const handleCancelEditModel = () => {
+    setEditingModel(null);
+    setEditModelValue('');
+    setEditModelImagePreview(null);
+    setEditModelImageUrl('');
+  };
+
+  const handleDeleteModel = (modelName: string) => {
+    const model = models.find(m => m.name === modelName);
+    if (!model) return;
+
+    const confirmDelete = window.confirm(`Are you sure you want to delete "${modelName}"?`);
+    if (!confirmDelete) return;
+
+    try {
+      modelService.delete(model.id);
+      setModels(models.filter(m => m.name !== modelName));
+      showSnackbar('Model deleted successfully!');
+    } catch (error) {
+      console.error('Failed to delete model:', error);
+      showSnackbar('Failed to delete model!', 'error');
+    }
+  };
+
+  const handleDeleteModelOld = () => {
     if (editModelValue.trim() && !models.some(m => m.name === editModelValue.trim())) {
       const updatedModels = models.map(m => 
         m.name === editingModel ? { ...m, name: editModelValue.trim() } : m
@@ -375,15 +495,9 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleCancelEditModel = () => {
-    setEditingModel(null);
-    setEditModelValue('');
-  };
 
-  const handleDeleteModel = (modelName: string) => {
-    setModels(models.filter(m => m.name !== modelName));
-    showSnackbar('Model deleted successfully!');
-  };
+
+
 
   // Channel functions
   const handleChannelThumbnailUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -398,6 +512,7 @@ const Admin: React.FC = () => {
       }
 
       setChannelThumbnail(file);
+      setChannelThumbnailUrl(''); // Clear URL when file is selected
       const reader = new FileReader();
       reader.onload = (e) => {
         setChannelThumbnailPreview(e.target?.result as string);
@@ -406,19 +521,34 @@ const Admin: React.FC = () => {
     }
   };
 
+  const handleChannelThumbnailUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    setChannelThumbnailUrl(url);
+    if (url.trim()) {
+      setChannelThumbnailPreview(url.trim());
+      setChannelThumbnail(null); // Clear file when URL is entered
+    } else {
+      setChannelThumbnailPreview(null);
+    }
+  };
+
   const handleRemoveChannelThumbnail = () => {
     setChannelThumbnail(null);
     setChannelThumbnailPreview(null);
+    setChannelThumbnailUrl('');
   };
 
   const handleAddChannel = async () => {
     if (newChannel.trim() && !channels.some(c => c.name === newChannel.trim())) {
       try {
+        // Use URL if available, otherwise use file preview
+        const thumbnailToUse = channelThumbnailUrl.trim() || channelThumbnailPreview;
+        
         // First try to save to Supabase
         await channelService.create({
           name: newChannel.trim(),
           description: newChannelDescription,
-          thumbnail: channelThumbnailPreview,
+          thumbnail: thumbnailToUse,
           banner: null
         });
         
@@ -427,7 +557,7 @@ const Admin: React.FC = () => {
           id: Date.now().toString(),
           name: newChannel.trim(),
           description: newChannelDescription,
-          thumbnail: channelThumbnailPreview,
+          thumbnail: thumbnailToUse,
           banner: null,
           subscriber_count: 0,
           created_at: new Date().toISOString()
@@ -437,15 +567,17 @@ const Admin: React.FC = () => {
         setNewChannelDescription('');
         setChannelThumbnail(null);
         setChannelThumbnailPreview(null);
+        setChannelThumbnailUrl('');
         showSnackbar('Channel added successfully!');
       } catch (error) {
         console.error('Failed to save channel to Supabase:', error);
         // Fallback to local state only
+        const thumbnailToUse = channelThumbnailUrl.trim() || channelThumbnailPreview;
         const newChannelData: Channel = {
           id: Date.now().toString(),
           name: newChannel.trim(),
           description: newChannelDescription,
-          thumbnail: channelThumbnailPreview,
+          thumbnail: thumbnailToUse,
           banner: null,
           subscriber_count: 0,
           created_at: new Date().toISOString()
@@ -455,11 +587,97 @@ const Admin: React.FC = () => {
         setNewChannelDescription('');
         setChannelThumbnail(null);
         setChannelThumbnailPreview(null);
+        setChannelThumbnailUrl('');
         showSnackbar('Channel added successfully (local only)!');
       }
     } else if (channels.some(c => c.name === newChannel.trim())) {
       showSnackbar('Channel already exists!', 'error');
     }
+  };
+
+  const handleEditChannelThumbnailUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        toast.error(validation.error || 'Geçersiz resim dosyası');
+        event.target.value = '';
+        return;
+      }
+      setEditChannelThumbnail(file);
+      setEditChannelThumbnailUrl('');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setEditChannelThumbnailPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditChannelThumbnailUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    setEditChannelThumbnailUrl(url);
+    if (url.trim()) {
+      setEditChannelThumbnailPreview(url.trim());
+      setEditChannelThumbnail(null);
+    } else {
+      setEditChannelThumbnailPreview(null);
+    }
+  };
+
+  const handleEditChannel = (channelName: string) => {
+    const channel = channels.find(c => c.name === channelName);
+    setEditingChannel(channelName);
+    setEditChannelValue(channelName);
+    setEditChannelDescription(channel?.description || '');
+    setEditChannelThumbnailPreview(channel?.thumbnail || null);
+    setEditChannelThumbnailUrl(channel?.thumbnail || '');
+    setEditChannelThumbnail(null);
+  };
+
+  const handleSaveChannel = async () => {
+    if (!editingChannel) return;
+    
+    const channel = channels.find(c => c.name === editingChannel);
+    if (!channel) return;
+
+    const thumbnailToUse = editChannelThumbnailUrl.trim() || editChannelThumbnailPreview || channel.thumbnail;
+
+    try {
+      // Update in Supabase
+      await channelService.update(channel.id, {
+        name: editChannelValue.trim(),
+        description: editChannelDescription,
+        thumbnail: thumbnailToUse
+      });
+
+      // Update local state
+      const updatedChannels = channels.map(c => 
+        c.id === channel.id 
+          ? { ...c, name: editChannelValue.trim(), description: editChannelDescription, thumbnail: thumbnailToUse }
+          : c
+      );
+      setChannels(updatedChannels);
+      setEditingChannel(null);
+      setEditChannelValue('');
+      setEditChannelDescription('');
+      setEditChannelThumbnail(null);
+      setEditChannelThumbnailPreview(null);
+      setEditChannelThumbnailUrl('');
+      showSnackbar('Channel updated successfully!');
+    } catch (error) {
+      console.error('Failed to update channel:', error);
+      showSnackbar('Failed to update channel!', 'error');
+    }
+  };
+
+  const handleCancelEditChannel = () => {
+    setEditingChannel(null);
+    setEditChannelValue('');
+    setEditChannelDescription('');
+    setEditChannelThumbnail(null);
+    setEditChannelThumbnailPreview(null);
+    setEditChannelThumbnailUrl('');
   };
 
   const handleDeleteChannel = (channelName: string) => {
@@ -536,618 +754,8 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleBackgroundImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate image file
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error || 'Geçersiz resim dosyası');
-        event.target.value = ''; // Reset input
-        return;
-      }
-
-      setBackgroundImage(file);
-      setBackgroundImageSize(file.size);
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64Image = e.target?.result as string;
-        setBackgroundImagePreview(base64Image);
-        
-        // Save to Supabase
-        try {
-          await settingsService.upsert('homepage_background_image', base64Image);
-          toast.success('Background image saved successfully!');
-        } catch (error) {
-          console.error('Failed to save background image:', error);
-          toast.error('Failed to save background image!');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveBackgroundImage = async () => {
-    setBackgroundImage(null);
-    setBackgroundImagePreview(null);
-    setBackgroundImageSize(0);
-    
-    // Remove from Supabase
-    try {
-      await settingsService.upsert('homepage_background_image', '');
-      toast.success('Background image removed successfully!');
-    } catch (error) {
-      console.error('Failed to remove background image:', error);
-      toast.error('Failed to remove background image!');
-    }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const handleSaveHeroTitle = async () => {
-    try {
-      const valueToSave = heroTitle.trim() === '' ? null : heroTitle.trim();
-      await settingsService.upsert('homepage_hero_title', valueToSave);
-      toast.success('Hero title saved successfully!');
-      // Reload the title to ensure sync
-      try {
-        const title = await settingsService.getValue('homepage_hero_title');
-        setHeroTitle(title || '');
-      } catch (err) {
-        console.error('Failed to reload hero title:', err);
-      }
-    } catch (error) {
-      console.error('Failed to save hero title:', error);
-      toast.error('Failed to save hero title!');
-    }
-  };
-
-  const handleSaveHeroSubtitle = async () => {
-    try {
-      const valueToSave = heroSubtitle.trim() === '' ? null : heroSubtitle.trim();
-      await settingsService.upsert('homepage_hero_subtitle', valueToSave);
-      toast.success('Hero subtitle saved successfully!');
-      // Reload the subtitle to ensure sync
-      try {
-        const subtitle = await settingsService.getValue('homepage_hero_subtitle');
-        setHeroSubtitle(subtitle || '');
-      } catch (err) {
-        console.error('Failed to reload hero subtitle:', err);
-      }
-    } catch (error) {
-      console.error('Failed to save hero subtitle:', error);
-      toast.error('Failed to save hero subtitle!');
-    }
-  };
-
-  // Library Image Upload Handler (Multiple files)
-  const handleLibraryImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const fileArray = Array.from(files);
-    const newImages: Array<{
-      file: File;
-      preview: string;
-      name: string;
-      size: number;
-    }> = [];
-
-    let processedCount = 0;
-
-    // Process each file
-    fileArray.forEach((file, index) => {
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        toast.error(`Image ${index + 1}: ${validation.error || 'Invalid image file'}`);
-        processedCount++;
-        if (processedCount === fileArray.length && newImages.length > 0) {
-          setLibraryImages((prev) => [...prev, ...newImages]);
-        }
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageData = {
-          file,
-          preview: reader.result as string,
-          name: file.name.replace(/\.[^/.]+$/, ''), // Remove extension for name
-          size: file.size,
-        };
-        newImages.push(imageData);
-        processedCount++;
-
-        // If all files are processed, update state
-        if (processedCount === fileArray.length) {
-          setLibraryImages((prev) => [...prev, ...newImages]);
-        }
-      };
-      reader.onerror = () => {
-        toast.error(`Failed to load image ${index + 1}`);
-        processedCount++;
-        if (processedCount === fileArray.length && newImages.length > 0) {
-          setLibraryImages((prev) => [...prev, ...newImages]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // Reset input
-    event.target.value = '';
-  };
-
-  // Save All Library Images to Database
-  const handleSaveLibraryImage = async () => {
-    if (libraryImages.length === 0) {
-      toast.error('Please select at least one image first');
-      return;
-    }
-
-    // Check if all images have names
-    const imagesWithoutNames = libraryImages.filter(img => !img.name.trim());
-    if (imagesWithoutNames.length > 0) {
-      toast.error('Please enter names for all images');
-      return;
-    }
-
-    try {
-      let successCount = 0;
-      let failCount = 0;
-
-      // Save each image
-      for (const imageData of libraryImages) {
-        try {
-          // Get image dimensions
-          const img = new Image();
-          
-          // Wait for image to load
-          const imageLoadPromise = new Promise<{ width: number; height: number }>((resolve, reject) => {
-            let timeoutId: NodeJS.Timeout;
-            
-            img.onload = () => {
-              clearTimeout(timeoutId);
-              resolve({ width: img.width, height: img.height });
-            };
-            img.onerror = () => {
-              clearTimeout(timeoutId);
-              reject(new Error('Failed to load image'));
-            };
-            
-            // Set timeout for image loading (10 seconds)
-            timeoutId = setTimeout(() => {
-              reject(new Error('Image loading timeout'));
-            }, 10000);
-            
-            img.src = imageData.preview;
-          });
-
-          const { width, height } = await imageLoadPromise;
-
-          // Save to database
-          await backgroundImageService.create(
-            imageData.name.trim(),
-            imageData.preview,
-            imageData.size,
-            width,
-            height
-          );
-
-          successCount++;
-        } catch (error: any) {
-          console.error(`Failed to save image "${imageData.name}":`, error);
-          failCount++;
-        }
-      }
-
-      // Reload library images
-      const images = await backgroundImageService.getAll();
-      setBackgroundImages(images);
-
-      // Reset form
-      setLibraryImages([]);
-
-      if (successCount > 0 && failCount === 0) {
-        toast.success(`${successCount} image(s) added to library successfully!`);
-      } else if (successCount > 0 && failCount > 0) {
-        toast.success(`${successCount} image(s) saved, ${failCount} failed`);
-      } else {
-        toast.error(`Failed to save images. Please check console for details.`);
-      }
-    } catch (error: any) {
-      console.error('Failed to save library images:', error);
-      toast.error('Failed to save library images!');
-    }
-  };
-
-  // Delete Library Image
-  const handleDeleteLibraryImage = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this image?')) {
-      return;
-    }
-
-    try {
-      await backgroundImageService.delete(id);
-      
-      // Reload library images
-      const images = await backgroundImageService.getAll();
-      setBackgroundImages(images);
-
-      toast.success('Image deleted successfully!');
-    } catch (error) {
-      console.error('Failed to delete library image:', error);
-      toast.error('Failed to delete library image!');
-    }
-  };
-
-  // Select Library Image as Homepage Background
-  const handleSelectLibraryImage = async (imageData: string) => {
-    try {
-      await settingsService.upsert('homepage_background_image', imageData);
-      
-      // Update preview
-      setBackgroundImagePreview(imageData);
-      
-      toast.success('Background image updated from library!');
-      
-      // Reload background image from settings
-      try {
-        const bgImage = await settingsService.getValue('homepage_background_image');
-        if (bgImage) {
-          setBackgroundImagePreview(bgImage);
-        }
-      } catch (err) {
-        console.error('Failed to reload background image:', err);
-      }
-    } catch (error) {
-      console.error('Failed to set background image:', error);
-      toast.error('Failed to set background image!');
-    }
-  };
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Homepage Background Image Section */}
-      <Card sx={{ mb: 4, bgcolor: 'background.paper' }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Homepage Background Image
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Recommended size: 1920x500px or similar wide aspect ratio
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<CloudUpload />}
-              sx={{ mb: 2 }}
-            >
-              Upload Background Image
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={handleBackgroundImageUpload}
-              />
-            </Button>
-            {backgroundImagePreview && (
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={handleRemoveBackgroundImage}
-                sx={{ mb: 2 }}
-              >
-                Remove
-              </Button>
-            )}
-          </Box>
-
-          {backgroundImagePreview && (
-            <Box>
-              <Box
-                component="img"
-                src={backgroundImagePreview}
-                alt="Background preview"
-                sx={{
-                  width: '100%',
-                  maxHeight: 300,
-                  objectFit: 'cover',
-                  borderRadius: 2,
-                  mb: 2,
-                }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                File size: {formatFileSize(backgroundImageSize)} ({backgroundImageSize} bytes)
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Background Images Library */}
-      <Card sx={{ mb: 4, bgcolor: 'background.paper' }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Background Images Library
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Upload and manage background images. Selected images can be used as homepage background.
-          </Typography>
-
-          {/* Upload New Image to Library */}
-          <Box sx={{ mb: 4, p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Add New Images to Library
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              You can select multiple images at once
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<CloudUpload />}
-                sx={{ width: 'fit-content' }}
-              >
-                Select Images
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  multiple
-                  onChange={handleLibraryImageUpload}
-                />
-              </Button>
-              {libraryImages.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Selected Images ({libraryImages.length})
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {libraryImages.map((imageData, index) => (
-                      <Box
-                        key={index}
-                        sx={{
-                          p: 2,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          bgcolor: 'rgba(255,255,255,0.02)',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Box
-                            component="img"
-                            src={imageData.preview}
-                            alt={imageData.name}
-                            sx={{
-                              width: 150,
-                              height: 100,
-                              objectFit: 'cover',
-                              borderRadius: 1,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Box sx={{ flex: 1 }}>
-                            <TextField
-                              fullWidth
-                              label="Image Name"
-                              placeholder="Enter a name for this image"
-                              value={imageData.name}
-                              onChange={(e) => {
-                                const updated = [...libraryImages];
-                                updated[index].name = e.target.value;
-                                setLibraryImages(updated);
-                              }}
-                              variant="outlined"
-                              size="small"
-                              sx={{ mb: 1 }}
-                            />
-                            <Typography variant="caption" color="text.secondary">
-                              {formatFileSize(imageData.size)} ({imageData.size} bytes)
-                            </Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                const updated = libraryImages.filter((_, i) => i !== index);
-                                setLibraryImages(updated);
-                              }}
-                              sx={{ ml: 1 }}
-                              title="Remove image"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<Save />}
-                      onClick={handleSaveLibraryImage}
-                      disabled={libraryImages.length === 0 || libraryImages.some(img => !img.name.trim())}
-                    >
-                      Save All to Library
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={() => {
-                        setLibraryImages([]);
-                      }}
-                    >
-                      Clear All
-                    </Button>
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          </Box>
-
-          {/* Library Images Grid */}
-          <Typography variant="subtitle1" gutterBottom sx={{ mt: 3, mb: 2 }}>
-            Library Images ({backgroundImages.length})
-          </Typography>
-          {backgroundImages.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <ImageIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="body1" color="text.secondary">
-                No images in library yet. Upload your first image above.
-              </Typography>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  sm: 'repeat(2, 1fr)',
-                  md: 'repeat(3, 1fr)',
-                },
-                gap: 2,
-              }}
-            >
-              {backgroundImages.map((image) => (
-                <Card
-                  key={image.id}
-                  sx={{
-                    position: 'relative',
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    '&:hover': {
-                      borderColor: 'rgba(255,107,107,0.3)',
-                      boxShadow: '0 4px 12px rgba(255,107,107,0.2)',
-                    },
-                  }}
-                >
-                  <CardMedia
-                    sx={{
-                      height: 200,
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Box
-                      component="img"
-                      src={image.image_data}
-                      alt={image.name}
-                      sx={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 0,
-                        right: 0,
-                        display: 'flex',
-                        gap: 0.5,
-                        p: 0.5,
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={() => handleSelectLibraryImage(image.image_data)}
-                        sx={{
-                          bgcolor: 'rgba(0,0,0,0.7)',
-                          color: 'white',
-                          '&:hover': { bgcolor: 'rgba(0,0,0,0.9)' },
-                        }}
-                        title="Select as homepage background"
-                      >
-                        <SelectIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteLibraryImage(image.id)}
-                        sx={{
-                          bgcolor: 'rgba(255,0,0,0.7)',
-                          color: 'white',
-                          '&:hover': { bgcolor: 'rgba(255,0,0,0.9)' },
-                        }}
-                        title="Delete image"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </CardMedia>
-                  <CardContent>
-                    <Typography variant="subtitle2" noWrap>
-                      {image.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatFileSize(image.file_size)} • {image.width}x{image.height}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      {new Date(image.created_at).toLocaleDateString()}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Hero Text Section */}
-      <Card sx={{ mb: 4, bgcolor: 'background.paper' }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Hero Banner Text
-          </Typography>
-          
-          <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              label="Hero Title (Leave empty to hide)"
-              placeholder="Welcome to AdultTube"
-              value={heroTitle}
-              onChange={(e) => setHeroTitle(e.target.value)}
-              variant="outlined"
-              sx={{ mb: 2 }}
-              helperText="Leave empty to hide the title on homepage"
-            />
-            <Button
-              variant="contained"
-              onClick={handleSaveHeroTitle}
-            >
-              Save Title
-            </Button>
-          </Box>
-
-          <Box>
-            <TextField
-              fullWidth
-              label="Hero Subtitle (Leave empty to hide)"
-              placeholder="Premium Adult Content"
-              value={heroSubtitle}
-              onChange={(e) => setHeroSubtitle(e.target.value)}
-              variant="outlined"
-              sx={{ mb: 2 }}
-              helperText="Leave empty to hide the subtitle on homepage"
-            />
-            <Button
-              variant="contained"
-              onClick={handleSaveHeroSubtitle}
-            >
-              Save Subtitle
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
       <Box>
         <Typography variant="h4" component="h1" gutterBottom className="gradient-text">
           Admin Panel
@@ -1164,6 +772,7 @@ const Admin: React.FC = () => {
             <Tab label="Models" />
             <Tab label="Channels" />
             <Tab label="Users" />
+            <Tab label="Email Automation" />
           </Tabs>
         </Box>
 
@@ -1540,24 +1149,21 @@ const Admin: React.FC = () => {
                     ) : (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Click to upload model image
+                          Click to upload model image or enter a URL
                         </Typography>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleModelImageUpload}
-                          style={{ display: 'none' }}
-                          id="model-image-upload"
+                        <TextField
+                          fullWidth
+                          label="Image URL (Optional)"
+                          placeholder="Enter image URL"
+                          value={modelImageUrl}
+                          onChange={handleModelImageUrlChange}
+                          variant="outlined"
+                          size="small"
+                          sx={{ mb: 1 }}
                         />
-                        <label htmlFor="model-image-upload">
-                          <Button 
-                            variant="outlined" 
-                            component="span" 
-                            startIcon={<Add />}
-                          >
-                            Choose Image
-                          </Button>
-                        </label>
+                        <input
+
+                        />
                       </Box>
                     )}
                   </Box>
@@ -1646,30 +1252,85 @@ const Admin: React.FC = () => {
                         gap: 2,
                         padding: 3
                       }}>
+                        {!editingModel && (
+                          <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1, zIndex: 10 }}>
+                            <IconButton
+                              color="primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditModel(model.name);
+                              }}
+                              size="small"
+                              sx={{ bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,1)' } }}
+                            >
+                              <Edit />
+                            </IconButton>
+                            <IconButton
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteModel(model.name);
+                              }}
+                              size="small"
+                              sx={{ bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,1)' } }}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </Box>
+                        )}
                         {editingModel === model.name ? (
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
                             <TextField
                               fullWidth
+                              label="Model Name"
                               value={editModelValue}
                               onChange={(e) => setEditModelValue(e.target.value)}
                               size="small"
-                              onKeyPress={(e) => e.key === 'Enter' && handleSaveModel()}
                               sx={{ bgcolor: 'rgba(255,255,255,0.1)' }}
                             />
-                            <IconButton 
-                              color="primary" 
-                              onClick={handleSaveModel}
-                              size="small"
-                            >
-                              <Save />
-                            </IconButton>
-                            <IconButton 
-                              color="error" 
-                              onClick={handleCancelEditModel}
-                              size="small"
-                            >
-                              <Cancel />
-                            </IconButton>
+                            <Box>
+                              <Typography variant="body2" sx={{ mb: 1 }}>Model Image</Typography>
+                              <TextField
+                                fullWidth
+                                label="Image URL (Optional)"
+                                placeholder="Enter image URL"
+                                value={editModelImageUrl}
+                                onChange={handleEditModelImageUrlChange}
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 1 }}
+                              />
+
+                              {editModelImagePreview && (
+                                <Box sx={{ mt: 1 }}>
+                                  <img
+                                    src={editModelImagePreview}
+                                    alt="Preview"
+                                    style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '8px' }}
+                                  />
+                                </Box>
+                              )}
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="contained"
+                                startIcon={<Save />}
+                                onClick={handleSaveModel}
+                                size="small"
+                                fullWidth
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                startIcon={<Cancel />}
+                                onClick={handleCancelEditModel}
+                                size="small"
+                                fullWidth
+                              >
+                                Cancel
+                              </Button>
+                            </Box>
                           </Box>
                         ) : (
                           <>
@@ -1816,25 +1477,35 @@ const Admin: React.FC = () => {
                           </Button>
                         </Box>
                       </Box>
-                    ) : (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Click to upload channel thumbnail
-                        </Typography>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleChannelThumbnailUpload}
-                          style={{ display: 'none' }}
-                          id="channel-thumbnail-upload"
-                        />
-                        <label htmlFor="channel-thumbnail-upload">
-                          <Button variant="outlined" component="span" startIcon={<CloudUpload />}>
-                            Choose Thumbnail
-                          </Button>
-                        </label>
-                      </Box>
-                    )}
+                                          ) : (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Click to upload channel thumbnail or enter a URL
+                          </Typography>
+                          <TextField
+                            fullWidth
+                            label="Thumbnail URL (Optional)"
+                            placeholder="Enter thumbnail URL"
+                            value={channelThumbnailUrl}
+                            onChange={handleChannelThumbnailUrlChange}
+                            variant="outlined"
+                            size="small"
+                            sx={{ mb: 1 }}
+                          />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleChannelThumbnailUpload}
+                            style={{ display: 'none' }}
+                            id="channel-thumbnail-upload"
+                          />
+                          <label htmlFor="channel-thumbnail-upload">
+                            <Button variant="outlined" component="span" startIcon={<CloudUpload />}>
+                              Choose Thumbnail
+                            </Button>
+                          </label>
+                        </Box>
+                      )}
                   </Box>
                   <Button
                     variant="contained"
@@ -2039,6 +1710,115 @@ const Admin: React.FC = () => {
                 ))}
               </Box>
             )}
+          </Box>
+        </TabPanel>
+
+        {/* Email Automation Tab Panel */}
+        <TabPanel value={tabValue} index={4}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box>
+              <Typography variant="h5" gutterBottom>
+                Email Automation
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Trigger MailerSend flows for verification follow-ups, invitations, and marketing messages.
+              </Typography>
+            </Box>
+
+            <Card sx={{ bgcolor: 'background.paper' }}>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="h6">Send Invitation</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Invite a creator or partner to join the platform. A unique invite link will be generated automatically.
+                </Typography>
+                <TextField
+                  label="Inviter Name"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Invitee Email"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  fullWidth
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleSendInviteEmail}
+                  disabled={inviteSending}
+                  sx={{ alignSelf: 'flex-start', minWidth: 180 }}
+                >
+                  {inviteSending ? 'Sending…' : 'Send Invite'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ bgcolor: 'background.paper' }}>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="h6">Send Marketing Campaign</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Paste recipient emails separated by commas, semicolons, or new lines. MailerSend will deliver the campaign to each address.
+                </Typography>
+                <TextField
+                  label="Recipients"
+                  placeholder="example1@mail.com, example2@mail.com"
+                  multiline
+                  minRows={3}
+                  value={marketingRecipientsInput}
+                  onChange={(e) => setMarketingRecipientsInput(e.target.value)}
+                  helperText="Comma, semicolon, or newline separated email addresses"
+                />
+                <TextField
+                  label="Subject"
+                  value={marketingSubject}
+                  onChange={(e) => setMarketingSubject(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Headline"
+                  value={marketingHeadline}
+                  onChange={(e) => setMarketingHeadline(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Message"
+                  value={marketingMessage}
+                  onChange={(e) => setMarketingMessage(e.target.value)}
+                  multiline
+                  minRows={4}
+                  fullWidth
+                />
+                <TextField
+                  label="CTA URL (optional)"
+                  value={marketingCtaUrl}
+                  onChange={(e) => setMarketingCtaUrl(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="CTA Label (optional)"
+                  value={marketingCtaLabel}
+                  onChange={(e) => setMarketingCtaLabel(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Unsubscribe URL (optional)"
+                  value={marketingUnsubscribeUrl}
+                  onChange={(e) => setMarketingUnsubscribeUrl(e.target.value)}
+                  fullWidth
+                />
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={handleSendMarketingEmail}
+                  disabled={marketingSending}
+                  sx={{ alignSelf: 'flex-start', minWidth: 200 }}
+                >
+                  {marketingSending ? 'Sending campaign…' : 'Send Campaign'}
+                </Button>
+              </CardContent>
+            </Card>
           </Box>
         </TabPanel>
       </Card>

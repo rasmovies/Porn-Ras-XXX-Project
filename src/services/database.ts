@@ -1,4 +1,4 @@
-import { supabase, Category, Model, Video, Comment, Channel, Profile, BanUser, Notification, Settings, BackgroundImage } from '../lib/supabase';
+import { supabase, Category, Model, Video, Comment, Channel, Profile, BanUser, Notification, Settings, BackgroundImage, Subscription, ChannelSubscription, UserPost, UserGif, UserPlaylist } from '../lib/supabase';
 
 // Categories
 export const categoryService = {
@@ -666,5 +666,296 @@ export const backgroundImageService = {
     
     if (error) throw error;
     return data;
+  }
+};
+
+// Subscriptions
+export const subscriptionService = {
+  // Create subscription
+  async subscribe(userName: string, modelId: string): Promise<Subscription> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .insert([{
+        user_name: userName,
+        model_id: modelId
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Unsubscribe
+  async unsubscribe(userName: string, modelId: string): Promise<void> {
+    const { error } = await supabase
+      .from('subscriptions')
+      .delete()
+      .eq('user_name', userName)
+      .eq('model_id', modelId);
+    
+    if (error) throw error;
+  },
+
+  // Check if user is subscribed to a model
+  async isSubscribed(userName: string, modelId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('user_name', userName)
+      .eq('model_id', modelId)
+      .single();
+    
+    return !error && data !== null;
+  },
+
+  // Get all subscriptions for a user
+  async getByUser(userName: string): Promise<Array<Subscription & { model: Model }>> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select(`
+        *,
+        model:models(*)
+      `)
+      .eq('user_name', userName)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get all subscribers for a model
+  async getByModel(modelId: string): Promise<Subscription[]> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('model_id', modelId);
+    
+    if (error) throw error;
+    return data || [];
+  }
+};
+
+// Channel Subscriptions
+export const channelSubscriptionService = {
+  // Create channel subscription
+  async subscribe(userName: string, channelId: string): Promise<ChannelSubscription> {
+    const { data, error } = await supabase
+      .from('channel_subscriptions')
+      .insert([{
+        user_name: userName,
+        channel_id: channelId
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Unsubscribe from channel
+  async unsubscribe(userName: string, channelId: string): Promise<void> {
+    const { error } = await supabase
+      .from('channel_subscriptions')
+      .delete()
+      .eq('user_name', userName)
+      .eq('channel_id', channelId);
+    
+    if (error) throw error;
+  },
+
+  // Check if user is subscribed to a channel
+  async isSubscribed(userName: string, channelId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('channel_subscriptions')
+      .select('id')
+      .eq('user_name', userName)
+      .eq('channel_id', channelId)
+      .single();
+    
+    return !error && data !== null;
+  },
+
+  // Get all channel subscriptions for a user
+  async getByUser(userName: string): Promise<Array<ChannelSubscription & { channel: Channel }>> {
+    const { data, error } = await supabase
+      .from('channel_subscriptions')
+      .select(`
+        *,
+        channel:channels(*)
+      `)
+      .eq('user_name', userName)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get all subscribers for a channel
+  async getByChannel(channelId: string): Promise<ChannelSubscription[]> {
+    const { data, error } = await supabase
+      .from('channel_subscriptions')
+      .select('*')
+      .eq('channel_id', channelId);
+    
+    if (error) throw error;
+    return data || [];
+  }
+};
+
+// User Posts
+export const userPostService = {
+  async getByUser(userName: string): Promise<UserPost[]> {
+    const { data, error } = await supabase
+      .from('user_posts')
+      .select('*')
+      .eq('user_name', userName)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  async create(post: Omit<UserPost, 'id' | 'created_at' | 'updated_at'>): Promise<UserPost> {
+    const { data, error } = await supabase
+      .from('user_posts')
+      .insert([post])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_posts')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+};
+
+// User GIFs
+export const userGifService = {
+  async getAllApproved(): Promise<UserGif[]> {
+    const { data, error } = await supabase
+      .from('user_gifs')
+      .select('*')
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  async getByUser(userName: string): Promise<UserGif[]> {
+    const { data, error } = await supabase
+      .from('user_gifs')
+      .select('*')
+      .eq('user_name', userName)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  async getPending(): Promise<UserGif[]> {
+    const { data, error } = await supabase
+      .from('user_gifs')
+      .select('*')
+      .eq('is_approved', false)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  async create(gif: Omit<UserGif, 'id' | 'created_at' | 'updated_at' | 'is_approved' | 'approved_by' | 'approved_at'>): Promise<UserGif> {
+    const { data, error } = await supabase
+      .from('user_gifs')
+      .insert([{
+        ...gif,
+        is_approved: false,
+        approved_by: null,
+        approved_at: null
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  async approve(id: string, approvedBy: string): Promise<UserGif> {
+    const { data, error } = await supabase
+      .from('user_gifs')
+      .update({
+        is_approved: true,
+        approved_by: approvedBy,
+        approved_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_gifs')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+};
+
+// User Playlists
+export const userPlaylistService = {
+  async getByUser(userName: string): Promise<UserPlaylist[]> {
+    const { data, error } = await supabase
+      .from('user_playlists')
+      .select('*')
+      .eq('user_name', userName)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  async create(playlist: Omit<UserPlaylist, 'id' | 'created_at' | 'updated_at'>): Promise<UserPlaylist> {
+    const { data, error } = await supabase
+      .from('user_playlists')
+      .insert([playlist])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  async update(id: string, updates: Partial<UserPlaylist>): Promise<UserPlaylist> {
+    const { data, error } = await supabase
+      .from('user_playlists')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_playlists')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 };

@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { modelService, videoService } from '../services/database';
 import { Model, Video } from '../lib/supabase';
 import { motion } from 'motion/react';
+import SEO from '../components/SEO/SEO';
 
 interface ModelData {
   name: string;
@@ -174,18 +175,21 @@ const Models: React.FC = () => {
           </Alert>
         </Box>
       ) : (
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: 'repeat(2, 1fr)', 
-            sm: 'repeat(3, 1fr)', 
-            md: 'repeat(4, 1fr)',
-            lg: 'repeat(5, 1fr)',
-            xl: 'repeat(6, 1fr)'
-          }, 
-          gap: 1,
-          width: '100%'
-        }}>
+        <Box
+          className="model-grid media-grid"
+          sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { 
+              xs: 'repeat(2, minmax(0, 1fr))', 
+              sm: 'repeat(3, 1fr)', 
+              md: 'repeat(4, 1fr)',
+              lg: 'repeat(5, 1fr)',
+              xl: 'repeat(6, 1fr)'
+            }, 
+            gap: 1,
+            width: '100%'
+          }}
+        >
           {filteredModels.map((model, index) => (
             <motion.div
               key={model.name}

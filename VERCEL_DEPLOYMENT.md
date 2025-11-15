@@ -113,3 +113,5 @@ GitHub ile bağladıysanız:
 - Pull request'ler için preview URL'leri oluşturur
 - Production branch'i (`main`) otomatik olarak production'a deploy edilir
 
+
+

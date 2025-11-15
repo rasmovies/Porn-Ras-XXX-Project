@@ -36,3 +36,5 @@ END $$;
 -- Create index on created_at for sorting
 CREATE INDEX IF NOT EXISTS idx_background_images_created_at ON background_images(created_at DESC);
 
+
+

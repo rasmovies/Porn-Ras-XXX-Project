@@ -15,6 +15,7 @@ import {
 import { Search, Person } from '@mui/icons-material';
 import { Channel } from '../lib/supabase';
 import { channelService } from '../services/database';
+import SEO from '../components/SEO/SEO';
 
 const Channels: React.FC = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -109,7 +110,10 @@ const Channels: React.FC = () => {
         />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3 }}>
+      <Box
+        className="channel-grid media-grid"
+        sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3 }}
+      >
         {filteredChannels.length === 0 ? (
           <Box sx={{ gridColumn: '1 / -1', textAlign: 'center', py: 8 }}>
             <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.5)' }}>

@@ -8,9 +8,7 @@ import {
   Box,
   Badge,
   Popover,
-  useMediaQuery,
   useTheme,
-  MenuItem,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -25,14 +23,15 @@ import {
   VideoLibrary,
   Notifications as NotificationsIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../Auth/AuthProvider';
-import { adminUserService, notificationService } from '../../services/database';
+import { adminUserService, notificationService, modelService, channelService } from '../../services/database';
+import { Model, Channel } from '../../lib/supabase';
 import Footer from '../Footer/Footer';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -41,10 +40,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [models, setModels] = useState<Model[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { openLoginModal, isAuthenticated, logout, user } = useAuth();
+  const { user, isAuthenticated, logout, openLoginModal } = useAuth();
+
+  // Load models and channels for navigation
+  useEffect(() => {
+    const loadModelsAndChannels = async () => {
+      try {
+        const [modelsData, channelsData] = await Promise.all([
+          modelService.getAll(),
+          channelService.getAll()
+        ]);
+        setModels(modelsData);
+        setChannels(channelsData);
+      } catch (error) {
+        console.error('Failed to load models and channels:', error);
+      }
+    };
+    
+    loadModelsAndChannels();
+  }, []);
 
   // Check if user is admin from Supabase and load notifications
   useEffect(() => {
@@ -115,6 +134,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
+  const renderedChildren = children ?? <Outlet />;
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -125,10 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
           <Toolbar>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Box
                 component="img"
                 src="/PORNRAS.png"
@@ -139,6 +156,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   height: '40px',
                   width: 'auto',
                   maxWidth: '200px',
+                  objectFit: 'contain',
                 }}
               />
             </motion.div>
@@ -153,15 +171,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   <Button
                     color="inherit"
-              onClick={() => handleMenuClick(item)}
-              className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-            >
-              {item.text}
-            </Button>
-          </motion.div>
-        ))}
+                    onClick={() => handleMenuClick(item)}
+                  >
+                    {item.text}
+                  </Button>
+                </motion.div>
+              ))}
             </Box>
-            {/* Mobile Menu Button */}
             <IconButton
               color="inherit"
               edge="end"
@@ -170,83 +186,100 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <MenuIcon />
             </IconButton>
-      {isAuthenticated && (
-        <>
-          <IconButton color="inherit" onClick={handleNotificationClick}>
-            <Badge badgeContent={notifications.filter(n => !n.is_read).length} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-          <Popover
-            open={Boolean(anchorEl)}
-            anchorEl={anchorEl}
-            onClose={handleNotificationClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-          >
-            <Box sx={{ width: 350, maxHeight: 500, overflow: 'auto', p: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Notifications ({notifications.filter(n => !n.is_read).length} unread)
-              </Typography>
-              {notifications.length === 0 ? (
-                <Typography sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
-                  No notifications
-                </Typography>
-              ) : (
-                notifications.map((notification, index) => (
-                  <Box
-                    key={index}
-                    onClick={async () => {
-                      try {
-                        await notificationService.markAsRead(notification.id);
-                        // Update notification in state
-                        setNotifications(notifications.map(n =>
-                          n.id === notification.id ? { ...n, is_read: true } : n
-                        ));
-                      } catch (err) {
-                        console.error('Failed to mark notification as read:', err);
-                      }
-                    }}
-                    sx={{
-                      p: 2,
-                      mb: 1,
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      bgcolor: notification.is_read ? 'rgba(255,255,255,0.03)' : 'rgba(255,107,107,0.1)',
-                      border: notification.is_read ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,107,107,0.3)',
-                      '&:hover': {
-                        bgcolor: notification.is_read ? 'rgba(255,255,255,0.05)' : 'rgba(255,107,107,0.15)',
-                      },
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: notification.is_read ? 'normal' : 'bold' }}>
-                      {notification.title}
+            {isAuthenticated && (
+              <>
+                <IconButton color="inherit" onClick={handleNotificationClick}>
+                  <Badge badgeContent={notifications.filter(n => !n.is_read).length} color="error">
+                    <NotificationsIcon />
+                  </Badge>
+                </IconButton>
+                <Popover
+                  open={Boolean(anchorEl)}
+                  anchorEl={anchorEl}
+                  onClose={handleNotificationClose}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                >
+                  <Box sx={{ width: 350, maxHeight: 500, overflow: 'auto', p: 2 }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                      Notifications ({notifications.filter(n => !n.is_read).length} unread)
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      {notification.message}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      {new Date(notification.created_at).toLocaleString()}
-                    </Typography>
+                    {notifications.length === 0 ? (
+                      <Typography sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                        No notifications
+                      </Typography>
+                    ) : (
+                      notifications.map((notification, index) => (
+                        <Box
+                          key={index}
+                          onClick={async () => {
+                            try {
+                              await notificationService.markAsRead(notification.id);
+                              setNotifications(notifications.map(n =>
+                                n.id === notification.id ? { ...n, is_read: true } : n
+                              ));
+
+                              if (notification.type === 'video') {
+                                const match = notification.message.match(/^(.+?)\s+uploaded a new video\.$/);
+                                if (match) {
+                                  const name = match[1].trim();
+                                  const model = models.find(m => m.name.toLowerCase() === name.toLowerCase());
+                                  if (model) {
+                                    navigate(`/models/${model.name.toLowerCase().replace(/\s+/g, '-')}`);
+                                    return;
+                                  }
+                                  const channel = channels.find(c => c.name.toLowerCase() === name.toLowerCase());
+                                  if (channel) {
+                                    navigate(`/channels/${channel.name.toLowerCase().replace(/\s+/g, '-')}`);
+                                    return;
+                                  }
+                                }
+                              }
+                            } catch (err) {
+                              console.error('Failed to mark notification as read:', err);
+                            }
+                          }}
+                          sx={{
+                            p: 2,
+                            mb: 1,
+                            borderRadius: 1,
+                            cursor: 'pointer',
+                            bgcolor: notification.is_read ? 'rgba(255,255,255,0.03)' : 'rgba(255,107,107,0.1)',
+                            border: notification.is_read ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,107,107,0.3)',
+                            '&:hover': {
+                              bgcolor: notification.is_read ? 'rgba(255,255,255,0.05)' : 'rgba(255,107,107,0.15)',
+                            },
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: notification.is_read ? 'normal' : 'bold' }}>
+                            {notification.title}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                            {notification.message}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                            {new Date(notification.created_at).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      ))
+                    )}
                   </Box>
-                ))
-              )}
-            </Box>
-          </Popover>
-        </>
-      )}
-    </Toolbar>
-      </AppBar>
-</motion.div>
+                </Popover>
+              </>
+            )}
+          </Toolbar>
+        </AppBar>
+      </motion.div>
 
       {/* Mobile Menu Drawer */}
       <Box
+        className="mobile-nav-overlay"
         sx={{
           display: { xs: mobileOpen ? 'block' : 'none', md: 'none' },
           position: 'fixed',
@@ -259,29 +292,50 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           overflowY: 'auto',
         }}
       >
-        <Box sx={{ p: 2 }}>
-          {menuItems.map((item) => (
-            <Button
-              key={item.text}
-              fullWidth
-              color="inherit"
-              onClick={() => {
-                handleMenuClick(item);
-                setMobileOpen(false);
-              }}
-              sx={{
-                justifyContent: 'flex-start',
-                mb: 1,
-                color: 'white',
-                '&:hover': {
-                  bgcolor: 'rgba(255, 107, 107, 0.1)',
-                },
-              }}
-              startIcon={item.icon}
-            >
-              {item.text}
-            </Button>
-          ))}
+        <Box className="mobile-nav-list" sx={{ p: 2 }}>
+          {menuItems.map((item) => {
+            const isActive =
+              item.path !== '/logout' &&
+              (item.path === '/'
+                ? location.pathname === '/'
+                : location.pathname.startsWith(item.path));
+
+            const isLogin = item.path === '/login';
+
+            return (
+              <Button
+                key={item.text}
+                fullWidth
+                color="inherit"
+                onClick={() => {
+                  handleMenuClick(item);
+                  setMobileOpen(false);
+                }}
+                sx={{
+                  justifyContent: 'flex-start',
+                  mb: 1.5,
+                  color: '#f5f5f5',
+                  fontWeight: isActive ? 700 : 500,
+                  borderRadius: 1.5,
+                  padding: '14px 16px',
+                  backgroundColor: isLogin
+                    ? '#ff6b00'
+                    : isActive
+                      ? 'rgba(255,107,0,0.18)'
+                      : 'rgba(20,20,20,0.85)',
+                  '&:hover': {
+                    backgroundColor: isLogin
+                      ? '#ff7d1a'
+                      : 'rgba(255,107,0,0.25)',
+                  },
+                  border: isActive ? '1px solid rgba(255,107,0,0.45)' : '1px solid rgba(255,255,255,0.05)'
+                }}
+                startIcon={item.icon}
+              >
+                {item.text}
+              </Button>
+            );
+          })}
         </Box>
       </Box>
 
@@ -294,6 +348,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }}
       >
         <motion.div
+          className="layout-content"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -302,6 +357,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             padding: '24px',
             width: '100%',
             marginTop: '64px',
+            marginBottom: 0,
           }}
         >
           <AnimatePresence mode="wait">
@@ -312,7 +368,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              {children}
+              {renderedChildren}
             </motion.div>
           </AnimatePresence>
         </motion.div>

@@ -100,7 +100,7 @@ export interface BanUser {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'ban' | 'message' | 'comment' | 'like' | 'system';
+  type: 'ban' | 'message' | 'comment' | 'like' | 'system' | 'video';
   title: string;
   message: string;
   is_read: boolean;
@@ -123,6 +123,49 @@ export interface BackgroundImage {
   file_size: number; // in bytes
   width: number | null;
   height: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_name: string;
+  model_id: string;
+  created_at: string;
+}
+
+export interface ChannelSubscription {
+  id: string;
+  user_name: string;
+  channel_id: string;
+  created_at: string;
+}
+
+export interface UserPost {
+  id: string;
+  user_name: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserGif {
+  id: string;
+  user_name: string;
+  gif_url: string | null;
+  gif_file_base64: string | null;
+  is_approved: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserPlaylist {
+  id: string;
+  user_name: string;
+  playlist_name: string;
+  video_ids: string[];
   created_at: string;
   updated_at: string;
 }

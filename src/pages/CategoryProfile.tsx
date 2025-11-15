@@ -13,6 +13,7 @@ import {
 import { ArrowBack, VideoLibrary } from '@mui/icons-material';
 import { Category, Video } from '../lib/supabase';
 import { categoryService, videoService } from '../services/database';
+import SEO from '../components/SEO/SEO';
 
 const CategoryProfile: React.FC = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
@@ -64,7 +65,7 @@ const CategoryProfile: React.FC = () => {
 
   if (!category) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, px: { xs: 2, md: 4 } }}>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
             Category Not Found
@@ -85,7 +86,7 @@ const CategoryProfile: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, px: { xs: 2, md: 4 } }}>
       {/* Back Button */}
       <Box sx={{ mb: 3 }}>
         <Button

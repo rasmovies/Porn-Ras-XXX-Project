@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Typography,
-  Box,
-  CircularProgress,
-} from '@mui/material';
+import { Typography, Box, CircularProgress } from '@mui/material';
 import { motion } from 'motion/react';
 import { settingsService, videoService } from '../services/database';
 import { Video } from '../lib/supabase';
+import SEO from '../components/SEO/SEO';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -73,15 +70,36 @@ const Home: React.FC = () => {
   };
 
   return (
+    <>
+      <SEO
+        title="PORNRAS - Adult Content Platform"
+        description={heroSubtitle || "Your ultimate destination for premium adult content. Watch videos, browse models, channels, and categories."}
+        image={backgroundImage || "/PORNRAS.png"}
+        url="/"
+        type="website"
+        keywords="adult content, videos, models, channels, categories"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "PORNRAS",
+          "url": "https://pornras.com",
+          "description": "Your ultimate destination for premium adult content",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://pornras.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }}
+      />
     <Box>
       {/* Hero Banner */}
       <Box
         sx={{
           position: 'relative',
           width: '100%',
-          height: { xs: '400px', md: '500px' },
-          overflow: 'hidden',
+          height: { xs: '350px', sm: '400px', md: '500px' },
           mb: 4,
+          overflow: 'hidden',
         }}
       >
         {backgroundImage ? (
@@ -90,9 +108,6 @@ const Home: React.FC = () => {
             src={backgroundImage}
             alt="Hero Background"
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
               width: '100%',
               height: '100%',
               objectFit: 'cover',
@@ -104,11 +119,8 @@ const Home: React.FC = () => {
         ) : (
           <Box
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              width: '100%',
+              height: '100%',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             }}
           />
@@ -131,46 +143,53 @@ const Home: React.FC = () => {
           </Box>
         )}
         
-        {/* Content Overlay */}
-        <Box
-          sx={{
-            position: 'relative',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            px: 4,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%)',
-          }}
-        >
-          <Box sx={{ textAlign: 'center', zIndex: 2 }}>
-            {heroTitle && heroTitle.trim() && (
-              <Typography 
-                variant="h2" 
-                sx={{ 
-                  fontWeight: 700, 
-                  color: 'white',
-                  mb: heroSubtitle && heroSubtitle.trim() ? 2 : 0,
-                  textShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                }}
-              >
-                {heroTitle}
-              </Typography>
-            )}
-            {heroSubtitle && heroSubtitle.trim() && (
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: 'white',
-                  opacity: 0.9,
-                  textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                }}
-              >
-                {heroSubtitle}
-              </Typography>
-            )}
+        {/* Content Overlay - Only show if title/subtitle exist */}
+        {(heroTitle || heroSubtitle) && !imageLoading && backgroundImage && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%)',
+              px: 4,
+            }}
+          >
+            <Box sx={{ textAlign: 'center', zIndex: 2 }}>
+              {heroTitle && heroTitle.trim() && (
+                <Typography 
+                  variant="h2" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: 'white',
+                    mb: heroSubtitle && heroSubtitle.trim() ? 2 : 0,
+                    textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' },
+                  }}
+                >
+                  {heroTitle}
+                </Typography>
+              )}
+              {heroSubtitle && heroSubtitle.trim() && (
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: 'white',
+                    opacity: 0.9,
+                    textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+                  }}
+                >
+                  {heroSubtitle}
+                </Typography>
+              )}
+            </Box>
           </Box>
-        </Box>
+        )}
       </Box>
 
       <Box sx={{ width: '100%', mt: 0 }}>
@@ -191,17 +210,20 @@ const Home: React.FC = () => {
             </Typography>
           </Box>
         ) : (
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: '1fr', 
-              sm: 'repeat(2, 1fr)', 
-              md: 'repeat(3, 1fr)', 
-              lg: 'repeat(4, 1fr)' 
-            }, 
-            gap: 1,
-            width: '100%'
-          }}>
+          <Box
+            className="video-grid"
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { 
+                xs: 'repeat(2, minmax(0, 1fr))', 
+                sm: 'repeat(2, 1fr)', 
+                md: 'repeat(3, 1fr)', 
+                lg: 'repeat(4, 1fr)' 
+              }, 
+              gap: 1,
+              width: '100%'
+            }}
+          >
               {allVideos.map((video, index) => (
                 <motion.div
                   key={video.id}
@@ -228,9 +250,19 @@ const Home: React.FC = () => {
                       overflow: 'hidden',
                       borderRadius: 2,
                       bgcolor: 'rgba(0,0,0,0.1)',
+                      boxShadow: index < 6 ? '0 0 5px rgba(255, 215, 0, 0.3)' : 'none',
+                      animation: index < 6 ? 'goldSparkle 3s infinite ease-in-out' : 'none',
                       '&:hover': {
                         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-                      }
+                      },
+                      '@keyframes goldSparkle': {
+                        '0%, 100%': {
+                          boxShadow: '0 0 5px rgba(255, 215, 0, 0.3), 0 0 8px rgba(255, 215, 0, 0.2)',
+                        },
+                        '50%': {
+                          boxShadow: '0 0 8px rgba(255, 215, 0, 0.5), 0 0 12px rgba(255, 215, 0, 0.3)',
+                        },
+                      },
                     }}
                   >
                     <Box
@@ -325,6 +357,7 @@ const Home: React.FC = () => {
           )}
       </Box>
     </Box>
+    </>
   );
 };
 
