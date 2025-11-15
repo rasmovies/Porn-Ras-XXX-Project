@@ -29,8 +29,8 @@ const buildUrl = (path: string) => {
   // API_BASE_URL değerini her zaman logla
   console.log('🔍 buildUrl called:', { 
     path, 
-    API_BASE_URL: API_BASE_URL || 'YOK!', 
-    reactBase: process.env.REACT_APP_API_BASE_URL || 'YOK!',
+    API_BASE_URL: API_BASE_URL || 'https://porn-ras-xxx-project-igoxot2om-ras-projects-6ebe5a01.vercel.app ', 
+    reactBase: process.env.REACT_APP_API_BASE_URL || 'https://porn-ras-xxx-project-igoxot2om-ras-projects-6ebe5a01.vercel.app ',
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' 
   });
   
