@@ -26,7 +26,13 @@ if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.
 const buildUrl = (path: string) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  console.log('🔍 buildUrl called:', { path, API_BASE_URL, hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' });
+  // API_BASE_URL değerini her zaman logla
+  console.log('🔍 buildUrl called:', { 
+    path, 
+    API_BASE_URL: API_BASE_URL || 'YOK!', 
+    reactBase: process.env.REACT_APP_API_BASE_URL || 'YOK!',
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' 
+  });
   
   // Production'da API_BASE_URL yoksa hata fırlat
   if (!API_BASE_URL) {
@@ -34,6 +40,8 @@ const buildUrl = (path: string) => {
     if (isProduction) {
       const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard -> Settings -> Environment Variables';
       console.error('❌', errorMsg);
+      console.error('❌ API_BASE_URL:', API_BASE_URL);
+      console.error('❌ REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
       throw new Error(errorMsg);
     }
     // Local development'da localhost:5000 kullan
