@@ -11,11 +11,22 @@ function setCorsHeaders(res, origin) {
     'https://api.pornras.com',
   ];
   
-  // Check if origin is allowed
-  const isAllowed = origin && allowedOrigins.some(allowed => origin.includes('pornras.com'));
+  // Check if origin is allowed (pornras.com domain)
+  const isPornrasDomain = origin && origin.includes('pornras.com');
+  
+  // Allow Vercel deployment URLs for development/testing
+  // ras-projects-6ebe5a01 is the organization ID
+  const isVercelDeployment = origin && (
+    origin.includes('vercel.app') && 
+    origin.includes('ras-projects-6ebe5a01')
+  );
   
   // Set CORS headers
-  if (isAllowed) {
+  if (isPornrasDomain || isVercelDeployment) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (origin) {
+    // If origin is provided but not allowed, still allow it for development
+    // (Remove this in production if you want stricter security)
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     // Default to www.pornras.com for security
