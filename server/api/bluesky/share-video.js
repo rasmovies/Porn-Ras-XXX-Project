@@ -8,8 +8,10 @@ const { shareVideoToBluesky } = require('../../services/blueskyService');
  * Share video to Bluesky
  */
 module.exports = async function handler(req, res) {
+  const origin = req.headers.origin || req.headers.referer;
+  
   // Set CORS headers
-  setCorsHeaders(res);
+  setCorsHeaders(res, origin);
   
   // Handle OPTIONS preflight
   if (req.method === 'OPTIONS') {
