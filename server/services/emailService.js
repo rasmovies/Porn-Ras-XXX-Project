@@ -31,7 +31,7 @@
    });
 
    async function renderTemplate(templateName, data) {
-     const templatePath = path.join(__dirname, '..', 'emailTemplates', `${templateName}.html`);
+        const templatePath = path.join(__dirname, '..', 'emailTemplates', `${templateName}.html`);
      const template = await fs.readFile(templatePath, 'utf-8');
      return mustache.render(template, data);
    }
