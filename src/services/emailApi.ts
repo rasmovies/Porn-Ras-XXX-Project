@@ -121,11 +121,11 @@ export interface BlueskyPostPayload {
 }
 
 export const emailApi = {
-  sendVerificationEmail: (payload: VerificationEmailPayload) =>
+  sendVerificationEmail: (payload: VerificationEmailPayload) =
     postJson<VerificationEmailPayload, { success: boolean }>('/api/email/verification', payload),
-  sendInviteEmail: (payload: InviteEmailPayload) =>
+  sendInviteEmail: (payload: InviteEmailPayload) =
     postJson<InviteEmailPayload, { success: boolean }>('/api/email/invite', payload),
-  sendMarketingEmail: (payload: MarketingEmailPayload) =>
+  sendMarketingEmail: (payload: MarketingEmailPayload) =
     postJson<MarketingEmailPayload, { success: boolean }>('/api/email/marketing', payload),
 };
 
