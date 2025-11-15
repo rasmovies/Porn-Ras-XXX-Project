@@ -1,21 +1,36 @@
 // React build-time environment variable
 const reactBase = process.env.REACT_APP_API_BASE_URL;
 
-// Production'da backend URL'si Vercel'de REACT_APP_API_BASE_URL environment variable olarak ayarlanmalı
-// LocalTunnel URL örneği: https://hot-showers-notice.loca.lt
-const hostedFallback =
-  typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')
-    ? reactBase || undefined // Vercel'de environment variable olarak backend URL'si ayarlanmalı
-    : undefined;
+// Production'da backend URL'ini belirleme
+// 1. REACT_APP_API_BASE_URL environment variable (Vercel'de ayarlanmalı)
+// 2. API subdomain fallback (api.pornras.com)
+// 3. Local development fallback (localhost:5000)
+const getApiBaseUrl = (): string => {
+  // Build-time environment variable (öncelikli)
+  if (reactBase) {
+    return reactBase;
+  }
 
-const localFallback =
-  typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? `${window.location.protocol}//${window.location.hostname}:5000`
-    : undefined;
+  // Production environment'da API subdomain'i dene
+  if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
+    // api.pornras.com subdomain'ini dene
+    const apiSubdomain = window.location.hostname.replace('www.', 'api.');
+    // www.pornras.com -> api.pornras.com
+    // pornras.com -> api.pornras.com
+    const apiUrl = `${window.location.protocol}//${apiSubdomain}`;
+    console.log('🔍 Production mode - trying API subdomain:', apiUrl);
+    return apiUrl;
+  }
 
-// API_BASE_URL belirlenmesi: önce reactBase (Vercel env var), sonra hostedFallback, sonra localFallback
-// Eğer hiçbiri yoksa, production'da hata fırlat
-const API_BASE_URL = reactBase || hostedFallback || localFallback || '';
+  // Local development fallback
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return `${window.location.protocol}//${window.location.hostname}:5000`;
+  }
+
+  return '';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Production'da API_BASE_URL yoksa uyarı ver
 if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com') && !API_BASE_URL) {
@@ -38,10 +53,11 @@ const buildUrl = (path: string) => {
   if (!API_BASE_URL) {
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
     if (isProduction) {
-      const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard -> Settings -> Environment Variables';
+      const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard -> Settings -> Environment Variables, or deploy backend to api.pornras.com subdomain.';
       console.error('❌', errorMsg);
       console.error('❌ API_BASE_URL:', API_BASE_URL);
       console.error('❌ REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
+      console.error('❌ Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A');
       throw new Error(errorMsg);
     }
     // Local development'da localhost:5000 kullan
@@ -55,32 +71,92 @@ const buildUrl = (path: string) => {
 };
 
 async function postJson<TInput extends object, TResponse>(path: string, body: TInput): Promise<TResponse> {
+  let url = '';
+  
   try {
-    const url = buildUrl(path);
-    console.log('📤 POST request:', { url, path, body });
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    console.log('📥 Response received:', { status: response.status, statusText: response.statusText, url });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const message = (payload && payload.message) || `API error (${response.status})`;
-      console.error('❌ API error:', { status: response.status, message, payload });
-      throw new Error(message);
+    // API_BASE_URL kontrolü
+    if (!API_BASE_URL) {
+      const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
+      if (isProduction) {
+        const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard.';
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
+      }
     }
 
-    const result = await response.json();
-    console.log('✅ Response OK:', result);
-    return result as TResponse;
+    url = buildUrl(path);
+    console.log('📤 POST request:', { url, path, body });
+    
+    // Fetch with timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        mode: 'cors', // CORS için explicit mode
+        cache: 'no-cache', // Cache'i devre dışı bırak
+        credentials: 'omit', // Credentials gönderme (CORS için)
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json', // JSON response bekliyoruz
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log('📥 Response received:', { status: response.status, statusText: response.statusText, url });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message = (payload && payload.message) || `API error (${response.status})`;
+        console.error('❌ API error:', { status: response.status, message, payload });
+        throw new Error(message);
+      }
+
+      const result = await response.json();
+      console.log('✅ Response OK:', result);
+      return result as TResponse;
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      // Network/CORS hatası kontrolü
+      if (fetchError.name === 'AbortError') {
+        const timeoutError = new Error('Request timeout. Backend may be unreachable.');
+        console.error('❌ Request timeout:', timeoutError);
+        console.error('❌ Request URL:', url);
+        throw timeoutError;
+      }
+      
+      if (fetchError.message === 'Failed to fetch' || fetchError.name === 'TypeError') {
+        const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
+        const errorMessage = isProduction
+          ? `Network error: Cannot connect to backend at ${url}. Please check:
+1. REACT_APP_API_BASE_URL is set correctly in Vercel Dashboard
+2. Backend is deployed and accessible
+3. CORS is configured correctly on backend`
+          : `Network error: Cannot connect to backend at ${url}. Make sure backend is running on localhost:5000.`;
+        
+        const networkError = new Error(errorMessage);
+        console.error('❌ Network error:', networkError);
+        console.error('❌ Original error:', fetchError);
+        console.error('❌ API_BASE_URL:', API_BASE_URL || 'YOK!');
+        console.error('❌ Request URL:', url || 'YOK!');
+        console.error('❌ Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A');
+        throw networkError;
+      }
+      
+      throw fetchError;
+    }
   } catch (error) {
-    console.error('❌ postJson error:', { path, error: error instanceof Error ? error.message : error });
+    console.error('❌ postJson error:', { 
+      path, 
+      url: url || 'YOK!',
+      API_BASE_URL: API_BASE_URL || 'YOK!',
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined 
+    });
     throw error;
   }
 }
