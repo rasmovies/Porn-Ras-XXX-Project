@@ -59,7 +59,7 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     const url = buildUrl(path);
     console.log('📤 POST request:', { url, path, body });
     
-    const response = await fetch ("https://porn-ras-xxx-project-8hk7goyci-ras-projects-6ebe5a01.vercel.app" {
+    const response = await fetch ("https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/9eshvpyrSuVE8fCcKe7ipBZrxRtd" {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
