@@ -5,7 +5,7 @@ const reactBase = process.env.REACT_APP_API_BASE_URL;
 // 1. REACT_APP_API_BASE_URL environment variable (Vercel'de ayarlanmalı)
 // 2. API subdomain fallback (api.pornras.com)
 // 3. Local development fallback (localhost:5000)
-const getApiBaseUrl = (): string => {
+const getApiBaseUrl = ('https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d'): string => {
   // Build-time environment variable (öncelikli)
   if (reactBase) {
     return reactBase;
@@ -44,8 +44,8 @@ const buildUrl = (path: string) => {
   // API_BASE_URL değerini her zaman logla
   console.log('🔍 buildUrl called:', { 
     path, 
-    API_BASE_URL: API_BASE_URL || 'YOK!', 
-    reactBase: process.env.REACT_APP_API_BASE_URL || 'YOK!',
+    API_BASE_URL: API_BASE_URL || 'https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d', 
+    reactBase: process.env.REACT_APP_API_BASE_URL || 'https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d',
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' 
   });
   
@@ -92,7 +92,7 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
     
     try {
-     const response = await fetch("https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d", {
+     const response = await ("https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d", {
   method: 'POST',
   mode: 'cors',
   cache: 'no-cache',
