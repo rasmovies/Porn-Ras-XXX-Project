@@ -30,7 +30,7 @@ const getApiBaseUrl = (): string => {
   return '';
 };
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = getApiBaseUrl('https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d');
 
 // Production'da API_BASE_URL yoksa uyarı ver
 if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com') && !API_BASE_URL) {
