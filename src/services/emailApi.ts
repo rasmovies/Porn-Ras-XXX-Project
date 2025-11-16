@@ -92,7 +92,7 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
     
     try {
-     const response = await fetch("https://server-dlcvvf7tu-ras-projects-6ebe5a01.vercel.app", {
+     const response = await fetch("https://vercel.com/ras-projects-6ebe5a01/porn-ras-xxx-project/8Wrs2Yi7BfcKXHfhhe2LV3Qywz7d", {
   method: 'POST',
   mode: 'cors',
   cache: 'no-cache',
