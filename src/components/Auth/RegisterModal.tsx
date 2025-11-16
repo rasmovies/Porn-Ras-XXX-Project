@@ -66,16 +66,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : Math.random().toString(36).slice(2);
-    const verifyUrl = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+    const verifyUrl = `https://www.pornras.com/verify?token=${token}&email=${encodeURIComponent(email)}`;
 
     console.log('📧 Email gönderimi başlatılıyor...', { email, username, verifyUrl });
     setIsSubmitting(true);
     
     emailApi
       .sendVerificationEmail({
-        email,
-        username,
-        verifyUrl,
+      email: email,           // "newuser@example.com"
+      username: username,     // "newuser"
+      verifyUrl: verifyUrl,   // "https://www.pornras.com/verify?token=a1b2c3d4-e5f6-7890-abcd-ef1234567890&email=newuser%40example.com"
       })
       .then((result) => {
         console.log('✅ Email gönderimi başarılı:', result);
