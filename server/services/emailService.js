@@ -3,15 +3,15 @@
    const mustache = require('mustache');
    const nodemailer = require('nodemailer');
 
-   const {
-     PROTON_SMTP_HOST = '127.0.0.1',
-     PROTON_SMTP_PORT = '1025',
-     PROTON_SMTP_SECURE = 'false',
-     PROTON_SMTP_USERNAME = 'pornras@proton.me',
-     PROTON_SMTP_PASSWORD ='MoQL_M-Loyi1fB3b9tKWew',
-     PROTON_FROM_EMAIL = 'pornras@proton.me',
-     PROTON_FROM_NAME = 'PORNRAS',
-   } = process.env;
+  const {
+    PROTON_SMTP_HOST,
+    PROTON_SMTP_PORT = '1025',
+    PROTON_SMTP_SECURE = 'false',
+    PROTON_SMTP_USERNAME,
+    PROTON_SMTP_PASSWORD,
+    PROTON_FROM_EMAIL,
+    PROTON_FROM_NAME = 'PORNRAS',
+  } = process.env;
 
    if (!PROTON_FROM_EMAIL) {
      console.warn('⚠️ Proton Mail gönderici adresi (PROTON_FROM_EMAIL) tanımlı değil. E-posta gönderimleri başarısız olabilir.');
@@ -30,10 +30,37 @@
      console.warn('⚠️ Proton Mail SMTP bağlantısı doğrulanamadı:', error.message);
    });
 
+   /**
+    * Resolve template file path reliably in Vercel serverless env.
+    * Falls back between several base directories to avoid ENOENT.
+    */
    async function renderTemplate(templateName, data) {
-     const templatePath = path.join(__dirname, '..', 'emailTemplates', `${templateName}.html`);
-     const template = await fs.readFile(templatePath, 'utf-8');
-     return mustache.render(template, data);
+     // Candidate locations (ordered by likelihood)
+     const candidatePaths = [
+       // When running locally or when __dirname resolves correctly
+       path.join(__dirname, '..', 'emailTemplates', `${templateName}.html`),
+       // When process.cwd() is project root and server files live under "server/"
+       path.join(process.cwd(), 'server', 'emailTemplates', `${templateName}.html`),
+       // When current working dir already is "server/"
+       path.join(process.cwd(), 'emailTemplates', `${templateName}.html`),
+     ];
+ 
+     let lastError;
+     for (const filePath of candidatePaths) {
+       try {
+         const template = await fs.readFile(filePath, 'utf-8');
+         return mustache.render(template, data);
+       } catch (err) {
+         lastError = err;
+       }
+     }
+ 
+     const error = new Error(
+       `Email template not found for "${templateName}". Checked: ${candidatePaths.join(' | ')}`
+     );
+     error.cause = lastError;
+     error.status = 500;
+     throw error;
    }
 
    function htmlToText(html) {
@@ -47,7 +74,9 @@
 
    async function dispatchEmail({ recipients, subject, html }) {
      if (!PROTON_FROM_EMAIL) {
-       throw new Error('Proton Mail yapılandırması eksik (PROTON_FROM_EMAIL).');
+       const cfgErr = new Error('Proton Mail yapılandırması eksik (PROTON_FROM_EMAIL).');
+       cfgErr.status = 500;
+       throw cfgErr;
      }
 
      const normalizedRecipients = recipients.map((recipient) => {
@@ -64,13 +93,20 @@
        .map((recipient) => (recipient.name ? `"${recipient.name}" <${recipient.email}>` : recipient.email))
        .join(', ');
 
-     return transporter.sendMail({
-       from: `"${PROTON_FROM_NAME}" <${PROTON_FROM_EMAIL}>`,
-       to: toAddresses,
-       subject,
-       html,
-       text: htmlToText(html),
-     });
+     try {
+       return await transporter.sendMail({
+         from: `"${PROTON_FROM_NAME}" <${PROTON_FROM_EMAIL}>`,
+         to: toAddresses,
+         subject,
+         html,
+         text: htmlToText(html),
+       });
+     } catch (err) {
+       const smtpError = new Error(`SMTP send failed: ${err && err.message ? err.message : 'Unknown error'}`);
+       smtpError.status = 502; // Bad gateway to indicate upstream mail failure
+       smtpError.cause = err;
+       throw smtpError;
+     }
    }
 
    async function sendVerificationMail({ email, username, verifyUrl }) {
