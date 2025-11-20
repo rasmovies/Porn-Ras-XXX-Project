@@ -20,10 +20,12 @@
 
 # misc
 .DS_Store
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+server/.env
 
 npm-debug.log*
 yarn-debug.log*
@@ -38,3 +40,18 @@ server/localtunnel-*.txt
 *.log
 
 .vercel
+
+# VPS setup scripts (temporary)
+vps-*.ps1
+vps-*.sh
+*-email-setup*.txt
+*-email-setup*.sh
+vercel-github-setup-guide.ps1
+
+# Documentation (temporary setup guides - these are kept for reference)
+# VPS-*.md
+# BRIDGE_*.md
+# SSH-*.md
+# GIT_BASH_*.md
+# email-*.txt
+# VERCEL-GITHUB-SETUP.md - Keep this as it's useful documentation

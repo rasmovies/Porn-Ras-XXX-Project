@@ -13,13 +13,20 @@ const getApiBaseUrl = (): string => {
 
   // Production environment'da API subdomain'i dene
   if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    // api.pornras.com subdomain'ini dene
+    // Önce api.pornras.com subdomain'ini dene
     const apiSubdomain = window.location.hostname.replace('www.', 'api.');
     // www.pornras.com -> api.pornras.com
     // pornras.com -> api.pornras.com
     const apiUrl = `${window.location.protocol}//${apiSubdomain}`;
     console.log('🔍 Production mode - trying API subdomain:', apiUrl);
     return apiUrl;
+  }
+
+  // VPS backend fallback (eğer API subdomain yoksa)
+  if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
+    const vpsBackendUrl = 'http://72.61.139.145:5000';
+    console.log('🔍 Production mode - using VPS backend:', vpsBackendUrl);
+    return vpsBackendUrl;
   }
 
   // Local development fallback
