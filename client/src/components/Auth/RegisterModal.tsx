@@ -36,6 +36,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('📝 Register form submit başladı');
+    console.log('📝 Form values:', { username, email, password: password ? '***' : 'EMPTY', confirmPassword: confirmPassword ? '***' : 'EMPTY', agreeToTerms });
     
     if (isSubmitting) {
       console.log('⚠️ Zaten submit ediliyor, işlem iptal edildi');
@@ -43,7 +44,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     }
 
     if (!username || !email || !password || !confirmPassword) {
-      console.log('❌ Form validation hatası: Tüm alanlar doldurulmalı');
+      console.log('❌ Form validation hatası: Tüm alanlar doldurulmalı', { username: !!username, email: !!email, password: !!password, confirmPassword: !!confirmPassword });
       setError('Please fill in all fields');
       return;
     }
