@@ -37,7 +37,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     e.preventDefault();
     console.log('📝 Register form submit başladı');
     
-    // Browser automation için: Eğer state'ler boşsa DOM'dan input değerlerini oku
+    // Browser automation için: Her zaman DOM'dan input değerlerini oku (state'ler güncellenmemiş olabilir)
     let finalUsername = username;
     let finalEmail = email;
     let finalPassword = password;
@@ -51,28 +51,37 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       const passwordInputs = form.querySelectorAll('input[type="password"]') as NodeListOf<HTMLInputElement>;
       const checkbox = form.querySelector('input[type="checkbox"]') as HTMLInputElement;
       
-      if (usernameInput && !finalUsername) {
-        finalUsername = usernameInput.value;
-        setUsername(finalUsername);
-        console.log('📝 Username DOM\'dan okundu:', finalUsername);
+      // Her zaman DOM'dan oku (browser automation için)
+      if (usernameInput) {
+        finalUsername = usernameInput.value || finalUsername;
+        if (usernameInput.value) {
+          setUsername(finalUsername);
+          console.log('📝 Username DOM\'dan okundu:', finalUsername);
+        }
       }
-      if (emailInput && !finalEmail) {
-        finalEmail = emailInput.value;
-        setEmail(finalEmail);
-        console.log('📝 Email DOM\'dan okundu:', finalEmail);
+      if (emailInput) {
+        finalEmail = emailInput.value || finalEmail;
+        if (emailInput.value) {
+          setEmail(finalEmail);
+          console.log('📝 Email DOM\'dan okundu:', finalEmail);
+        }
       }
-      if (passwordInputs.length >= 1 && !finalPassword) {
-        finalPassword = passwordInputs[0].value;
-        setPassword(finalPassword);
-        console.log('📝 Password DOM\'dan okundu');
+      if (passwordInputs.length >= 1) {
+        finalPassword = passwordInputs[0].value || finalPassword;
+        if (passwordInputs[0].value) {
+          setPassword(finalPassword);
+          console.log('📝 Password DOM\'dan okundu');
+        }
       }
-      if (passwordInputs.length >= 2 && !finalConfirmPassword) {
-        finalConfirmPassword = passwordInputs[1].value;
-        setConfirmPassword(finalConfirmPassword);
-        console.log('📝 Confirm Password DOM\'dan okundu');
+      if (passwordInputs.length >= 2) {
+        finalConfirmPassword = passwordInputs[1].value || finalConfirmPassword;
+        if (passwordInputs[1].value) {
+          setConfirmPassword(finalConfirmPassword);
+          console.log('📝 Confirm Password DOM\'dan okundu');
+        }
       }
-      if (checkbox && !finalAgreeToTerms) {
-        finalAgreeToTerms = checkbox.checked;
+      if (checkbox) {
+        finalAgreeToTerms = checkbox.checked || finalAgreeToTerms;
         setAgreeToTerms(finalAgreeToTerms);
         console.log('📝 Checkbox DOM\'dan okundu:', finalAgreeToTerms);
       }
