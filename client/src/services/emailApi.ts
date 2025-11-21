@@ -18,15 +18,8 @@ const getApiBaseUrl = (): string => {
     // www.pornras.com -> api.pornras.com
     // pornras.com -> api.pornras.com
     const apiUrl = `${window.location.protocol}//${apiSubdomain}`;
-    console.log('🔍 Production mode - trying API subdomain:', apiUrl);
+    console.log('🔍 Production mode - using API subdomain fallback:', apiUrl);
     return apiUrl;
-  }
-
-  // VPS backend fallback (eğer API subdomain yoksa)
-  if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    const vpsBackendUrl = 'http://72.61.139.145:5000';
-    console.log('🔍 Production mode - using VPS backend:', vpsBackendUrl);
-    return vpsBackendUrl;
   }
 
   // Local development fallback
@@ -39,10 +32,14 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Production'da API_BASE_URL yoksa uyarı ver
-if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com') && !API_BASE_URL) {
-  console.error('⚠️ REACT_APP_API_BASE_URL environment variable is not set in Vercel!');
-  console.error('Please set REACT_APP_API_BASE_URL in Vercel Dashboard -> Settings -> Environment Variables');
+// Production'da API_BASE_URL yoksa uyarı ver ve fallback kullan
+if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
+  if (!API_BASE_URL) {
+    console.error('⚠️ REACT_APP_API_BASE_URL environment variable is not set in Vercel!');
+    console.error('Please set REACT_APP_API_BASE_URL in Vercel Dashboard -> Settings -> Environment Variables');
+  } else {
+    console.log('✅ API_BASE_URL:', API_BASE_URL);
+  }
 }
 
 const buildUrl = (path: string) => {
@@ -56,16 +53,16 @@ const buildUrl = (path: string) => {
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' 
   });
   
-  // Production'da API_BASE_URL yoksa hata fırlat
+  // Production'da API_BASE_URL yoksa fallback kullan
   if (!API_BASE_URL) {
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
     if (isProduction) {
-      const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard -> Settings -> Environment Variables, or deploy backend to api.pornras.com subdomain.';
-      console.error('❌', errorMsg);
-      console.error('❌ API_BASE_URL:', API_BASE_URL);
-      console.error('❌ REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
-      console.error('❌ Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A');
-      throw new Error(errorMsg);
+      // Production'da fallback URL kullan
+      const fallbackUrl = 'https://api.pornras.com';
+      console.warn('⚠️ buildUrl: API_BASE_URL bulunamadı, fallback kullanılıyor:', fallbackUrl);
+      const fullUrl = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
+      console.log('✅ buildUrl result (fallback):', fullUrl);
+      return fullUrl;
     }
     // Local development'da localhost:5000 kullan
     console.log('⚠️ API_BASE_URL yok, local development için localhost kullanılıyor');
@@ -81,17 +78,23 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
   let url = '';
   
   try {
-    // API_BASE_URL kontrolü
+    // API_BASE_URL kontrolü - production'da fallback kullan
     if (!API_BASE_URL) {
       const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
       if (isProduction) {
+        // Production'da fallback URL kullan
+        const fallbackUrl = 'https://api.pornras.com';
+        console.warn('⚠️ API_BASE_URL bulunamadı, fallback kullanılıyor:', fallbackUrl);
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        url = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
+      } else {
         const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard.';
         console.error('❌', errorMsg);
         throw new Error(errorMsg);
       }
+    } else {
+      url = buildUrl(path);
     }
-
-    url = buildUrl(path);
     console.log('📤 POST request:', { url, path, body });
     
     // Fetch with timeout and better error handling

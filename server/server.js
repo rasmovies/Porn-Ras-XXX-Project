@@ -6,24 +6,50 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
 const emailRoutes = require('./routes/emailRoutes');
-const blueskyRoutes = require('./routes/blueskyRoutes');
+
+// Bluesky routes - opsiyonel (paket yoksa devre dışı)
+let blueskyRoutes = null;
+try {
+  blueskyRoutes = require('./routes/blueskyRoutes');
+} catch (error) {
+  console.warn('⚠️  Bluesky routes yüklenemedi (opsiyonel):', error.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// OPTIONS preflight için manuel handler (CORS middleware'den ÖNCE - Vercel serverless için)
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://www.pornras.com');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type', 'Authorization');
-  res.header('Access-Control-Max-Age', '86400'); // 24 saat
-  res.sendStatus(200);
-});
+// CORS ayarları - Vercel deployment URL'leri ve domain'e izin ver
+const allowedOrigins = [
+  'https://www.pornras.com',
+  'https://api.pornras.com', // Backend API domain
+  'http://localhost:3000',
+  'http://localhost:3001',
+  // Vercel deployment URL'leri için regex pattern
+  /^https:\/\/.*\.vercel\.app$/,
+  /^https:\/\/.*-.*\.vercel\.app$/,
+];
 
-// CORS ayarları - sadece www.pornras.com domain'ine izin ver
 app.use(
   cors({
-    origin: 'https://www.pornras.com', // sadece kendi domain'ine izin ver
+    origin: function (origin, callback) {
+      // Origin yoksa (same-origin veya mobile app gibi) izin ver
+      if (!origin) return callback(null, true);
+      
+      // Exact match kontrolü
+      if (allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        } else if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return false;
+      })) {
+        callback(null, true);
+      } else {
+        console.log('⚠️  CORS blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
@@ -71,7 +97,14 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/email', emailRoutes);
-app.use('/api/bluesky', blueskyRoutes);
+
+// Bluesky routes - sadece yüklendiyse aktif
+if (blueskyRoutes) {
+  app.use('/api/bluesky', blueskyRoutes);
+  console.log('✅ Bluesky routes aktif');
+} else {
+  console.log('ℹ️  Bluesky routes devre dışı');
+}
 
 // 404 handler - Vercel için önemli
 app.use((req, res) => {
