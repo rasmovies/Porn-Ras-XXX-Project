@@ -36,24 +36,77 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('📝 Register form submit başladı');
-    console.log('📝 Form values:', { username, email, password: password ? '***' : 'EMPTY', confirmPassword: confirmPassword ? '***' : 'EMPTY', agreeToTerms });
+    
+    // Browser automation için: Eğer state'ler boşsa DOM'dan input değerlerini oku
+    let finalUsername = username;
+    let finalEmail = email;
+    let finalPassword = password;
+    let finalConfirmPassword = confirmPassword;
+    let finalAgreeToTerms = agreeToTerms;
+    
+    if (typeof document !== 'undefined') {
+      const form = e.currentTarget.closest('form') || e.currentTarget;
+      const usernameInput = form.querySelector('input[type="text"]') as HTMLInputElement;
+      const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement;
+      const passwordInputs = form.querySelectorAll('input[type="password"]') as NodeListOf<HTMLInputElement>;
+      const checkbox = form.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      
+      if (usernameInput && !finalUsername) {
+        finalUsername = usernameInput.value;
+        setUsername(finalUsername);
+        console.log('📝 Username DOM\'dan okundu:', finalUsername);
+      }
+      if (emailInput && !finalEmail) {
+        finalEmail = emailInput.value;
+        setEmail(finalEmail);
+        console.log('📝 Email DOM\'dan okundu:', finalEmail);
+      }
+      if (passwordInputs.length >= 1 && !finalPassword) {
+        finalPassword = passwordInputs[0].value;
+        setPassword(finalPassword);
+        console.log('📝 Password DOM\'dan okundu');
+      }
+      if (passwordInputs.length >= 2 && !finalConfirmPassword) {
+        finalConfirmPassword = passwordInputs[1].value;
+        setConfirmPassword(finalConfirmPassword);
+        console.log('📝 Confirm Password DOM\'dan okundu');
+      }
+      if (checkbox && !finalAgreeToTerms) {
+        finalAgreeToTerms = checkbox.checked;
+        setAgreeToTerms(finalAgreeToTerms);
+        console.log('📝 Checkbox DOM\'dan okundu:', finalAgreeToTerms);
+      }
+    }
+    
+    console.log('📝 Form values:', { 
+      username: finalUsername, 
+      email: finalEmail, 
+      password: finalPassword ? '***' : 'EMPTY', 
+      confirmPassword: finalConfirmPassword ? '***' : 'EMPTY', 
+      agreeToTerms: finalAgreeToTerms 
+    });
     
     if (isSubmitting) {
       console.log('⚠️ Zaten submit ediliyor, işlem iptal edildi');
       return;
     }
 
-    if (!username || !email || !password || !confirmPassword) {
-      console.log('❌ Form validation hatası: Tüm alanlar doldurulmalı', { username: !!username, email: !!email, password: !!password, confirmPassword: !!confirmPassword });
+    if (!finalUsername || !finalEmail || !finalPassword || !finalConfirmPassword) {
+      console.log('❌ Form validation hatası: Tüm alanlar doldurulmalı', { 
+        username: !!finalUsername, 
+        email: !!finalEmail, 
+        password: !!finalPassword, 
+        confirmPassword: !!finalConfirmPassword 
+      });
       setError('Please fill in all fields');
       return;
     }
-    if (password !== confirmPassword) {
+    if (finalPassword !== finalConfirmPassword) {
       console.log('❌ Form validation hatası: Şifreler eşleşmiyor');
       setError('Passwords do not match');
       return;
     }
-    if (!agreeToTerms) {
+    if (!finalAgreeToTerms) {
       console.log('❌ Form validation hatası: Şartlar kabul edilmeli');
       setError('Please agree to the terms and conditions');
       return;
@@ -67,15 +120,15 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : Math.random().toString(36).slice(2);
-    const verifyUrl = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+    const verifyUrl = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(finalEmail)}`;
 
-    console.log('📧 Email gönderimi başlatılıyor...', { email, username, verifyUrl });
+    console.log('📧 Email gönderimi başlatılıyor...', { email: finalEmail, username: finalUsername, verifyUrl });
     setIsSubmitting(true);
     
     emailApi
       .sendVerificationEmail({
-        email,
-        username,
+        email: finalEmail,
+        username: finalUsername,
         verifyUrl,
       })
       .then((result) => {
