@@ -102,15 +102,28 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
     
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      
+      console.log('🔍 Fetch options:', {
+        url,
+        method: 'POST',
+        mode: 'cors',
+        origin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+        headers: Object.keys(headers),
+        hasBody: !!body,
+      });
+      
       const response = await fetch(url, {
         method: 'POST',
         mode: 'cors', // CORS için explicit mode
         cache: 'no-cache', // Cache'i devre dışı bırak
         credentials: 'omit', // Credentials gönderme (CORS için)
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json', // JSON response bekliyoruz
-        },
+        redirect: 'follow', // Redirect'leri takip et
+        referrerPolicy: 'no-referrer-when-downgrade', // Referrer policy
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });
