@@ -117,3 +117,5 @@ Frontend (Vercel) -> VPS Backend (http://72.61.139.145:5000) -> Proton Mail Brid
 - Gerçek `.env` dosyasını ASLA Git'e commit etmeyin!
 - SMTP şifreleri sadece VPS'te olmalı!
 
+
+

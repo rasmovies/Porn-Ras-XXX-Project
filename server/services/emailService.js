@@ -1,4 +1,4 @@
-   const path = require('path');
+﻿   const path = require('path');
    const fs = require('fs').promises;
    const mustache = require('mustache');
    const nodemailer = require('nodemailer');
@@ -17,14 +17,18 @@
      console.warn('⚠️ Proton Mail gönderici adresi (PROTON_FROM_EMAIL) tanımlı değil. E-posta gönderimleri başarısız olabilir.');
    }
 
-   const transporter = nodemailer.createTransport({
-     host: PROTON_SMTP_HOST,
-     port: Number(PROTON_SMTP_PORT),
-     secure: PROTON_SMTP_SECURE === 'true',
-     auth: PROTON_SMTP_USERNAME && PROTON_SMTP_PASSWORD
-       ? { user: PROTON_SMTP_USERNAME, pass: PROTON_SMTP_PASSWORD }
-       : undefined,
-   });
+  const transporter = nodemailer.createTransport({
+    host: PROTON_SMTP_HOST,
+    port: Number(PROTON_SMTP_PORT),
+    secure: PROTON_SMTP_SECURE === 'true',
+    auth: PROTON_SMTP_USERNAME && PROTON_SMTP_PASSWORD
+      ? { user: PROTON_SMTP_USERNAME, pass: PROTON_SMTP_PASSWORD }
+      : undefined,
+    tls: {
+      rejectUnauthorized: false, // Proton Mail Bridge self-signed certificate
+      requireTLS: true, // STARTTLS kullan
+    },
+  });
 
    transporter.verify().catch((error) => {
      console.warn('⚠️ Proton Mail SMTP bağlantısı doğrulanamadı:', error.message);

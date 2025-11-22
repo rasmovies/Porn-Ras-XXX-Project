@@ -28,7 +28,18 @@ router.post(
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Verification mail error:', error);
-      return res.status(500).json({ success: false, message: 'Mail gönderilemedi.' });
+      
+      // Daha açıklayıcı hata mesajları
+      let errorMessage = 'Mail gönderilemedi.';
+      if (error.code === 'ESOCKET' || error.message?.includes('ECONNREFUSED')) {
+        errorMessage = 'Email servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.';
+      } else if (error.code === 'EAUTH' || error.message?.includes('invalid username or password')) {
+        errorMessage = 'Email servisi yapılandırma hatası. Lütfen yöneticiyle iletişime geçin.';
+      } else if (error.message) {
+        errorMessage = `Mail gönderilemedi: ${error.message}`;
+      }
+      
+      return res.status(500).json({ success: false, message: errorMessage });
     }
   }
 );
