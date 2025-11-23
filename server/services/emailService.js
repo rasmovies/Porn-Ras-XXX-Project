@@ -5,7 +5,7 @@
 
   const {
     PROTON_SMTP_HOST,
-    PROTON_SMTP_PORT = '1025',
+    PROTON_SMTP_PORT = '1025', // Bridge default port (güncellenebilir)
     PROTON_SMTP_SECURE = 'false',
     PROTON_SMTP_USERNAME,
     PROTON_SMTP_PASSWORD,
