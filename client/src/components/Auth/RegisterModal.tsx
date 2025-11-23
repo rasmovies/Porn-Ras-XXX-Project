@@ -238,7 +238,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
           ? crypto.randomUUID()
           : Math.random().toString(36).slice(2) + Date.now().toString(36);
       
-      const magicLink = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(magicLinkEmail)}`;
+      const magicLink = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(magicLinkEmail)}&type=magic-link`;
 
       console.log('📧 Magic link gönderimi başlatılıyor...', { email: magicLinkEmail, magicLink });
 
