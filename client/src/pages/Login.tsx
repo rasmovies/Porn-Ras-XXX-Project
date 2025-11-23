@@ -253,9 +253,7 @@ const Login: React.FC = () => {
                   </Link>
                 </Typography>
               </Box>
-            </Box>
           </Box>
-        </Box>
       </motion.div>
     </Box>
   );

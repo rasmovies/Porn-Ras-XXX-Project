@@ -275,7 +275,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                       </Link>
                     </Typography>
                   </Box>
-                </Box>
               </Box>
             </DialogContent>
           </motion.div>
