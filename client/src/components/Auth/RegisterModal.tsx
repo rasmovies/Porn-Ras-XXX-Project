@@ -39,6 +39,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const [showNormalForm, setShowNormalForm] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,6 +221,51 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     },
   });
 
+  const handleMagicLink = async () => {
+    if (!magicLinkEmail || !magicLinkEmail.includes('@')) {
+      setError('Please enter a valid email address');
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setIsSendingMagicLink(true);
+      setError('');
+
+      // Generate magic link token
+      const token =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      
+      const magicLink = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(magicLinkEmail)}`;
+
+      console.log('📧 Magic link gönderimi başlatılıyor...', { email: magicLinkEmail, magicLink });
+
+      await emailApi.sendMagicLink({
+        email: magicLinkEmail,
+        magicLink,
+      });
+
+      console.log('✅ Magic link gönderimi başarılı');
+      setSuccessMessage('Magic link sent! Please check your inbox.');
+      toast.success('Magic link sent! Please check your inbox.');
+      
+      // Reset form after a delay
+      setTimeout(() => {
+        setShowMagicLink(false);
+        setMagicLinkEmail('');
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error: any) {
+      console.error('❌ Magic link gönderimi hatası:', error);
+      setError(error.message || 'Unable to send magic link. Please try again.');
+      toast.error('Failed to send magic link');
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -344,7 +390,8 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                   </Alert>
                 )}
 
-                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {showNormalForm ? (
+                  <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <TextField
                     fullWidth
                     label="Username"
@@ -518,13 +565,28 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                     Create Account
                   </Button>
 
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', px: 2 }}>
-                      or
-                    </Typography>
-                  </Divider>
-
-                  {showMagicLink ? (
+                  <Button
+                    variant="text"
+                    fullWidth
+                    type="button"
+                    onClick={() => {
+                      setShowNormalForm(false);
+                      setError('');
+                    }}
+                    sx={{
+                      mt: 1,
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      fontSize: '0.9rem',
+                      '&:hover': {
+                        color: '#ff6b6b',
+                        background: 'rgba(255, 107, 107, 0.1)',
+                      }
+                    }}
+                  >
+                    Or use social login
+                  </Button>
+                  </Box>
+                ) : showMagicLink ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <TextField
                         fullWidth
@@ -599,7 +661,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                         </Button>
                       </Box>
                     </Box>
-                  ) : (
+                  ) : !showNormalForm ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <Button
                         variant="outlined"
@@ -671,8 +733,36 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                       >
                         Continue with Apple
                       </Button>
+                      <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                        <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', px: 2 }}>
+                          or
+                        </Typography>
+                      </Divider>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        type="button"
+                        onClick={() => {
+                          setShowNormalForm(true);
+                          setError('');
+                        }}
+                        disabled={isSubmitting}
+                        sx={{
+                          py: 1.5,
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          color: 'white',
+                          fontSize: '1rem',
+                          '&:hover': {
+                            border: '1px solid rgba(255, 107, 107, 0.5)',
+                            background: 'rgba(255, 107, 107, 0.1)',
+                          }
+                        }}
+                      >
+                        Sign up with Email and Password
+                      </Button>
                     </Box>
-                  )}
+                  ) : null}
 
                   <Box sx={{ textAlign: 'center', mt: 1 }}>
                     <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>
