@@ -254,6 +254,7 @@ const Login: React.FC = () => {
                 </Typography>
               </Box>
           </Box>
+        </Box>
       </motion.div>
     </Box>
   );
