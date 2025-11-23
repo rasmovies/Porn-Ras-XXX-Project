@@ -230,6 +230,11 @@ export interface MagicLinkEmailPayload {
   magicLink: string;
 }
 
+export interface WelcomeEmailPayload {
+  email: string;
+  name: string;
+}
+
 export const emailApi = {
   sendVerificationEmail: (payload: VerificationEmailPayload) =>
     postJson<VerificationEmailPayload, { success: boolean }>('/api/email/verification', payload),
@@ -239,6 +244,8 @@ export const emailApi = {
     postJson<MarketingEmailPayload, { success: boolean }>('/api/email/marketing', payload),
   sendMagicLink: (payload: MagicLinkEmailPayload) =>
     postJson<MagicLinkEmailPayload, { success: boolean }>('/api/email/magicLink', payload),
+  sendWelcomeEmail: (payload: WelcomeEmailPayload) =>
+    postJson<WelcomeEmailPayload, { success: boolean }>('/api/email/welcome', payload),
 };
 
 export const blueskyApi = {

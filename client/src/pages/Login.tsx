@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import {
   Typography,
   Box,
-  TextField,
   Button,
   Link,
   Alert,
-  FormControlLabel,
-  Checkbox,
-  Divider,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -18,61 +14,9 @@ import { emailApi } from '../services/emailApi';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
-  const [showMagicLink, setShowMagicLink] = useState(false);
-  const [magicLinkEmail, setMagicLinkEmail] = useState('');
-  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-    // Simulate login
-    setError('');
-    login({ username: email.split('@')[0], email, name: email.split('@')[0] });
-    navigate('/');
-  };
-
-  const handleMagicLink = async () => {
-    if (!magicLinkEmail || !magicLinkEmail.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
-    setIsSendingMagicLink(true);
-    setError('');
-
-    try {
-      const token =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : Math.random().toString(36).slice(2) + Date.now().toString(36);
-      
-      const magicLink = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(magicLinkEmail)}&type=magic-link`;
-
-      await emailApi.sendMagicLink({
-        email: magicLinkEmail,
-        magicLink,
-      });
-
-      toast.success('Magic link sent! Check your email.');
-      setShowMagicLink(false);
-      setMagicLinkEmail('');
-    } catch (error: any) {
-      console.error('Magic link error:', error);
-      setError(error.message || 'Failed to send magic link. Please try again.');
-      toast.error('Failed to send magic link');
-    } finally {
-      setIsSendingMagicLink(false);
-    }
-  };
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -103,6 +47,18 @@ const Login: React.FC = () => {
           avatar: userInfo.picture,
           googleId: userInfo.sub,
         };
+        
+        // Welcome email gönder
+        try {
+          await emailApi.sendWelcomeEmail({
+            email: userInfo.email,
+            name: userInfo.name,
+          });
+          console.log('✅ Welcome email sent');
+        } catch (emailError) {
+          console.error('⚠️ Welcome email gönderilemedi:', emailError);
+          // Email hatası login'i engellemez
+        }
         
         login(userData);
         toast.success(`Welcome, ${userInfo.name}!`);
@@ -230,294 +186,53 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    '&:hover': {
-                      border: '1px solid rgba(0, 255, 255, 0.5)',
-                      boxShadow: '0 0 10px rgba(0, 255, 255, 0.2)',
-                    },
-                    '&.Mui-focused': {
-                      border: '1px solid #00ffff',
-                      boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#00ffff',
-                    }
-                  }
-                }}
-              />
-              
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    '&:hover': {
-                      border: '1px solid rgba(0, 255, 255, 0.5)',
-                      boxShadow: '0 0 10px rgba(0, 255, 255, 0.2)',
-                    },
-                    '&.Mui-focused': {
-                      border: '1px solid #00ffff',
-                      boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#00ffff',
-                    }
-                  }
-                }}
-              />
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      sx={{
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        '&.Mui-checked': {
-                          color: '#00ffff',
-                        }
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>
-                      Keep me signed in
-                    </Typography>
-                  }
-                />
-                <Link
-                  href="#"
-                  sx={{
-                    color: '#00ffff',
-                    textDecoration: 'none',
-                    fontSize: '0.9rem',
-                    '&:hover': {
-                      textShadow: '0 0 10px #00ffff',
-                    }
-                  }}
-                >
-                  Forgot password?
-                </Link>
-              </Box>
-
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Button
-                type="submit"
-                variant="contained"
-                size="large"
+                variant="outlined"
+                fullWidth
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                    setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                    toast.error('Google Sign-In is not configured');
+                    return;
+                  }
+                  handleGoogleLogin();
+                }}
                 sx={{
-                  mt: 2,
                   py: 1.5,
-                  background: 'linear-gradient(135deg, #00ffff 0%, #0099ff 100%)',
                   borderRadius: '12px',
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  textTransform: 'none',
-                  boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  fontSize: '1rem',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #00cccc 0%, #0088cc 100%)',
-                    boxShadow: '0 0 30px rgba(0, 255, 255, 0.5)',
-                    transform: 'translateY(-2px)',
+                    border: '1px solid rgba(0, 255, 255, 0.5)',
+                    background: 'rgba(0, 255, 255, 0.1)',
                   }
                 }}
               >
-                Sign In
+                Continue with Google
               </Button>
-
-              <Divider sx={{ my: 1.5, borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-                <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', px: 2 }}>
-                  or
-                </Typography>
-              </Divider>
-
-              {showMagicLink ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={magicLinkEmail}
-                    onChange={(e) => setMagicLinkEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: 'white',
-                        '&:hover': {
-                          border: '1px solid rgba(0, 255, 255, 0.5)',
-                          boxShadow: '0 0 10px rgba(0, 255, 255, 0.2)',
-                        },
-                        '&.Mui-focused': {
-                          border: '1px solid #00ffff',
-                          boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        '&.Mui-focused': {
-                          color: '#00ffff',
-                        }
-                      }
-                    }}
-                  />
-                  <Box sx={{ display: 'flex', gap: 1.5 }}>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      onClick={handleMagicLink}
-                      disabled={isSendingMagicLink}
-                      sx={{
-                        py: 1.5,
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #00ffff 0%, #0099ff 100%)',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #00cccc 0%, #0088cc 100%)',
-                        },
-                        '&:disabled': {
-                          opacity: 0.6,
-                        }
-                      }}
-                    >
-                      {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={() => {
-                        setShowMagicLink(false);
-                        setMagicLinkEmail('');
-                        setError('');
-                      }}
-                      sx={{
-                        py: 1.5,
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        '&:hover': {
-                          border: '1px solid rgba(255, 255, 255, 0.4)',
-                        }
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('🔵 Google button clicked!');
-                      console.log('🔵 REACT_APP_GOOGLE_CLIENT_ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
-                      console.log('🔵 handleGoogleLogin:', typeof handleGoogleLogin);
-                      
-                      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-                        console.error('❌ REACT_APP_GOOGLE_CLIENT_ID is missing');
-                        setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
-                        toast.error('Google Sign-In is not configured');
-                        return;
-                      }
-                      
-                      console.log('✅ Calling handleGoogleLogin...');
-                      try {
-                        handleGoogleLogin();
-                      } catch (error) {
-                        console.error('❌ Error calling handleGoogleLogin:', error);
-                        setError('Failed to initiate Google login');
-                        toast.error('Failed to initiate Google login');
-                      }
-                    }}
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(0, 255, 255, 0.5)',
-                        background: 'rgba(0, 255, 255, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Google
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowMagicLink(true);
-                      setError('');
-                    }}
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(0, 255, 255, 0.5)',
-                        background: 'rgba(0, 255, 255, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Email
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(0, 255, 255, 0.5)',
-                        background: 'rgba(0, 255, 255, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Apple
-                  </Button>
-                </Box>
-              )}
+              <Button
+                variant="outlined"
+                fullWidth
+                sx={{
+                  py: 1.5,
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  fontSize: '1rem',
+                  '&:hover': {
+                    border: '1px solid rgba(0, 255, 255, 0.5)',
+                    background: 'rgba(0, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                Continue with Apple
+              </Button>
+            </Box>
 
               <Box sx={{ textAlign: 'center', mt: 2 }}>
                 <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>

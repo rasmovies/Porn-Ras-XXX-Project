@@ -153,9 +153,19 @@
     });
   }
 
+  async function sendWelcomeMail({ email, name }) {
+    const html = await renderTemplate('welcome', { email, name });
+    return dispatchEmail({ 
+      recipients: [email], 
+      subject: 'Welcome to PORNRAS!', 
+      html 
+    });
+  }
+
   module.exports = {
     sendVerificationMail,
     sendInviteMail,
     sendMarketingMail,
     sendMagicLinkMail,
+    sendWelcomeMail,
   };

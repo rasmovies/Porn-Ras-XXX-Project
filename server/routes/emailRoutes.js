@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { sendVerificationMail, sendInviteMail, sendMarketingMail, sendMagicLinkMail } = require('../services/emailService');
+const { sendVerificationMail, sendInviteMail, sendMarketingMail, sendMagicLinkMail, sendWelcomeMail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -106,6 +106,36 @@ router.post(
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Magic link mail error:', error);
+      
+      let errorMessage = 'Mail gönderilemedi.';
+      if (error.code === 'ESOCKET' || error.message?.includes('ECONNREFUSED')) {
+        errorMessage = 'Email servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.';
+      } else if (error.code === 'EAUTH' || error.message?.includes('invalid username or password')) {
+        errorMessage = 'Email servisi yapılandırma hatası. Lütfen yöneticiyle iletişime geçin.';
+      } else if (error.message) {
+        errorMessage = `Mail gönderilemedi: ${error.message}`;
+      }
+      
+      return res.status(500).json({ success: false, message: errorMessage });
+    }
+  }
+);
+
+router.post(
+  '/welcome',
+  [
+    body('email').isEmail().withMessage('Geçerli bir e-posta girin.'),
+    body('name').isString().trim().notEmpty().withMessage('İsim gerekli.'),
+  ],
+  handleValidation,
+  async (req, res) => {
+    const { email, name } = req.body;
+    try {
+      await sendWelcomeMail({ email, name });
+      return res.json({ success: true });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Welcome mail error:', error);
       
       let errorMessage = 'Mail gönderilemedi.';
       if (error.code === 'ESOCKET' || error.message?.includes('ECONNREFUSED')) {
