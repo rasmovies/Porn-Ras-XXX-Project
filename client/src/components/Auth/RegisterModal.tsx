@@ -36,6 +36,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMagicLink, setShowMagicLink] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -521,52 +524,155 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                     </Typography>
                   </Divider>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Button
-                      variant="outlined"
-                      fullWidth
-                      onClick={() => {
-                        if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-                          setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
-                          toast.error('Google Sign-In is not configured');
-                          console.error('REACT_APP_GOOGLE_CLIENT_ID is missing');
-                          return;
-                        }
-                        handleGoogleLogin();
-                      }}
-                      disabled={isSubmitting}
-                      sx={{
-                        py: 1.5,
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        fontSize: '1rem',
-                        '&:hover': {
-                          border: '1px solid rgba(255, 107, 107, 0.5)',
-                          background: 'rgba(255, 107, 107, 0.1)',
-                        }
-                      }}
-                    >
-                      Continue with Google
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      fullWidth
-                      sx={{
-                        py: 1.5,
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        fontSize: '1rem',
-                        '&:hover': {
-                          border: '1px solid rgba(255, 107, 107, 0.5)',
-                          background: 'rgba(255, 107, 107, 0.1)',
-                        }
-                      }}
-                    >
-                      Continue with Apple
-                    </Button>
-                  </Box>
+                  {showMagicLink ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        type="email"
+                        value={magicLinkEmail}
+                        onChange={(e) => setMagicLinkEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            '&:hover': {
+                              border: '1px solid rgba(255, 107, 107, 0.5)',
+                              boxShadow: '0 0 10px rgba(255, 107, 107, 0.2)',
+                            },
+                            '&.Mui-focused': {
+                              border: '1px solid #ff6b6b',
+                              boxShadow: '0 0 20px rgba(255, 107, 107, 0.3)',
+                            }
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            '&.Mui-focused': {
+                              color: '#ff6b6b',
+                            }
+                          }
+                        }}
+                      />
+                      <Box sx={{ display: 'flex', gap: 1.5 }}>
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          onClick={handleMagicLink}
+                          disabled={isSendingMagicLink}
+                          sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)',
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            '&:hover': {
+                              background: 'linear-gradient(135deg, #ff5252 0%, #ff3d3d 100%)',
+                            },
+                            '&:disabled': {
+                              opacity: 0.6,
+                            }
+                          }}
+                        >
+                          {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={() => {
+                            setShowMagicLink(false);
+                            setMagicLinkEmail('');
+                            setError('');
+                          }}
+                          sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            '&:hover': {
+                              border: '1px solid rgba(255, 255, 255, 0.4)',
+                            }
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        type="button"
+                        onClick={() => {
+                          if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                            setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                            toast.error('Google Sign-In is not configured');
+                            console.error('REACT_APP_GOOGLE_CLIENT_ID is missing');
+                            return;
+                          }
+                          handleGoogleLogin();
+                        }}
+                        disabled={isSubmitting}
+                        sx={{
+                          py: 1.5,
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          color: 'white',
+                          fontSize: '1rem',
+                          '&:hover': {
+                            border: '1px solid rgba(255, 107, 107, 0.5)',
+                            background: 'rgba(255, 107, 107, 0.1)',
+                          }
+                        }}
+                      >
+                        Continue with Google
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowMagicLink(true);
+                          setError('');
+                        }}
+                        disabled={isSubmitting}
+                        sx={{
+                          py: 1.5,
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          color: 'white',
+                          fontSize: '1rem',
+                          '&:hover': {
+                            border: '1px solid rgba(255, 107, 107, 0.5)',
+                            background: 'rgba(255, 107, 107, 0.1)',
+                          }
+                        }}
+                      >
+                        Continue with Email
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        sx={{
+                          py: 1.5,
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          color: 'white',
+                          fontSize: '1rem',
+                          '&:hover': {
+                            border: '1px solid rgba(255, 107, 107, 0.5)',
+                            background: 'rgba(255, 107, 107, 0.1)',
+                          }
+                        }}
+                      >
+                        Continue with Apple
+                      </Button>
+                    </Box>
+                  )}
 
                   <Box sx={{ textAlign: 'center', mt: 1 }}>
                     <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>

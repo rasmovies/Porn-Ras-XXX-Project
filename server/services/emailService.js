@@ -127,25 +127,35 @@
      });
    }
 
-   async function sendMarketingMail({ recipients, subject, headline, message, ctaUrl, ctaLabel = 'İncele', unsubscribeUrl }) {
-     if (!Array.isArray(recipients) || recipients.length === 0) {
-       throw new Error('Gönderilecek en az bir e-posta adresi gerekli.');
-     }
+  async function sendMarketingMail({ recipients, subject, headline, message, ctaUrl, ctaLabel = 'İncele', unsubscribeUrl }) {
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      throw new Error('Gönderilecek en az bir e-posta adresi gerekli.');
+    }
 
-     const html = await renderTemplate('marketing', {
-       subject,
-       headline,
-       message,
-       ctaUrl,
-       ctaLabel,
-       unsubscribeUrl: unsubscribeUrl || '#',
-     });
+    const html = await renderTemplate('marketing', {
+      subject,
+      headline,
+      message,
+      ctaUrl,
+      ctaLabel,
+      unsubscribeUrl: unsubscribeUrl || '#',
+    });
 
-     return dispatchEmail({ recipients, subject, html });
-   }
+    return dispatchEmail({ recipients, subject, html });
+  }
 
-   module.exports = {
-     sendVerificationMail,
-     sendInviteMail,
-     sendMarketingMail,
-   };
+  async function sendMagicLinkMail({ email, magicLink }) {
+    const html = await renderTemplate('magic-link', { magicLink });
+    return dispatchEmail({ 
+      recipients: [email], 
+      subject: 'PORNRAS - Giriş Linkiniz', 
+      html 
+    });
+  }
+
+  module.exports = {
+    sendVerificationMail,
+    sendInviteMail,
+    sendMarketingMail,
+    sendMagicLinkMail,
+  };

@@ -12,16 +12,19 @@ import {
 } from '@mui/material';
 import { CheckCircle, Error as ErrorIcon, Home } from '@mui/icons-material';
 import { motion } from 'motion/react';
+import { useAuth } from '../components/Auth/AuthProvider';
 import SEO from '../components/SEO/SEO';
 
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
   const token = searchParams.get('token');
   const email = searchParams.get('email');
+  const type = searchParams.get('type'); // 'magic-link' or 'verification'
 
   const verifyEmail = async () => {
     try {
@@ -31,14 +34,31 @@ const VerifyEmail: React.FC = () => {
       //   throw new Error('Verification failed');
       // }
 
-      // Şimdilik sadece başarı mesajı göster
-      setStatus('success');
-      setMessage('Your email has been verified successfully! You can now log in to your account.');
-      
-      // 3 saniye sonra login sayfasına yönlendir
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+      // Magic link ile giriş yapılıyorsa otomatik login yap
+      if (type === 'magic-link' && email) {
+        const username = email.split('@')[0];
+        login({
+          username,
+          email,
+          name: username,
+        });
+        setStatus('success');
+        setMessage('Welcome back! You have been logged in successfully.');
+        
+        // 2 saniye sonra ana sayfaya yönlendir
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        // Normal email verification
+        setStatus('success');
+        setMessage('Your email has been verified successfully! You can now log in to your account.');
+        
+        // 3 saniye sonra login sayfasına yönlendir
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+      }
     } catch (error) {
       setStatus('error');
       setMessage('Verification failed. Please try again or request a new verification email.');
@@ -56,7 +76,7 @@ const VerifyEmail: React.FC = () => {
     // Not: Backend'de doğrulama endpoint'i yoksa, sadece başarı mesajı göster
     verifyEmail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, email]);
+  }, [token, email, type]);
 
   return (
     <>
