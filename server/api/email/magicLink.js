@@ -4,7 +4,7 @@ const { handleError } = require('../_helpers/errorHandler');
 const { sendMagicLinkMail } = require('../../services/emailService');
 
 /**
- * POST /api/email/magic-link
+ * POST /api/email/magicLink
  * Send magic link email
  */
 module.exports = async function handler(req, res) {
