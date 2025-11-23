@@ -390,7 +390,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                   </Alert>
                 )}
 
-                {showNormalForm ? (
+                {showNormalForm && !showMagicLink ? (
                   <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <TextField
                     fullWidth
@@ -661,7 +661,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                         </Button>
                       </Box>
                     </Box>
-                  ) : !showNormalForm ? (
+                  ) : !showNormalForm && !showMagicLink ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <Button
                         variant="outlined"
