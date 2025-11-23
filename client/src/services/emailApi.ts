@@ -238,7 +238,7 @@ export const emailApi = {
   sendMarketingEmail: (payload: MarketingEmailPayload) =>
     postJson<MarketingEmailPayload, { success: boolean }>('/api/email/marketing', payload),
   sendMagicLink: (payload: MagicLinkEmailPayload) =>
-    postJson<MagicLinkEmailPayload, { success: boolean }>('/api/email/magic-link', payload),
+    postJson<MagicLinkEmailPayload, { success: boolean }>('/api/email/magicLink', payload),
 };
 
 export const blueskyApi = {
