@@ -78,9 +78,15 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
   let url = '';
   
   try {
-    // API_BASE_URL kontrolü - production'da fallback kullan
-    if (!API_BASE_URL) {
-      const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
+    // Production'da doğrudan API URL'i kullan (özellikle email verification için)
+    const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
+    
+    if (isProduction && path === '/api/email/verification') {
+      // Production'da verification endpoint'i için doğrudan URL kullan
+      url = 'https://api.pornras.com/api/email/verification';
+      console.log('✅ Production mode - using direct URL for verification:', url);
+    } else if (!API_BASE_URL) {
+      // API_BASE_URL kontrolü - production'da fallback kullan
       if (isProduction) {
         // Production'da fallback URL kullan
         const fallbackUrl = 'https://api.pornras.com';
