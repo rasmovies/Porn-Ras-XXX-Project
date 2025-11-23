@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,9 @@ import {
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'motion/react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from './AuthProvider';
+import toast from 'react-hot-toast';
 
 interface LoginModalProps {
   open: boolean;
@@ -46,6 +48,70 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
       onLoginSuccess();
     }
   };
+
+  // Google Login handler - sadece Client ID varsa kullan
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+        setError('Google Client ID is not configured. Please contact administrator.');
+        toast.error('Google Sign-In is not configured');
+        return;
+      }
+      try {
+        // Google'dan kullanıcı bilgilerini al
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`,
+          },
+        });
+        
+        if (!userInfoResponse.ok) {
+          throw new Error('Failed to fetch user info');
+        }
+        
+        const userInfo = await userInfoResponse.json();
+        
+        // Kullanıcıyı sisteme kaydet/giriş yap
+        const userData = {
+          username: userInfo.email.split('@')[0] || userInfo.name.toLowerCase().replace(/\s+/g, '_'),
+          email: userInfo.email,
+          name: userInfo.name,
+          avatar: userInfo.picture,
+          googleId: userInfo.sub,
+        };
+        
+        login(userData);
+        toast.success(`Welcome, ${userInfo.name}!`);
+        onClose();
+        
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+      } catch (error: any) {
+        console.error('Google login error:', error);
+        setError('Google login failed. Please try again.');
+        toast.error('Google login failed');
+      }
+    },
+    onError: (error) => {
+      console.error('❌ Google login error:', error);
+      setError('Google login was cancelled or failed');
+      toast.error('Google login failed');
+    },
+  });
+  
+  // Debug: Component render olduğunda log (sadece mount'ta)
+  useEffect(() => {
+    console.log('🔍 LoginModal mounted');
+    console.log('🔍 REACT_APP_GOOGLE_CLIENT_ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET');
+    console.log('🔍 handleGoogleLogin type:', typeof handleGoogleLogin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+  console.log('🔍 LoginModal render - handleGoogleLogin type:', typeof handleGoogleLogin);
+  console.log('🔍 LoginModal render - REACT_APP_GOOGLE_CLIENT_ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET');
 
   return (
     <AnimatePresence>
@@ -296,6 +362,38 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                     <Button
                       variant="outlined"
                       fullWidth
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🔵 Google button clicked!');
+                        console.log('🔵 REACT_APP_GOOGLE_CLIENT_ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
+                        console.log('🔵 handleGoogleLogin:', typeof handleGoogleLogin);
+                        console.log('🔵 handleGoogleLogin function:', handleGoogleLogin);
+                        
+                        if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                          console.error('❌ REACT_APP_GOOGLE_CLIENT_ID is missing');
+                          setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                          toast.error('Google Sign-In is not configured');
+                          return;
+                        }
+                        
+                        if (typeof handleGoogleLogin !== 'function') {
+                          console.error('❌ handleGoogleLogin is not a function:', handleGoogleLogin);
+                          setError('Google login handler is not available');
+                          toast.error('Google login handler is not available');
+                          return;
+                        }
+                        
+                        console.log('✅ Calling handleGoogleLogin...');
+                        try {
+                          handleGoogleLogin();
+                        } catch (error) {
+                          console.error('❌ Error calling handleGoogleLogin:', error);
+                          setError('Failed to initiate Google login');
+                          toast.error('Failed to initiate Google login');
+                        }
+                      }}
                       sx={{
                         py: 1.5,
                         borderRadius: '12px',

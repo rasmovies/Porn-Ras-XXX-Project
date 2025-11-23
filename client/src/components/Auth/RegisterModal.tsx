@@ -15,7 +15,10 @@ import {
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'motion/react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { emailApi } from '../../services/emailApi';
+import { useAuth } from './AuthProvider';
+import toast from 'react-hot-toast';
 
 interface RegisterModalProps {
   open: boolean;
@@ -24,6 +27,7 @@ interface RegisterModalProps {
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchToLogin }) => {
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -161,6 +165,57 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
         setIsSubmitting(false);
       });
   };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+        setError('Google Client ID is not configured. Please contact administrator.');
+        toast.error('Google Sign-In is not configured');
+        return;
+      }
+      try {
+        setIsSubmitting(true);
+        setError('');
+        
+        // Google'dan kullanıcı bilgilerini al
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`,
+          },
+        });
+        
+        if (!userInfoResponse.ok) {
+          throw new Error('Failed to fetch user info');
+        }
+        
+        const userInfo = await userInfoResponse.json();
+        
+        // Kullanıcıyı sisteme kaydet/giriş yap
+        const userData = {
+          username: userInfo.email.split('@')[0] || userInfo.name.toLowerCase().replace(/\s+/g, '_'),
+          email: userInfo.email,
+          name: userInfo.name,
+          avatar: userInfo.picture,
+          googleId: userInfo.sub,
+        };
+        
+        login(userData);
+        toast.success(`Welcome, ${userInfo.name}!`);
+        setSuccessMessage('Registration successful!');
+        onClose();
+      } catch (error: any) {
+        console.error('Google login error:', error);
+        setError('Google registration failed. Please try again.');
+        toast.error('Google registration failed');
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    onError: () => {
+      setError('Google registration was cancelled or failed');
+      toast.error('Google registration failed');
+    },
+  });
 
   return (
     <AnimatePresence>
@@ -470,6 +525,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                     <Button
                       variant="outlined"
                       fullWidth
+                      onClick={() => {
+                        if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                          setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                          toast.error('Google Sign-In is not configured');
+                          console.error('REACT_APP_GOOGLE_CLIENT_ID is missing');
+                          return;
+                        }
+                        handleGoogleLogin();
+                      }}
+                      disabled={isSubmitting}
                       sx={{
                         py: 1.5,
                         borderRadius: '12px',

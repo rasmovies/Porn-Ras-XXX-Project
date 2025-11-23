@@ -12,6 +12,9 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useGoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../components/Auth/AuthProvider';
+import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +22,7 @@ const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +32,54 @@ const Login: React.FC = () => {
     }
     // Simulate login
     setError('');
+    login({ username: email.split('@')[0], email, name: email.split('@')[0] });
     navigate('/');
   };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+        setError('Google Client ID is not configured. Please contact administrator.');
+        toast.error('Google Sign-In is not configured');
+        return;
+      }
+      try {
+        // Google'dan kullanıcı bilgilerini al
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`,
+          },
+        });
+        
+        if (!userInfoResponse.ok) {
+          throw new Error('Failed to fetch user info');
+        }
+        
+        const userInfo = await userInfoResponse.json();
+        
+        // Kullanıcıyı sisteme kaydet/giriş yap
+        const userData = {
+          username: userInfo.email.split('@')[0] || userInfo.name.toLowerCase().replace(/\s+/g, '_'),
+          email: userInfo.email,
+          name: userInfo.name,
+          avatar: userInfo.picture,
+          googleId: userInfo.sub,
+        };
+        
+        login(userData);
+        toast.success(`Welcome, ${userInfo.name}!`);
+        navigate('/');
+      } catch (error: any) {
+        console.error('Google login error:', error);
+        setError('Google login failed. Please try again.');
+        toast.error('Google login failed');
+      }
+    },
+    onError: () => {
+      setError('Google login was cancelled or failed');
+      toast.error('Google login failed');
+    },
+  });
 
   return (
     <Box
@@ -273,6 +323,29 @@ const Login: React.FC = () => {
                 <Button
                   variant="outlined"
                   fullWidth
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔵 Google button clicked!');
+                    console.log('🔵 REACT_APP_GOOGLE_CLIENT_ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
+                    console.log('🔵 handleGoogleLogin:', typeof handleGoogleLogin);
+                    
+                    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                      console.error('❌ REACT_APP_GOOGLE_CLIENT_ID is missing');
+                      setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                      toast.error('Google Sign-In is not configured');
+                      return;
+                    }
+                    
+                    console.log('✅ Calling handleGoogleLogin...');
+                    try {
+                      handleGoogleLogin();
+                    } catch (error) {
+                      console.error('❌ Error calling handleGoogleLogin:', error);
+                      setError('Failed to initiate Google login');
+                      toast.error('Failed to initiate Google login');
+                    }
+                  }}
                   sx={{
                     py: 1.5,
                     borderRadius: '12px',

@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 // Styles
 import './styles/global.css';
@@ -73,15 +74,29 @@ const theme = createTheme({
   },
 });
 
+// Google OAuth Client ID - Environment variable'dan al veya fallback kullan
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
+// Google Client ID kontrolü
+console.log('🔍 App.tsx - GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? `${GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'NOT SET');
+if (!GOOGLE_CLIENT_ID && process.env.NODE_ENV === 'development') {
+  console.warn('⚠️ REACT_APP_GOOGLE_CLIENT_ID is not set. Google Sign-In will not work.');
+  console.warn('Please add REACT_APP_GOOGLE_CLIENT_ID to your .env file');
+}
+
 function App() {
+  // Client ID yoksa placeholder kullan (GoogleOAuthProvider boş string kabul etmez)
+  const clientIdForProvider = GOOGLE_CLIENT_ID || 'placeholder-client-id';
+  
   return (
     <HelmetProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <ErrorBoundary>
-          <AgeVerificationProvider>
-            <AuthProvider>
-              <Router>
+      <GoogleOAuthProvider clientId={clientIdForProvider}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <ErrorBoundary>
+            <AgeVerificationProvider>
+              <AuthProvider>
+                <Router>
                 <Routes>
                   <Route element={<Layout />}>
                     <Route index element={<Home />} />
@@ -136,6 +151,7 @@ function App() {
         </AgeVerificationProvider>
       </ErrorBoundary>
     </ThemeProvider>
+      </GoogleOAuthProvider>
     </HelmetProvider>
   );
 }
