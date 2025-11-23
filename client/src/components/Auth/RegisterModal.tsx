@@ -784,7 +784,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                     </Typography>
                   </Box>
                 </Box>
-              </Box>
             </DialogContent>
           </motion.div>
         </Dialog>
