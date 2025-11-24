@@ -1649,7 +1649,7 @@ const Admin: React.FC = () => {
                             <Typography variant="h6">
                               {user.user_name}
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
                               <Chip
                                 label={`${user.subscriber_count} subscribers`}
                                 size="small"
@@ -1660,6 +1660,22 @@ const Admin: React.FC = () => {
                                 size="small"
                                 sx={{ bgcolor: 'rgba(255,107,107,0.1)', color: '#ff6b6b' }}
                               />
+                              {user.email_verified ? (
+                                <Chip
+                                  icon={<CheckCircle />}
+                                  label="Email Verified"
+                                  size="small"
+                                  color="success"
+                                  sx={{ bgcolor: 'rgba(76, 175, 80, 0.1)' }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Email Not Verified"
+                                  size="small"
+                                  color="warning"
+                                  sx={{ bgcolor: 'rgba(255, 152, 0, 0.1)' }}
+                                />
+                              )}
                             </Box>
                           </Box>
                         </Box>

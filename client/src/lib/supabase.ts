@@ -81,6 +81,7 @@ export interface Profile {
   avatar_image: string | null;
   subscriber_count: number;
   videos_watched: number;
+  email_verified: boolean;
   created_at: string;
   updated_at: string;
 }

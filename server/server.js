@@ -98,6 +98,12 @@ app.get('/health', (req, res) => {
 
 app.use('/api/email', emailRoutes);
 
+// Auth routes - Vercel serverless function olarak çalışacak
+// Local development için Express route
+if (require.main === module) {
+  app.post('/api/auth/verify', require('./api/auth/verify'));
+}
+
 // Bluesky routes - sadece yüklendiyse aktif
 if (blueskyRoutes) {
   app.use('/api/bluesky', blueskyRoutes);

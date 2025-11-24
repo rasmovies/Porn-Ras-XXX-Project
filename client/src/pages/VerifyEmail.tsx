@@ -27,13 +27,31 @@ const VerifyEmail: React.FC = () => {
 
   const verifyEmail = async () => {
     try {
-      // TODO: Backend'de email doğrulama endpoint'i eklenirse burada çağrılacak
-      // const response = await fetch(`/api/auth/verify?token=${token}&email=${email}`);
-      // if (!response.ok) {
-      //   throw new Error('Verification failed');
-      // }
+      // Backend'e verification isteği gönder
+      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+          ? `${window.location.protocol}//${window.location.hostname}:5000` 
+          : '');
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          email,
+        }),
+      });
 
-      // Normal email verification
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Verification failed');
+      }
+
+      const data = await response.json();
+      
+      // Email doğrulandı, kullanıcıyı login yapma
       setStatus('success');
       setMessage('Your email has been verified successfully! You can now log in to your account.');
       
@@ -41,9 +59,10 @@ const VerifyEmail: React.FC = () => {
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Verification error:', error);
       setStatus('error');
-      setMessage('Verification failed. Please try again or request a new verification email.');
+      setMessage(error.message || 'Verification failed. Please try again or request a new verification email.');
     }
   };
 
