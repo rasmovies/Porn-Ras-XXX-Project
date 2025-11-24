@@ -193,7 +193,13 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
 export interface VerificationEmailPayload {
   email: string;
   username: string;
-  verifyUrl: string;
+  verifyUrl?: string;
+  verificationCode?: string;
+}
+
+export interface VerifyCodePayload {
+  email: string;
+  code: string;
 }
 
 export interface InviteEmailPayload {
@@ -233,6 +239,10 @@ export interface WelcomeEmailPayload {
 export const emailApi = {
   sendVerificationEmail: (payload: VerificationEmailPayload) =>
     postJson<VerificationEmailPayload, { success: boolean }>('/api/email/verification', payload),
+  generateVerificationCode: (payload: { email: string; username: string }) =>
+    postJson<{ email: string; username: string }, { success: boolean; message: string }>('/api/auth/generate-code', payload),
+  verifyCode: (payload: VerifyCodePayload) =>
+    postJson<VerifyCodePayload, { success: boolean; message: string; username?: string }>('/api/auth/verify-code', payload),
   sendInviteEmail: (payload: InviteEmailPayload) =>
     postJson<InviteEmailPayload, { success: boolean }>('/api/email/invite', payload),
   sendMarketingEmail: (payload: MarketingEmailPayload) =>

@@ -131,9 +131,16 @@
     }
   }
 
-   async function sendVerificationMail({ email, username, verifyUrl }) {
-     const html = await renderTemplate('verification', { username, verifyUrl });
-     return dispatchEmail({ recipients: [email], subject: 'Hesabını Doğrula', html });
+   async function sendVerificationMail({ email, username, verifyUrl, verificationCode }) {
+     // If verificationCode is provided, use code-based template
+     // Otherwise use URL-based template (backward compatibility)
+     if (verificationCode) {
+       const html = await renderTemplate('verification', { username, verificationCode });
+       return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html });
+     } else {
+       const html = await renderTemplate('verification', { username, verifyUrl });
+       return dispatchEmail({ recipients: [email], subject: 'Hesabını Doğrula', html });
+     }
    }
 
    async function sendInviteMail({ inviterName, inviteeEmail, inviteUrl }) {

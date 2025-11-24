@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [registeredUsername, setRegisteredUsername] = useState('');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -36,6 +41,110 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     confirmPassword: '',
   });
 
+  const codeInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    // Focus first input when verification modal opens
+    if (showVerificationModal) {
+      setTimeout(() => {
+        codeInputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [showVerificationModal]);
+
+  const handleCodeChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d$/.test(value)) return;
+    
+    const newCode = [...verificationCode];
+    newCode[index] = value;
+    setVerificationCode(newCode);
+    
+    // Auto-focus next input
+    if (value && index < 5) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
+      codeInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    const code = verificationCode.join('');
+    
+    if (code.length !== 6) {
+      setError('Please enter the complete 6-digit code');
+      return;
+    }
+    
+    if (!registeredEmail) {
+      setError('Email not found. Please register again.');
+      return;
+    }
+    
+    try {
+      setIsVerifying(true);
+      setError('');
+      
+      const response = await emailApi.verifyCode({
+        email: registeredEmail,
+        code: code,
+      });
+      
+      if (response.success) {
+        toast.success('Email verified successfully!');
+        
+        // Login user
+        const userData = {
+          username: registeredUsername,
+          email: registeredEmail,
+          name: registeredUsername,
+        };
+        
+        login(userData);
+        setShowVerificationModal(false);
+        onClose();
+        toast.success(`Welcome, ${registeredUsername}!`);
+      }
+    } catch (error: any) {
+      console.error('Code verification error:', error);
+      setError(error.message || 'Invalid verification code. Please try again.');
+      // Clear code on error
+      setVerificationCode(['', '', '', '', '', '']);
+      codeInputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!registeredEmail || !registeredUsername) {
+      setError('Email or username not found. Please register again.');
+      return;
+    }
+    
+    try {
+      setIsVerifying(true);
+      setError('');
+      
+      await emailApi.generateVerificationCode({
+        email: registeredEmail,
+        username: registeredUsername,
+      });
+      
+      toast.success('New verification code sent! Please check your email.');
+      setVerificationCode(['', '', '', '', '', '']);
+      codeInputRefs.current[0]?.focus();
+    } catch (error: any) {
+      console.error('Resend code error:', error);
+      setError(error.message || 'Failed to resend code. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -73,35 +182,29 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       //   body: JSON.stringify(formData),
       // });
       
-      // TODO: Backend'den token alınacak, şimdilik simüle ediyoruz
-      const token = `verify_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const verifyUrl = `${window.location.origin}/verify-email?token=${token}&email=${encodeURIComponent(formData.email)}&type=verification`;
-      
-      // Verification email gönder
+      // Generate and send 6-digit verification code
       try {
-        await emailApi.sendVerificationEmail({
+        await emailApi.generateVerificationCode({
           email: formData.email,
           username: formData.username,
-          verifyUrl: verifyUrl,
         });
-        console.log('✅ Verification email sent');
-        toast.success('Verification email sent! Please check your inbox.');
-      } catch (emailError) {
-        console.error('⚠️ Verification email gönderilemedi:', emailError);
-        toast.error('Verification email could not be sent. Please try again.');
+        console.log('✅ Verification code sent');
+        toast.success('Verification code sent! Please check your email.');
+        
+        // Store email and username for verification
+        setRegisteredEmail(formData.email);
+        setRegisteredUsername(formData.username);
+        
+        // Show verification code modal
+        setSuccessMessage('');
+        setError('');
+        setShowVerificationModal(true);
+      } catch (emailError: any) {
+        console.error('⚠️ Verification code gönderilemedi:', emailError);
+        toast.error(emailError.message || 'Verification code could not be sent. Please try again.');
+        setError('Failed to send verification code. Please try again.');
+        setIsSubmitting(false);
       }
-      
-      // Kullanıcıyı otomatik login yapma, email doğrulamasını bekle
-      // login(userData);
-      setSuccessMessage('Registration successful! Please check your email to verify your account.');
-      toast.success('Registration successful! Please verify your email.');
-      
-      // 3 saniye sonra modal'ı kapat
-      setTimeout(() => {
-        onClose();
-        // Login sayfasına yönlendir
-        window.location.href = '/login';
-      }, 3000);
     } catch (error: any) {
       console.error('Registration error:', error);
       setError('Registration failed. Please try again.');
@@ -542,6 +645,200 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
           </motion.div>
         </Dialog>
       )}
+      
+      {/* Verification Code Modal */}
+      <Dialog
+        open={showVerificationModal}
+        onClose={() => {}}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'transparent',
+            boxShadow: 'none',
+            maxHeight: '90vh',
+            overflow: 'visible',
+          }
+        }}
+        BackdropProps={{
+          sx: {
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(20px)',
+          }
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <DialogContent sx={{ p: 0, position: 'relative' }}>
+            <Box
+              sx={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <IconButton
+                onClick={() => {
+                  setShowVerificationModal(false);
+                  setVerificationCode(['', '', '', '', '', '']);
+                  setError('');
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  zIndex: 10,
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  color: 'white',
+                  '&:hover': {
+                    background: 'rgba(0, 0, 0, 0.7)',
+                  }
+                }}
+              >
+                <Close />
+              </IconButton>
+
+              <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    color: '#ff6b6b',
+                    textShadow: '0 0 20px #ff6b6b, 0 0 40px #ff6b6b',
+                    fontWeight: 'bold',
+                    mb: 0.5
+                  }}
+                >
+                  ✉️
+                </Typography>
+              </Box>
+
+              <Typography
+                variant="h4"
+                component="h1"
+                gutterBottom
+                align="center"
+                sx={{
+                  color: 'white',
+                  fontWeight: 'bold',
+                  mb: 1,
+                  textShadow: '0 0 10px rgba(255, 255, 255, 0.5)'
+                }}
+              >
+                Verify Your Email
+              </Typography>
+              
+              <Typography
+                variant="body1"
+                align="center"
+                sx={{
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  mb: 3,
+                  fontSize: '1rem'
+                }}
+              >
+                We've sent a 6-digit verification code to<br />
+                <strong style={{ color: '#ff6b6b' }}>{registeredEmail}</strong>
+              </Typography>
+
+              {error && (
+                <Alert severity="error" sx={{ mb: 3, background: 'rgba(255, 0, 0, 0.1)', border: '1px solid rgba(255, 0, 0, 0.3)' }}>
+                  {error}
+                </Alert>
+              )}
+
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, mb: 3 }}>
+                {verificationCode.map((digit, index) => (
+                  <TextField
+                    key={index}
+                    inputRef={(el) => (codeInputRefs.current[index] = el)}
+                    value={digit}
+                    onChange={(e) => handleCodeChange(index, e.target.value)}
+                    onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                    inputProps={{
+                      maxLength: 1,
+                      style: {
+                        textAlign: 'center',
+                        fontSize: '24px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        padding: '12px',
+                      }
+                    }}
+                    sx={{
+                      width: '60px',
+                      '& .MuiOutlinedInput-root': {
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '2px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '12px',
+                        '& fieldset': {
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'rgba(255, 107, 107, 0.5)',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#ff6b6b',
+                          borderWidth: '2px',
+                        },
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={handleVerifyCode}
+                disabled={isVerifying || verificationCode.join('').length !== 6}
+                sx={{
+                  py: 1.5,
+                  borderRadius: '12px',
+                  bgcolor: '#ff6b6b',
+                  color: 'white',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  mb: 2,
+                  '&:hover': {
+                    bgcolor: '#ff5252',
+                  },
+                  '&:disabled': {
+                    bgcolor: 'rgba(255, 107, 107, 0.5)',
+                  }
+                }}
+              >
+                {isVerifying ? 'Verifying...' : 'Verify Code'}
+              </Button>
+
+              <Box sx={{ textAlign: 'center' }}>
+                <Button
+                  variant="text"
+                  onClick={handleResendCode}
+                  disabled={isVerifying}
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '0.9rem',
+                    '&:hover': {
+                      color: '#ff6b6b',
+                      background: 'rgba(255, 107, 107, 0.1)',
+                    }
+                  }}
+                >
+                  Didn't receive code? Resend
+                </Button>
+              </Box>
+            </Box>
+          </DialogContent>
+        </motion.div>
+      </Dialog>
     </AnimatePresence>
   );
 };

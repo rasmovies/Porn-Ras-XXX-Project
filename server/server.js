@@ -102,6 +102,8 @@ app.use('/api/email', emailRoutes);
 // Local development için Express route
 if (require.main === module) {
   app.post('/api/auth/verify', require('./api/auth/verify'));
+  app.post('/api/auth/generate-code', require('./api/auth/generate-code'));
+  app.post('/api/auth/verify-code', require('./api/auth/verify-code'));
 }
 
 // Bluesky routes - sadece yüklendiyse aktif
