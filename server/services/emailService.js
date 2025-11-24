@@ -4,34 +4,44 @@
    const nodemailer = require('nodemailer');
 
   const {
-    PROTON_SMTP_HOST = 'mail.spacemail.com',
-    PROTON_SMTP_PORT = '465', // Bridge default port (güncellenebilir)
-    PROTON_SMTP_SECURE = 'true',
-    PROTON_SMTP_USERNAME = 'info@pornras.com',
-    PROTON_SMTP_PASSWORD = 'Oyunbozan1907',
-    PROTON_FROM_EMAIL = 'info@pornras.com'
-    PROTON_FROM_NAME = 'PORNRAS',
+    SPACEMAIL_SMTP_HOST = 'mail.spacemail.com',
+    SPACEMAIL_SMTP_PORT = '465',
+    SPACEMAIL_SMTP_SECURE = 'true',
+    SPACEMAIL_SMTP_USERNAME,
+    SPACEMAIL_SMTP_PASSWORD,
+    SPACEMAIL_FROM_EMAIL,
+    SPACEMAIL_FROM_NAME = 'PORNRAS',
   } = process.env;
 
-   if (!PROTON_FROM_EMAIL) {
-     console.warn('⚠️ Proton Mail gönderici adresi (PROTON_FROM_EMAIL) tanımlı değil. E-posta gönderimleri başarısız olabilir.');
+   if (!SPACEMAIL_FROM_EMAIL && !SPACEMAIL_SMTP_USERNAME) {
+     console.warn('⚠️ Spacemail gönderici adresi (SPACEMAIL_FROM_EMAIL veya SPACEMAIL_SMTP_USERNAME) tanımlı değil. E-posta gönderimleri başarısız olabilir.');
    }
 
+  const fromEmail = SPACEMAIL_FROM_EMAIL || SPACEMAIL_SMTP_USERNAME;
+
   const transporter = nodemailer.createTransport({
-    host: PROTON_SMTP_HOST,
-    port: Number(PROTON_SMTP_PORT),
-    secure: PROTON_SMTP_SECURE === 'true',
-    auth: PROTON_SMTP_USERNAME && PROTON_SMTP_PASSWORD
-      ? { user: PROTON_SMTP_USERNAME, pass: PROTON_SMTP_PASSWORD }
+    host: SPACEMAIL_SMTP_HOST,
+    port: Number(SPACEMAIL_SMTP_PORT),
+    secure: SPACEMAIL_SMTP_SECURE === 'true',
+    auth: SPACEMAIL_SMTP_USERNAME && SPACEMAIL_SMTP_PASSWORD
+      ? { 
+          user: SPACEMAIL_SMTP_USERNAME.trim(), // Boşlukları temizle
+          pass: SPACEMAIL_SMTP_PASSWORD.trim(), // Boşlukları temizle
+        }
       : undefined,
     tls: {
-      rejectUnauthorized: false, // Proton Mail Bridge self-signed certificate
-      requireTLS: true, // STARTTLS kullan
+      rejectUnauthorized: true, // Standart SSL sertifika
     },
+    // Spacemail için ek ayarlar
+    connectionTimeout: 30000, // 30 saniye timeout
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    debug: process.env.NODE_ENV === 'development', // Debug modu
+    logger: process.env.NODE_ENV === 'development', // Logger
   });
 
    transporter.verify().catch((error) => {
-     console.warn('⚠️ Proton Mail SMTP bağlantısı doğrulanamadı:', error.message);
+     console.warn('⚠️ Spacemail SMTP bağlantısı doğrulanamadı:', error.message);
    });
 
    /**
@@ -76,42 +86,42 @@
        .trim();
    }
 
-   async function dispatchEmail({ recipients, subject, html }) {
-     if (!PROTON_FROM_EMAIL) {
-       const cfgErr = new Error('Proton Mail yapılandırması eksik (PROTON_FROM_EMAIL).');
-       cfgErr.status = 500;
-       throw cfgErr;
-     }
+  async function dispatchEmail({ recipients, subject, html }) {
+    if (!fromEmail) {
+      const cfgErr = new Error('Spacemail yapılandırması eksik (SPACEMAIL_FROM_EMAIL veya SPACEMAIL_SMTP_USERNAME).');
+      cfgErr.status = 500;
+      throw cfgErr;
+    }
 
-     const normalizedRecipients = recipients.map((recipient) => {
-       if (typeof recipient === 'string') {
-         return { email: recipient, name: recipient.split('@')[0] };
-       }
-       return {
-         email: recipient.email,
-         name: recipient.name || recipient.email.split('@')[0],
-       };
-     });
+    const normalizedRecipients = recipients.map((recipient) => {
+      if (typeof recipient === 'string') {
+        return { email: recipient, name: recipient.split('@')[0] };
+      }
+      return {
+        email: recipient.email,
+        name: recipient.name || recipient.email.split('@')[0],
+      };
+    });
 
-     const toAddresses = normalizedRecipients
-       .map((recipient) => (recipient.name ? `"${recipient.name}" <${recipient.email}>` : recipient.email))
-       .join(', ');
+    const toAddresses = normalizedRecipients
+      .map((recipient) => (recipient.name ? `"${recipient.name}" <${recipient.email}>` : recipient.email))
+      .join(', ');
 
-     try {
-       return await transporter.sendMail({
-         from: `"${PROTON_FROM_NAME}" <${PROTON_FROM_EMAIL}>`,
-         to: toAddresses,
-         subject,
-         html,
-         text: htmlToText(html),
-       });
-     } catch (err) {
-       const smtpError = new Error(`SMTP send failed: ${err && err.message ? err.message : 'Unknown error'}`);
-       smtpError.status = 502; // Bad gateway to indicate upstream mail failure
-       smtpError.cause = err;
-       throw smtpError;
-     }
-   }
+    try {
+      return await transporter.sendMail({
+        from: `"${SPACEMAIL_FROM_NAME}" <${fromEmail}>`,
+        to: toAddresses,
+        subject,
+        html,
+        text: htmlToText(html),
+      });
+    } catch (err) {
+      const smtpError = new Error(`SMTP send failed: ${err && err.message ? err.message : 'Unknown error'}`);
+      smtpError.status = 502; // Bad gateway to indicate upstream mail failure
+      smtpError.cause = err;
+      throw smtpError;
+    }
+  }
 
    async function sendVerificationMail({ email, username, verifyUrl }) {
      const html = await renderTemplate('verification', { username, verifyUrl });
@@ -144,15 +154,6 @@
     return dispatchEmail({ recipients, subject, html });
   }
 
-  async function sendMagicLinkMail({ email, magicLink }) {
-    const html = await renderTemplate('magic-link', { magicLink });
-    return dispatchEmail({ 
-      recipients: [email], 
-      subject: 'PORNRAS - Giriş Linkiniz', 
-      html 
-    });
-  }
-
   async function sendWelcomeMail({ email, name }) {
     const html = await renderTemplate('welcome', { email, name });
     return dispatchEmail({ 
@@ -166,6 +167,5 @@
     sendVerificationMail,
     sendInviteMail,
     sendMarketingMail,
-    sendMagicLinkMail,
     sendWelcomeMail,
   };

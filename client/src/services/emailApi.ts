@@ -225,11 +225,6 @@ export interface BlueskyPostPayload {
   linkUrl?: string;
 }
 
-export interface MagicLinkEmailPayload {
-  email: string;
-  magicLink: string;
-}
-
 export interface WelcomeEmailPayload {
   email: string;
   name: string;
@@ -242,8 +237,6 @@ export const emailApi = {
     postJson<InviteEmailPayload, { success: boolean }>('/api/email/invite', payload),
   sendMarketingEmail: (payload: MarketingEmailPayload) =>
     postJson<MarketingEmailPayload, { success: boolean }>('/api/email/marketing', payload),
-  sendMagicLink: (payload: MagicLinkEmailPayload) =>
-    postJson<MagicLinkEmailPayload, { success: boolean }>('/api/email/magicLink', payload),
   sendWelcomeEmail: (payload: WelcomeEmailPayload) =>
     postJson<WelcomeEmailPayload, { success: boolean }>('/api/email/welcome', payload),
 };

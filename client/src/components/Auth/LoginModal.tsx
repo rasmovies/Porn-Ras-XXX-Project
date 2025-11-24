@@ -8,6 +8,7 @@ import {
   Link,
   Alert,
   IconButton,
+  TextField,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,6 +27,56 @@ interface LoginModalProps {
 const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegister, onLoginSuccess }) => {
   const { login } = useAuth();
   const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    try {
+      // TODO: Backend'e giriş isteği gönder
+      // const response = await fetch('/api/auth/login', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(formData),
+      // });
+      
+      // Şimdilik simüle ediyoruz
+      const userData = {
+        username: formData.email.split('@')[0],
+        email: formData.email,
+        name: formData.email.split('@')[0],
+      };
+      
+      login(userData);
+      toast.success('Welcome back!');
+      onClose();
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError('Invalid email or password');
+      toast.error('Login failed');
+    }
+  };
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -208,53 +259,170 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                   </Alert>
                 )}
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-                        setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
-                        toast.error('Google Sign-In is not configured');
-                        return;
-                      }
-                      handleGoogleLogin();
-                    }}
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(0, 255, 255, 0.5)',
-                        background: 'rgba(0, 255, 255, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Google
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(0, 255, 255, 0.5)',
-                        background: 'rgba(0, 255, 255, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Apple
-                  </Button>
-                </Box>
+                {!showForm ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                          setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                          toast.error('Google Sign-In is not configured');
+                          return;
+                        }
+                        handleGoogleLogin();
+                      }}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          border: '1px solid rgba(0, 255, 255, 0.5)',
+                          background: 'rgba(0, 255, 255, 0.1)',
+                        }
+                      }}
+                    >
+                      Continue with Google
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          border: '1px solid rgba(0, 255, 255, 0.5)',
+                          background: 'rgba(0, 255, 255, 0.1)',
+                        }
+                      }}
+                    >
+                      Continue with Apple
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => setShowForm(true)}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        mt: 1,
+                        '&:hover': {
+                          border: '1px solid rgba(0, 255, 255, 0.5)',
+                          background: 'rgba(0, 255, 255, 0.1)',
+                        }
+                      }}
+                    >
+                      Continue with Email
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleFormChange}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(0, 255, 255, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#00ffff',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleFormChange}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(0, 255, 255, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#00ffff',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        bgcolor: '#00ffff',
+                        color: '#000',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          bgcolor: '#00cccc',
+                        }
+                      }}
+                    >
+                      Sign In
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => {
+                        setShowForm(false);
+                        setError('');
+                        setFormData({ email: '', password: '' });
+                      }}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          border: '1px solid rgba(0, 255, 255, 0.5)',
+                          background: 'rgba(0, 255, 255, 0.1)',
+                        }
+                      }}
+                    >
+                      Back
+                    </Button>
+                  </Box>
+                )}
 
                   <Box sx={{ textAlign: 'center', mt: 2 }}>
                     <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>

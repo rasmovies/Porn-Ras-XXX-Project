@@ -24,7 +24,7 @@ async function connectBluesky() {
 
   try {
     await agent.login({
-      identifier: BLUESKY_HANDLE, // Örnek: pornras.bsky.social veya pornras@proton.me
+      identifier: BLUESKY_HANDLE, // Örnek: pornras.bsky.social
       password: BLUESKY_PASSWORD, // App Password (Uygulama Şifresi)
     });
 

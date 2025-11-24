@@ -8,6 +8,7 @@ import {
   Link,
   Alert,
   IconButton,
+  TextField,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,7 +28,88 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
 
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (!formData.username || !formData.email || !formData.password) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // TODO: Backend'e kayıt isteği gönder
+      // const response = await fetch('/api/auth/register', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(formData),
+      // });
+      
+      // TODO: Backend'den token alınacak, şimdilik simüle ediyoruz
+      const token = `verify_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const verifyUrl = `${window.location.origin}/verify-email?token=${token}&email=${encodeURIComponent(formData.email)}&type=verification`;
+      
+      // Verification email gönder
+      try {
+        await emailApi.sendVerificationEmail({
+          email: formData.email,
+          username: formData.username,
+          verifyUrl: verifyUrl,
+        });
+        console.log('✅ Verification email sent');
+        toast.success('Verification email sent! Please check your inbox.');
+      } catch (emailError) {
+        console.error('⚠️ Verification email gönderilemedi:', emailError);
+        toast.error('Verification email could not be sent. Please try again.');
+      }
+      
+      // Kullanıcıyı otomatik login yapma, email doğrulamasını bekle
+      // login(userData);
+      setSuccessMessage('Registration successful! Please check your email to verify your account.');
+      toast.success('Registration successful! Please verify your email.');
+      
+      // 3 saniye sonra modal'ı kapat
+      setTimeout(() => {
+        onClose();
+        // Login sayfasına yönlendir
+        window.location.href = '/login';
+      }, 3000);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setError('Registration failed. Please try again.');
+      toast.error('Registration failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -217,53 +299,224 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
                   </Alert>
                 )}
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    type="button"
-                    onClick={() => {
-                      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-                        setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
-                        toast.error('Google Sign-In is not configured');
-                        console.error('REACT_APP_GOOGLE_CLIENT_ID is missing');
-                        return;
-                      }
-                      handleGoogleLogin();
-                    }}
-                    disabled={isSubmitting}
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(255, 107, 107, 0.5)',
-                        background: 'rgba(255, 107, 107, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Google
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{
-                      py: 1.5,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontSize: '1rem',
-                      '&:hover': {
-                        border: '1px solid rgba(255, 107, 107, 0.5)',
-                        background: 'rgba(255, 107, 107, 0.1)',
-                      }
-                    }}
-                  >
-                    Continue with Apple
-                  </Button>
-                </Box>
+                {!showForm ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      type="button"
+                      onClick={() => {
+                        if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+                          setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
+                          toast.error('Google Sign-In is not configured');
+                          console.error('REACT_APP_GOOGLE_CLIENT_ID is missing');
+                          return;
+                        }
+                        handleGoogleLogin();
+                      }}
+                      disabled={isSubmitting}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          border: '1px solid rgba(255, 107, 107, 0.5)',
+                          background: 'rgba(255, 107, 107, 0.1)',
+                        }
+                      }}
+                    >
+                      Continue with Google
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          border: '1px solid rgba(255, 107, 107, 0.5)',
+                          background: 'rgba(255, 107, 107, 0.1)',
+                        }
+                      }}
+                    >
+                      Continue with Apple
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => setShowForm(true)}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        mt: 1,
+                        '&:hover': {
+                          border: '1px solid rgba(255, 107, 107, 0.5)',
+                          background: 'rgba(255, 107, 107, 0.1)',
+                        }
+                      }}
+                    >
+                      Continue with Email
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <TextField
+                      fullWidth
+                      label="Username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleFormChange}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(255, 107, 107, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#ff6b6b',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleFormChange}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(255, 107, 107, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#ff6b6b',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleFormChange}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(255, 107, 107, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#ff6b6b',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Confirm Password"
+                      name="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={handleFormChange}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(255, 107, 107, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#ff6b6b',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      disabled={isSubmitting}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        bgcolor: '#ff6b6b',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          bgcolor: '#ff5252',
+                        },
+                        '&:disabled': {
+                          bgcolor: 'rgba(255, 107, 107, 0.5)',
+                        }
+                      }}
+                    >
+                      {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => {
+                        setShowForm(false);
+                        setError('');
+                        setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+                      }}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: 'white',
+                        fontSize: '1rem',
+                        '&:hover': {
+                          border: '1px solid rgba(255, 107, 107, 0.5)',
+                          background: 'rgba(255, 107, 107, 0.1)',
+                        }
+                      }}
+                    >
+                      Back
+                    </Button>
+                  </Box>
+                )}
 
                   <Box sx={{ textAlign: 'center', mt: 1 }}>
                     <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>

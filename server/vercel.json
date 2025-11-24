@@ -8,10 +8,6 @@
     {
       "source": "/",
       "destination": "/api/index"
-    },
-    {
-      "source": "/api/email/magic-link",
-      "destination": "/api/email/magic-link"
     }
   ]
 }
