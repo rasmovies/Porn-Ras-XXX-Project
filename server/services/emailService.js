@@ -4,12 +4,12 @@
    const nodemailer = require('nodemailer');
 
   const {
-    PROTON_SMTP_HOST,
-    PROTON_SMTP_PORT = '1025', // Bridge default port (güncellenebilir)
-    PROTON_SMTP_SECURE = 'false',
-    PROTON_SMTP_USERNAME,
-    PROTON_SMTP_PASSWORD,
-    PROTON_FROM_EMAIL,
+    PROTON_SMTP_HOST = 'mail.spacemail.com',
+    PROTON_SMTP_PORT = '465', // Bridge default port (güncellenebilir)
+    PROTON_SMTP_SECURE = 'true',
+    PROTON_SMTP_USERNAME = 'info@pornras.com',
+    PROTON_SMTP_PASSWORD = 'Oyunbozan1907',
+    PROTON_FROM_EMAIL = 'info@pornras.com'
     PROTON_FROM_NAME = 'PORNRAS',
   } = process.env;
 
