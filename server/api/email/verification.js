@@ -43,7 +43,29 @@ module.exports = async function handler(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('Verification mail error:', error);
-    return handleError(res, error, 'Mail gönderilemedi.');
+    
+    // Daha açıklayıcı hata mesajları
+    let errorMessage = 'Mail gönderilemedi.';
+    let statusCode = 500;
+    
+    if (error.code === 'EMAIL_CONFIG_MISSING' || error.code === 'EMAIL_AUTH_MISSING') {
+      errorMessage = 'Email servisi yapılandırma hatası. Lütfen yöneticiyle iletişime geçin.';
+      statusCode = 500;
+    } else if (error.code === 'ESOCKET' || error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT')) {
+      errorMessage = 'Email servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.';
+      statusCode = 503;
+    } else if (error.code === 'EAUTH' || error.message?.includes('authentication failed') || error.message?.includes('Invalid login')) {
+      errorMessage = 'Email servisi kimlik doğrulama hatası. Lütfen yöneticiyle iletişime geçin.';
+      statusCode = 500;
+    } else if (error.message) {
+      errorMessage = `Mail gönderilemedi: ${error.message}`;
+    }
+    
+    return res.status(statusCode).json({ 
+      success: false, 
+      message: errorMessage,
+      code: error.code || 'EMAIL_SEND_ERROR'
+    });
   }
 }
 

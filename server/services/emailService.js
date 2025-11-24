@@ -90,7 +90,15 @@
     if (!fromEmail) {
       const cfgErr = new Error('Spacemail yapılandırması eksik (SPACEMAIL_FROM_EMAIL veya SPACEMAIL_SMTP_USERNAME).');
       cfgErr.status = 500;
+      cfgErr.code = 'EMAIL_CONFIG_MISSING';
       throw cfgErr;
+    }
+    
+    if (!SPACEMAIL_SMTP_USERNAME || !SPACEMAIL_SMTP_PASSWORD) {
+      const authErr = new Error('Spacemail SMTP kimlik bilgileri eksik (SPACEMAIL_SMTP_USERNAME veya SPACEMAIL_SMTP_PASSWORD).');
+      authErr.status = 500;
+      authErr.code = 'EMAIL_AUTH_MISSING';
+      throw authErr;
     }
 
     const normalizedRecipients = recipients.map((recipient) => {
