@@ -1,6 +1,29 @@
 {
   "version": 2,
+  "functions": {
+    "api/auth/verify.js": {
+      "maxDuration": 30
+    },
+    "api/auth/verify-code.js": {
+      "maxDuration": 30
+    },
+    "api/auth/generate-code.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/auth/verify",
+      "destination": "/api/auth/verify"
+    },
+    {
+      "source": "/api/auth/verify-code",
+      "destination": "/api/auth/verify-code"
+    },
+    {
+      "source": "/api/auth/generate-code",
+      "destination": "/api/auth/generate-code"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
