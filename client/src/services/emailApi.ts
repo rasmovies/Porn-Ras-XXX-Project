@@ -240,7 +240,7 @@ export const emailApi = {
   sendVerificationEmail: (payload: VerificationEmailPayload) =>
     postJson<VerificationEmailPayload, { success: boolean }>('/api/email/verification', payload),
   generateVerificationCode: (payload: { email: string; username: string }) =>
-    postJson<{ email: string; username: string }, { success: boolean; message: string }>('/api/auth/generate-code', payload),
+    postJson<{ email: string; username: string; action: string }, { success: boolean; message: string }>('/api/auth/verify', { ...payload, action: 'generate' }),
   verifyCode: (payload: VerifyCodePayload) =>
     postJson<VerifyCodePayload, { success: boolean; message: string; username?: string }>('/api/auth/verify-code', payload),
   sendInviteEmail: (payload: InviteEmailPayload) =>

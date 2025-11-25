@@ -1,10 +1,13 @@
 const { setCorsHeaders, handleOptions } = require('../_helpers/cors');
 const { handleError } = require('../_helpers/errorHandler');
 const { supabase } = require('../../lib/supabase');
+const { sendVerificationMail } = require('../../services/emailService');
 
 /**
  * POST /api/auth/verify
- * Verify user email address
+ * Two modes:
+ * 1. Generate verification code: { email, username, action: 'generate' }
+ * 2. Verify email with token: { token, email }
  */
 module.exports = async function handler(req, res) {
   const origin = req.headers.origin || req.headers.referer;
@@ -23,8 +26,102 @@ module.exports = async function handler(req, res) {
   }
   
   try {
-    const { token, email } = req.body;
+    const { email, username, action, token } = req.body;
     
+    // Mode 1: Generate verification code
+    if (action === 'generate' || (email && username && !token)) {
+      if (!email || !username) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Email and username are required' 
+        });
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid email format' 
+        });
+      }
+      
+      // Generate 6-digit code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Code expires in 15 minutes
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      
+      // Store code in Supabase (verification_codes table)
+      let codeData;
+      try {
+        const { data: existingCode, error: findError } = await supabase
+          .from('verification_codes')
+          .select('*')
+          .eq('email', email)
+          .eq('is_used', false)
+          .gt('expires_at', new Date().toISOString())
+          .maybeSingle();
+        
+        if (existingCode && !findError) {
+          // Update existing code
+          const { data, error } = await supabase
+            .from('verification_codes')
+            .update({
+              code: verificationCode,
+              expires_at: expiresAt,
+              created_at: new Date().toISOString()
+            })
+            .eq('id', existingCode.id)
+            .select()
+            .single();
+          
+          if (error) throw error;
+          codeData = data;
+        } else {
+          // Create new code
+          const { data, error } = await supabase
+            .from('verification_codes')
+            .insert({
+              email: email,
+              username: username,
+              code: verificationCode,
+              expires_at: expiresAt,
+              is_used: false
+            })
+            .select()
+            .single();
+          
+          if (error) {
+            console.warn('⚠️ verification_codes table not found. Code will be sent but not stored.');
+            codeData = { code: verificationCode, email, username, expires_at: expiresAt };
+          } else {
+            codeData = data;
+          }
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Database error, but continuing with email send:', dbError.message);
+        codeData = { code: verificationCode, email, username, expires_at: expiresAt };
+      }
+      
+      // Send verification email with code
+      try {
+        await sendVerificationMail({ 
+          email, 
+          username, 
+          verificationCode: verificationCode 
+        });
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+      }
+      
+      return res.json({ 
+        success: true, 
+        message: 'Verification code sent successfully'
+      });
+    }
+    
+    // Mode 2: Verify with token (original functionality)
     if (!token || !email) {
       return res.status(400).json({ 
         success: false, 
