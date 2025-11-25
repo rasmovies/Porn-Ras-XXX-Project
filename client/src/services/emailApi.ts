@@ -11,14 +11,12 @@ const getApiBaseUrl = (): string => {
     return reactBase;
   }
 
-  // Production environment'da API subdomain'i dene
+  // Production environment'da aynı domain'i kullan (tek proje)
   if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    // Önce api.pornras.com subdomain'ini dene
-    const apiSubdomain = window.location.hostname.replace('www.', 'api.');
-    // www.pornras.com -> api.pornras.com
-    // pornras.com -> api.pornras.com
-    const apiUrl = `${window.location.protocol}//${apiSubdomain}`;
-    console.log('🔍 Production mode - using API subdomain fallback:', apiUrl);
+    // Tek Vercel projesi varsa, API'ler aynı domain'de
+    // www.pornras.com/api/... veya pornras.com/api/...
+    const apiUrl = `${window.location.protocol}//${window.location.hostname}`;
+    console.log('🔍 Production mode - using same domain for API:', apiUrl);
     return apiUrl;
   }
 
@@ -81,17 +79,18 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     // Production'da doğrudan API URL'i kullan
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
     
-    // Production'da önemli endpoint'ler için doğrudan URL kullan
+    // Production'da önemli endpoint'ler için aynı domain'i kullan
     if (isProduction && (path === '/api/email/verification' || path === '/api/auth/verify' || path === '/api/auth/verify-code')) {
-      const apiBase = 'https://api.pornras.com';
+      // Tek proje olduğu için aynı domain'i kullan
+      const apiBase = window.location.origin; // www.pornras.com veya pornras.com
       url = `${apiBase}${path}`;
-      console.log('✅ Production mode - using direct URL:', url);
+      console.log('✅ Production mode - using same domain for API:', url);
     } else if (!API_BASE_URL) {
       // API_BASE_URL kontrolü - production'da fallback kullan
       if (isProduction) {
-        // Production'da fallback URL kullan
-        const fallbackUrl = 'https://api.pornras.com';
-        console.warn('⚠️ API_BASE_URL bulunamadı, fallback kullanılıyor:', fallbackUrl);
+        // Production'da aynı domain'i kullan (tek proje)
+        const fallbackUrl = window.location.origin; // www.pornras.com veya pornras.com
+        console.warn('⚠️ API_BASE_URL bulunamadı, aynı domain kullanılıyor:', fallbackUrl);
         const normalizedPath = path.startsWith('/') ? path : `/${path}`;
         url = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
       } else {
