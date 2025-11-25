@@ -66,7 +66,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     }
   };
 
-  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent) => {
+  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
     }
