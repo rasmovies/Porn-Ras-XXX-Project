@@ -11,12 +11,11 @@ const getApiBaseUrl = (): string => {
     return reactBase;
   }
 
-  // Production environment'da aynı domain'i kullan (tek proje)
+  // Production environment'da api.pornras.com kullan
   if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    // Tek Vercel projesi varsa, API'ler aynı domain'de
-    // www.pornras.com/api/... veya pornras.com/api/...
-    const apiUrl = `${window.location.protocol}//${window.location.hostname}`;
-    console.log('🔍 Production mode - using same domain for API:', apiUrl);
+    // Backend VPS'te api.pornras.com'da çalışıyor
+    const apiUrl = 'https://api.pornras.com';
+    console.log('🔍 Production mode - using API subdomain:', apiUrl);
     return apiUrl;
   }
 
@@ -79,18 +78,13 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     // Production'da doğrudan API URL'i kullan
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
     
-    // Production'da önemli endpoint'ler için aynı domain'i kullan
-    if (isProduction && (path === '/api/email/verification' || path === '/api/auth/verify' || path === '/api/auth/verify-code')) {
-      // Tek proje olduğu için aynı domain'i kullan
-      const apiBase = window.location.origin; // www.pornras.com veya pornras.com
-      url = `${apiBase}${path}`;
-      console.log('✅ Production mode - using same domain for API:', url);
-    } else if (!API_BASE_URL) {
+    // Normal API_BASE_URL kullan (api.pornras.com)
+    if (!API_BASE_URL) {
       // API_BASE_URL kontrolü - production'da fallback kullan
       if (isProduction) {
-        // Production'da aynı domain'i kullan (tek proje)
-        const fallbackUrl = window.location.origin; // www.pornras.com veya pornras.com
-        console.warn('⚠️ API_BASE_URL bulunamadı, aynı domain kullanılıyor:', fallbackUrl);
+        // Production'da api.pornras.com kullan
+        const fallbackUrl = 'https://api.pornras.com';
+        console.warn('⚠️ API_BASE_URL bulunamadı, fallback kullanılıyor:', fallbackUrl);
         const normalizedPath = path.startsWith('/') ? path : `/${path}`;
         url = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
       } else {
@@ -240,7 +234,7 @@ export const emailApi = {
   sendVerificationEmail: (payload: VerificationEmailPayload) =>
     postJson<VerificationEmailPayload, { success: boolean }>('/api/email/verification', payload),
   generateVerificationCode: (payload: { email: string; username: string }) =>
-    postJson<{ email: string; username: string; action: string }, { success: boolean; message: string }>('/api/auth/verify', { ...payload, action: 'generate' }),
+    postJson<{ email: string; username: string }, { success: boolean; message: string }>('/api/auth/generate-code', payload),
   verifyCode: (payload: VerifyCodePayload) =>
     postJson<VerifyCodePayload, { success: boolean; message: string; username?: string }>('/api/auth/verify-code', payload),
   sendInviteEmail: (payload: InviteEmailPayload) =>
