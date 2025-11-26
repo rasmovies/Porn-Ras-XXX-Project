@@ -10,6 +10,14 @@ const { sendVerificationMail } = require('../../services/emailService');
  * 2. Verify email with token: { token, email }
  */
 module.exports = async function handler(req, res) {
+  // Debug: Log request details
+  console.log('🔍 /api/auth/verify called:', {
+    method: req.method,
+    url: req.url,
+    path: req.path || req.url,
+    headers: req.headers
+  });
+  
   const origin = req.headers.origin || req.headers.referer;
   
   // Set CORS headers
@@ -22,7 +30,11 @@ module.exports = async function handler(req, res) {
   
   // Only allow POST
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
+    console.log('❌ Method not allowed:', req.method);
+    return res.status(405).json({ 
+      success: false, 
+      message: `Method not allowed. Expected POST, got ${req.method}` 
+    });
   }
   
   try {
