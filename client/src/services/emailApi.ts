@@ -2,22 +2,20 @@
 const reactBase = process.env.REACT_APP_API_BASE_URL;
 
 // Production'da backend URL'ini belirleme
-// 1. REACT_APP_API_BASE_URL environment variable (Vercel'de ayarlanmalı)
-// 2. API subdomain fallback (api.pornras.com)
-// 3. Local development fallback (localhost:5000)
+// VPS kullanılmıyor - Backend Vercel serverless functions olarak aynı domain'de çalışıyor
 const getApiBaseUrl = (): string => {
-  // Build-time environment variable (öncelikli)
-  if (reactBase) {
-    return reactBase;
-  }
-
-  // Production environment'da aynı domain'den API kullan (Vercel serverless functions)
+  // Production environment'da HER ZAMAN aynı domain'den API kullan (Vercel serverless functions)
+  // www.pornras.com/api/* endpoint'leri otomatik olarak api/ klasöründeki functions'a yönlenir
   if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    // Backend Vercel serverless functions olarak aynı domain'de çalışıyor
-    // www.pornras.com/api/* endpoint'leri otomatik olarak api/ klasöründeki functions'a yönlenir
     const apiUrl = window.location.origin; // www.pornras.com
     console.log('🔍 Production mode - using same domain for API (Vercel serverless):', apiUrl);
+    console.log('⚠️ Ignoring REACT_APP_API_BASE_URL environment variable for same-domain routing');
     return apiUrl;
+  }
+
+  // Local development - environment variable varsa kullan, yoksa localhost:5000
+  if (reactBase && typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return reactBase;
   }
 
   // Local development fallback
@@ -76,24 +74,23 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
   let url = '';
   
   try {
-    // Production'da doğrudan API URL'i kullan
+    // Production'da HER ZAMAN aynı domain'den API kullan (Vercel serverless functions)
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
     
-    // Normal API_BASE_URL kullan (api.pornras.com)
-    if (!API_BASE_URL) {
-      // API_BASE_URL kontrolü - production'da fallback kullan
-      if (isProduction) {
-        // Production'da aynı domain'den API kullan (Vercel serverless functions)
-        const fallbackUrl = window.location.origin; // www.pornras.com
-        console.warn('⚠️ API_BASE_URL bulunamadı, same domain fallback kullanılıyor:', fallbackUrl);
-        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-        url = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
-      } else {
-        const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL in Vercel Dashboard.';
-        console.error('❌', errorMsg);
-        throw new Error(errorMsg);
-      }
+    if (isProduction) {
+      // Production'da aynı domain'den API kullan - environment variable'ı KESİNLİKLE ignore et
+      const sameDomainUrl = window.location.origin; // www.pornras.com
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      url = `${sameDomainUrl.replace(/\/$/, '')}${normalizedPath}`;
+      console.log('✅ Production mode - FORCED same domain for API (ignoring REACT_APP_API_BASE_URL):', url);
+      console.log('⚠️ REACT_APP_API_BASE_URL environment variable is being ignored for same-domain routing');
+    } else if (!API_BASE_URL) {
+      // Local development - API_BASE_URL yoksa hata ver
+      const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL for local development.';
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
     } else {
+      // Local development - API_BASE_URL kullan
       url = buildUrl(path);
     }
     console.log('📤 POST request:', { url, path, body });
