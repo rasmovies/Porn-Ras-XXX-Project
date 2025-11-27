@@ -19,7 +19,23 @@ if (process.env.NODE_ENV === 'development') {
   console.log('Supabase Key:', supabaseAnonKey ? 'Present' : 'Missing');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Supabase client configuration with proper headers
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: {
+    schema: 'public',
+  },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+  global: {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  },
+});
 
 // Database types
 export interface Category {
