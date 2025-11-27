@@ -8,23 +8,69 @@ const { sendVerificationMail } = require('../../services/emailService');
  * Generate 6-digit verification code and send via email
  */
 module.exports = async function handler(req, res) {
-  const origin = req.headers.origin || req.headers.referer;
+  // Debug logging
+  console.log('🔍 /api/auth/generate-code called:', {
+    method: req.method,
+    httpMethod: req.httpMethod,
+    query: req.query,
+    body: req.body,
+    headers: {
+      'content-type': req.headers['content-type'],
+      origin: req.headers.origin,
+      referer: req.headers.referer
+    }
+  });
+  
+  const origin = req.headers.origin || req.headers.referer || req.headers.referrer;
   
   // Set CORS headers
   setCorsHeaders(res, origin);
   
-  // Handle OPTIONS preflight
-  if (req.method === 'OPTIONS') {
+  // Handle OPTIONS preflight - Vercel serverless functions için
+  const method = req.method || req.httpMethod || 'GET';
+  
+  // Vercel'de method kontrolü - hem req.method hem req.httpMethod'u kontrol et
+  if (method === 'OPTIONS' || req.method === 'OPTIONS' || req.httpMethod === 'OPTIONS') {
+    console.log('✅ OPTIONS preflight request received');
     return handleOptions(req, res);
   }
   
-  // Only allow POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
+  // Only allow POST - ama Vercel'de bazen method undefined olabilir, body varsa POST kabul et
+  const hasRequestBody = req.body && (typeof req.body === 'object' || typeof req.body === 'string');
+  
+  if (method !== 'POST' && req.httpMethod !== 'POST' && !hasRequestBody) {
+    console.error('❌ Method not allowed:', { 
+      method, 
+      httpMethod: req.httpMethod, 
+      hasBody: hasRequestBody,
+      allowed: 'POST' 
+    });
+    return res.status(405).json({ 
+      success: false, 
+      message: `Method not allowed. Expected POST, got ${method || req.httpMethod || 'undefined'}`,
+      debug: {
+        method,
+        httpMethod: req.httpMethod,
+        hasBody: hasRequestBody
+      }
+    });
   }
   
+  console.log('✅ Method check passed:', { method, httpMethod: req.httpMethod, hasBody: hasRequestBody });
+  
   try {
-    const { email, username } = req.body;
+    // Parse request body - Vercel serverless functions sometimes need explicit parsing
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        console.error('Failed to parse body as JSON:', e);
+      }
+    }
+    
+    const { email, username } = body || {};
+    console.log('📥 Parsed body:', { email, username, hasEmail: !!email, hasUsername: !!username });
     
     if (!email || !username) {
       return res.status(400).json({ 
