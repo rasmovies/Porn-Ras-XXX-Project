@@ -98,13 +98,10 @@ app.get('/health', (req, res) => {
 
 app.use('/api/email', emailRoutes);
 
-// Auth routes - Vercel serverless function olarak çalışacak
-// Local development için Express route
-if (require.main === module) {
-  app.post('/api/auth/verify', require('./api/auth/verify'));
-  app.post('/api/auth/generate-code', require('./api/auth/generate-code'));
-  app.post('/api/auth/verify-code', require('./api/auth/verify-code'));
-}
+// Auth routes - Her zaman aktif (VPS ve local development için)
+app.post('/api/auth/verify', require('./api/auth/verify'));
+app.post('/api/auth/generate-code', require('./api/auth/generate-code'));
+app.post('/api/auth/verify-code', require('./api/auth/verify-code'));
 
 // Bluesky routes - sadece yüklendiyse aktif
 if (blueskyRoutes) {
