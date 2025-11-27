@@ -11,11 +11,12 @@ const getApiBaseUrl = (): string => {
     return reactBase;
   }
 
-  // Production environment'da api.pornras.com kullan
+  // Production environment'da aynı domain'den API kullan (Vercel serverless functions)
   if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    // Backend VPS'te api.pornras.com'da çalışıyor
-    const apiUrl = 'https://api.pornras.com';
-    console.log('🔍 Production mode - using API subdomain:', apiUrl);
+    // Backend Vercel serverless functions olarak aynı domain'de çalışıyor
+    // www.pornras.com/api/* endpoint'leri otomatik olarak api/ klasöründeki functions'a yönlenir
+    const apiUrl = window.location.origin; // www.pornras.com
+    console.log('🔍 Production mode - using same domain for API (Vercel serverless):', apiUrl);
     return apiUrl;
   }
 
@@ -54,9 +55,9 @@ const buildUrl = (path: string) => {
   if (!API_BASE_URL) {
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
     if (isProduction) {
-      // Production'da fallback URL kullan
-      const fallbackUrl = 'https://api.pornras.com';
-      console.warn('⚠️ buildUrl: API_BASE_URL bulunamadı, fallback kullanılıyor:', fallbackUrl);
+      // Production'da aynı domain'den API kullan (Vercel serverless functions)
+      const fallbackUrl = window.location.origin; // www.pornras.com
+      console.warn('⚠️ buildUrl: API_BASE_URL bulunamadı, same domain fallback kullanılıyor:', fallbackUrl);
       const fullUrl = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
       console.log('✅ buildUrl result (fallback):', fullUrl);
       return fullUrl;
@@ -82,9 +83,9 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
     if (!API_BASE_URL) {
       // API_BASE_URL kontrolü - production'da fallback kullan
       if (isProduction) {
-        // Production'da api.pornras.com kullan
-        const fallbackUrl = 'https://api.pornras.com';
-        console.warn('⚠️ API_BASE_URL bulunamadı, fallback kullanılıyor:', fallbackUrl);
+        // Production'da aynı domain'den API kullan (Vercel serverless functions)
+        const fallbackUrl = window.location.origin; // www.pornras.com
+        console.warn('⚠️ API_BASE_URL bulunamadı, same domain fallback kullanılıyor:', fallbackUrl);
         const normalizedPath = path.startsWith('/') ? path : `/${path}`;
         url = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
       } else {
