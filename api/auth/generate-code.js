@@ -38,7 +38,10 @@ module.exports = async function handler(req, res) {
   // Only allow POST - ama Vercel'de bazen method undefined olabilir, body varsa POST kabul et
   const hasRequestBody = req.body && (typeof req.body === 'object' || typeof req.body === 'string');
   
-  if (method !== 'POST' && req.httpMethod !== 'POST' && !hasRequestBody) {
+  // Vercel serverless functions için method kontrolü - body varsa veya method POST ise kabul et
+  const isPostRequest = method === 'POST' || req.httpMethod === 'POST' || hasRequestBody;
+  
+  if (!isPostRequest) {
     console.error('❌ Method not allowed:', { 
       method, 
       httpMethod: req.httpMethod, 
@@ -56,7 +59,7 @@ module.exports = async function handler(req, res) {
     });
   }
   
-  console.log('✅ Method check passed:', { method, httpMethod: req.httpMethod, hasBody: hasRequestBody });
+  console.log('✅ Method check passed:', { method, httpMethod: req.httpMethod, hasBody: hasRequestBody, isPostRequest });
   
   try {
     // Parse request body - Vercel serverless functions sometimes need explicit parsing
