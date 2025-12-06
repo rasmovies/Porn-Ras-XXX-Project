@@ -1,0 +1,7 @@
+node_modules/
+yuklenecekler/
+gönderilenler/
+.env
+*.log
+.DS_Store
+

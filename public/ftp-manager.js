@@ -1,0 +1,377 @@
+// Bildirim sistemi
+function showNotification(type, title, message) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️'
+    };
+    
+    notification.innerHTML = `
+        <span class="notification-icon">${icons[type] || 'ℹ️'}</span>
+        <div class="notification-content">
+            <div class="notification-title">${title}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+    `;
+    
+    container.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// Dosya boyutunu formatla
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Tarihi formatla
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleString('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return '-';
+    }
+}
+
+// Mevcut yol
+let currentPath = '/';
+
+// Dosya listesini yükle
+async function loadFiles(path = '/') {
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '<div class="loading">Yükleniyor...</div>';
+    
+    try {
+        const response = await fetch(`/api/ftp/list?path=${encodeURIComponent(path)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Dosyalar yüklenemedi');
+        }
+        
+        if (!Array.isArray(data.files)) {
+            throw new Error('Geçersiz dosya listesi formatı');
+        }
+        
+        renderFiles(data.files, path);
+        updateBreadcrumb(path);
+        currentPath = path;
+    } catch (error) {
+        console.error('Load files error:', error);
+        fileList.innerHTML = `<div class="empty-state-ftp">Hata: ${error.message}<br><small>Konsolu kontrol edin</small></div>`;
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Dosyaları render et
+function renderFiles(files, path) {
+    const fileList = document.getElementById('fileList');
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    
+    // Arama filtresi
+    const filteredFiles = files.filter(file => 
+        file.name.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filteredFiles.length === 0) {
+        fileList.innerHTML = '<div class="empty-state-ftp">Dosya bulunamadı</div>';
+        return;
+    }
+    
+    // Klasörleri önce göster
+    const directories = filteredFiles.filter(f => f.type === 'directory');
+    const fileItems = filteredFiles.filter(f => f.type === 'file');
+    const sortedFiles = [...directories, ...fileItems];
+    
+    fileList.innerHTML = sortedFiles.map(file => {
+        const icon = file.type === 'directory' ? '📁' : '📄';
+        const size = file.type === 'directory' ? '-' : formatFileSize(file.size);
+        const date = formatDate(file.modified);
+        
+        // Dosya adını güvenli hale getir (XSS koruması)
+        const safeName = file.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
+        return `
+            <div class="file-item-ftp ${file.type}" data-name="${safeName}" data-type="${file.type}">
+                <div class="file-name-ftp">
+                    <span class="file-icon">${icon}</span>
+                    <span>${file.name}</span>
+                </div>
+                <div class="file-size-ftp">${size}</div>
+                <div class="file-date-ftp">${date}</div>
+                <div class="file-actions">
+                    ${file.type === 'file' ? `
+                        <button class="file-action-btn" onclick="downloadFile('${safeName}')">⬇️ İndir</button>
+                        <button class="file-action-btn" onclick="editFile('${safeName}')">✏️ Düzenle</button>
+                    ` : ''}
+                    <button class="file-action-btn" onclick="moveFile('${safeName}')">✂️ Taşı</button>
+                    <button class="file-action-btn" onclick="copyFile('${safeName}')">📋 Kopyala</button>
+                    <button class="file-action-btn" onclick="deleteFile('${safeName}')" style="color: var(--error);">🗑️ Sil</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Klasör tıklama
+    fileList.querySelectorAll('.file-item-ftp.directory').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (!e.target.closest('.file-actions')) {
+                const name = item.dataset.name;
+                const newPath = path === '/' ? `/${name}` : `${path}/${name}`;
+                loadFiles(newPath);
+            }
+        });
+    });
+}
+
+// Breadcrumb güncelle
+function updateBreadcrumb(path) {
+    const breadcrumb = document.getElementById('breadcrumb');
+    const parts = path.split('/').filter(p => p);
+    
+    breadcrumb.innerHTML = '<span class="breadcrumb-item active" data-path="/">Ana Dizin</span>';
+    
+    let current = '';
+    parts.forEach(part => {
+        current += `/${part}`;
+        const item = document.createElement('span');
+        item.className = 'breadcrumb-item active';
+        item.dataset.path = current;
+        item.textContent = part;
+        item.addEventListener('click', () => loadFiles(current));
+        breadcrumb.appendChild(item);
+    });
+}
+
+// Dosya indir
+async function downloadFile(fileName) {
+    try {
+        const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        window.open(`/api/ftp/download?path=${encodeURIComponent(filePath)}`, '_blank');
+        showNotification('success', 'İndirme', `${fileName} indiriliyor...`);
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Dosya düzenle
+async function editFile(fileName) {
+    try {
+        const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        const response = await fetch(`/api/ftp/read?path=${encodeURIComponent(filePath)}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        document.getElementById('editContent').value = data.content;
+        document.getElementById('editModal').classList.add('active');
+        window.editingFilePath = filePath;
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Dosya kaydet
+async function saveFile() {
+    try {
+        const content = document.getElementById('editContent').value;
+        const filePath = window.editingFilePath;
+        
+        const response = await fetch('/api/ftp/write', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: filePath, content })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        showNotification('success', 'Başarılı', 'Dosya kaydedildi');
+        document.getElementById('editModal').classList.remove('active');
+        loadFiles(currentPath);
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Dosya taşı
+async function moveFile(fileName) {
+    const newPath = prompt('Yeni konum (tam yol):');
+    if (!newPath) return;
+    
+    try {
+        const fromPath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        const response = await fetch('/api/ftp/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: fromPath, to: newPath })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        showNotification('success', 'Başarılı', 'Dosya taşındı');
+        loadFiles(currentPath);
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Dosya kopyala
+async function copyFile(fileName) {
+    const newPath = prompt('Kopya konumu (tam yol):');
+    if (!newPath) return;
+    
+    try {
+        const fromPath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        const response = await fetch('/api/ftp/copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: fromPath, to: newPath })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        showNotification('success', 'Başarılı', 'Dosya kopyalandı');
+        loadFiles(currentPath);
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Dosya sil
+async function deleteFile(fileName) {
+    if (!confirm(`${fileName} dosyasını silmek istediğinize emin misiniz?`)) {
+        return;
+    }
+    
+    try {
+        const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        const response = await fetch(`/api/ftp/delete?path=${encodeURIComponent(filePath)}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        showNotification('success', 'Başarılı', 'Dosya silindi');
+        loadFiles(currentPath);
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+}
+
+// Event listeners
+document.getElementById('refreshBtn').addEventListener('click', () => loadFiles(currentPath));
+document.getElementById('searchInput').addEventListener('input', () => loadFiles(currentPath));
+
+// Modal işlemleri
+document.getElementById('closeUploadModal').addEventListener('click', () => {
+    document.getElementById('uploadModal').classList.remove('active');
+});
+
+document.getElementById('cancelUploadBtn').addEventListener('click', () => {
+    document.getElementById('uploadModal').classList.remove('active');
+});
+
+document.getElementById('closeFolderModal').addEventListener('click', () => {
+    document.getElementById('folderModal').classList.remove('active');
+});
+
+document.getElementById('cancelFolderBtn').addEventListener('click', () => {
+    document.getElementById('folderModal').classList.remove('active');
+});
+
+document.getElementById('closeEditModal').addEventListener('click', () => {
+    document.getElementById('editModal').classList.remove('active');
+});
+
+document.getElementById('cancelEditBtn').addEventListener('click', () => {
+    document.getElementById('editModal').classList.remove('active');
+});
+
+document.getElementById('saveEditBtn').addEventListener('click', saveFile);
+
+document.getElementById('uploadBtn').addEventListener('click', () => {
+    document.getElementById('uploadModal').classList.add('active');
+});
+
+document.getElementById('newFolderBtn').addEventListener('click', () => {
+    document.getElementById('folderModal').classList.add('active');
+    document.getElementById('folderNameInput').value = '';
+});
+
+document.getElementById('confirmFolderBtn').addEventListener('click', async () => {
+    const folderName = document.getElementById('folderNameInput').value.trim();
+    if (!folderName) {
+        showNotification('warning', 'Uyarı', 'Klasör adı gerekli');
+        return;
+    }
+    
+    // Klasör oluşturma için uploadFrom ile boş dosya yükleyebiliriz veya özel bir endpoint ekleyebiliriz
+    // Şimdilik basit bir çözüm: boş bir .keep dosyası oluştur
+    try {
+        const folderPath = currentPath === '/' ? `/${folderName}/.keep` : `${currentPath}/${folderName}/.keep`;
+        const response = await fetch('/api/ftp/write', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: folderPath, content: '' })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        showNotification('success', 'Başarılı', 'Klasör oluşturuldu');
+        document.getElementById('folderModal').classList.remove('active');
+        loadFiles(currentPath);
+    } catch (error) {
+        showNotification('error', 'Hata', error.message);
+    }
+});
+
+// İlk yükleme
+loadFiles('/');
+
