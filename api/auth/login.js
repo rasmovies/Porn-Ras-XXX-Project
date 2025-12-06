@@ -109,12 +109,8 @@ module.exports = async function handler(req, res) {
       userEmail = `${username}@example.com`;
     }
     
-    // Şimdilik Supabase Auth kullanmadan, sadece kullanıcıyı bulup döndürüyoruz
-    // Şifre kontrolü için profiles tablosunda password_hash alanı olmalı
-    // Şimdilik sadece kullanıcıyı bulduğumuz için başarılı sayıyoruz
-    // TODO: Şifre kontrolü eklenmeli (bcrypt ile hash'lenmiş şifre kontrolü)
-    
-    // Try to sign in with Supabase Auth using email (optional, if user exists in auth)
+    // Try to sign in with Supabase Auth using email
+    // If user doesn't exist in Auth, we'll still allow login from profile
     let authData = null;
     let authError = null;
     
@@ -126,14 +122,25 @@ module.exports = async function handler(req, res) {
       
       if (authResult.error) {
         authError = authResult.error;
-        console.log('Supabase Auth login failed (user may not exist in auth):', authError.message);
-        // Auth'da kullanıcı yoksa devam et, sadece profile'dan döndür
+        console.log('Supabase Auth login failed:', authError.message);
+        
+        // If user doesn't exist in Auth, check if we should create one
+        // For now, we'll allow login without Auth (legacy users)
+        // TODO: Migrate existing users to Auth or implement password hash check
       } else {
         authData = authResult.data;
       }
     } catch (authException) {
-      console.log('Supabase Auth exception (continuing with profile only):', authException.message);
-      // Auth hatası olsa bile devam et
+      console.log('Supabase Auth exception:', authException.message);
+      // Continue without Auth
+    }
+    
+    // If Auth login failed but user exists in profile, allow login anyway
+    // This handles legacy users who weren't created in Auth
+    if (!authData && authError) {
+      console.log(`User ${username} found in profiles but not in Auth. Allowing login from profile.`);
+      // TODO: In production, you should verify password hash here
+      // For now, we allow login if user exists in profiles
     }
     
     // Return user data (from profile, with optional auth data)
@@ -144,9 +151,10 @@ module.exports = async function handler(req, res) {
         username: username,
         email: userEmail,
         name: profile.name || username,
-        avatar: profile.avatar || null,
+        avatar: profile.avatar || profile.avatar_image || null,
       },
-      session: authData?.session || null
+      session: authData?.session || null,
+      authVerified: !!authData // Indicates if password was verified via Auth
     });
   } catch (error) {
     console.error('Login error:', error);

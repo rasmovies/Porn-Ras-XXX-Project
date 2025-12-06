@@ -114,9 +114,13 @@ module.exports = async function handler(req, res) {
         .from('profiles')
         .insert({
           user_name: username,
+          email: email,
+          name: username,
           email_verified: true,
           subscriber_count: 0,
           videos_watched: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -130,6 +134,7 @@ module.exports = async function handler(req, res) {
       await supabase
         .from('profiles')
         .update({ 
+          email: email,
           email_verified: true,
           updated_at: new Date().toISOString()
         })
