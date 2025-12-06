@@ -2,6 +2,12 @@
 
 ## GitHub'a Push Etme
 
+### Otomatik (Script ile)
+```bash
+./quick-deploy.sh
+```
+
+### Manuel
 1. GitHub'da yeni bir repository oluşturun: https://github.com/new
 2. Repository adını belirleyin (örn: `ftp-uploader`)
 3. Aşağıdaki komutları çalıştırın:
