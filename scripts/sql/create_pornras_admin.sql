@@ -2,12 +2,57 @@
 -- Pornras Admin Kullanıcı Oluşturma Script'i
 -- ============================================
 -- Bu script admin kullanıcısını oluşturur:
--- 1. profiles tablosuna ekler
--- 2. admin_users tablosuna ekler
--- 3. Supabase Auth'a eklemek için manuel adımlar içerir
+-- 1. profiles tablosunu oluşturur (yoksa)
+-- 2. profiles tablosuna admin kullanıcısını ekler
+-- 3. admin_users tablosunu oluşturur (yoksa)
+-- 4. admin_users tablosuna admin kullanıcısını ekler
+-- 5. Supabase Auth'a eklemek için manuel adımlar içerir
 --
 -- Kullanım: Supabase Dashboard → SQL Editor → Bu script'i çalıştırın
 -- ============================================
+
+-- Step 0: profiles tablosunu oluştur (eğer yoksa)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_name VARCHAR(255) NOT NULL UNIQUE,
+  email VARCHAR(255),
+  name VARCHAR(255),
+  banner_image TEXT,
+  avatar_image TEXT,
+  avatar TEXT,
+  subscriber_count INTEGER DEFAULT 0,
+  videos_watched INTEGER DEFAULT 0,
+  email_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS on profiles table
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for profiles (if they don't exist)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'profiles' AND policyname = 'Allow public read access') THEN
+    CREATE POLICY "Allow public read access" ON profiles FOR SELECT USING (true);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'profiles' AND policyname = 'Allow public insert') THEN
+    CREATE POLICY "Allow public insert" ON profiles FOR INSERT WITH CHECK (true);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'profiles' AND policyname = 'Allow public update') THEN
+    CREATE POLICY "Allow public update" ON profiles FOR UPDATE USING (true);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'profiles' AND policyname = 'Allow public delete') THEN
+    CREATE POLICY "Allow public delete" ON profiles FOR DELETE USING (true);
+  END IF;
+END $$;
+
+-- Create indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_name ON profiles(user_name);
 
 -- Step 1: profiles tablosunda admin kullanıcısını oluştur/güncelle
 DO $$ 
