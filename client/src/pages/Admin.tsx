@@ -14,7 +14,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Folder } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { categoryService, modelService, channelService, profileService, banUserService, notificationService } from '../services/database';
 import { emailApi } from '../services/emailApi';
@@ -757,9 +757,25 @@ const Admin: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box>
-        <Typography variant="h4" component="h1" gutterBottom className="gradient-text">
-          Admin Panel
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4" component="h1" className="gradient-text">
+            Admin Panel
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Folder />}
+            onClick={() => window.open('/ftp-manager.html', '_blank')}
+            sx={{
+              background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #FE6B8B 60%, #FF8E53 100%)',
+              },
+            }}
+          >
+            FTP Manager
+          </Button>
+        </Box>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           Manage categories and models for your video platform
         </Typography>
