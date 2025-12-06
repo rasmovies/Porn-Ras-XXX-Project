@@ -1,0 +1,37 @@
+========================================
+EMAIL DOSYALARI CAKISMA RAPORU
+========================================
+
+SORUNLU DOSYALAR:
+
+1. client/server.js
+   - Durum: ESKİ/UNUTULMUŞ DOSYA
+   - Sorun: server/ klasöründeki server.js ile karışıklık yaratabilir
+   - Çözüm: SİLİNMELİ (kullanılmıyor)
+
+2. env.example (kök dizinde)
+   - Durum: ESKİ VERSIYON
+   - Sorun: server/env.example ile farklı içerik var
+   - İçerik: MongoDB, eski SMTP ayarları içeriyor
+   - Çözüm: SİLİNMELİ veya güncellenmeli
+
+3. server/api/email/*.js dosyaları
+   - Durum: VERCEL İÇİN HAZIRLANMIŞ ama KULLANILMIYOR
+   - Sorun: routes/emailRoutes.js kullanılıyor, api/email/ kullanılmıyor
+   - Çözüm: Vercel kullanıyorsak bırakılabilir, yoksa temizlenebilir
+
+TEMİZ/YORUM OLMASI GEREKENLER:
+
+✅ server/services/emailService.js - DOĞRU
+✅ server/routes/emailRoutes.js - DOĞRU  
+✅ server/emailTemplates/ - DOĞRU
+✅ client/src/services/emailApi.ts - DOĞRU
+✅ server/env.example - DOĞRU (güncel)
+
+ÇAKIŞMA YARATMAYAN AMA GEREKSIZ:
+
+- Çok fazla vps-*.ps1 test scripti var (silinebilir)
+- Çok fazla *.md rehber dosyası var (silinebilir)
+
+========================================
+

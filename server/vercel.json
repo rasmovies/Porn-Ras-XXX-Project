@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/auth/verify",
+      "destination": "/api/auth/verify"
+    },
+    {
+      "source": "/api/auth/generate-code",
+      "destination": "/api/auth/generate-code"
+    },
+    {
+      "source": "/api/auth/verify-code",
+      "destination": "/api/auth/verify-code"
+    }
+  ]
+}

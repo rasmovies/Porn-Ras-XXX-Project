@@ -1,0 +1,28 @@
+========================================
+EMAIL DOSYALARI TEMIZLIK RAPORU
+========================================
+
+SILINEN DOSYALAR:
+✅ client/server.js - ESKİ/UNUTULMUŞ (hiçbir yerde kullanılmıyor)
+✅ env.example (kök dizin) - ESKİ VERSIYON (server/env.example daha güncel)
+
+KALAN DURUM:
+
+1. server/api/email/*.js dosyaları
+   - Durum: VERCEL serverless functions için hazırlanmış
+   - Şu an kullanılmıyor (server.js'de routes/emailRoutes.js kullanılıyor)
+   - vercel.json'da email route rewrite'ları yok
+   - ÖNERİ: İleride Vercel kullanılacaksa kalabilir, yoksa silinebilir
+   - SONUÇ: ŞU AN SİLİNMEDİ (zarar vermiyor, ileride kullanılabilir)
+
+AKTIF EMAIL DOSYALARI:
+✅ server/services/emailService.js - Ana email servisi
+✅ server/routes/emailRoutes.js - Email route'ları (VPS için)
+✅ server/emailTemplates/ - Email template'leri
+✅ client/src/services/emailApi.ts - Frontend email API
+✅ server/env.example - Güncel .env örneği
+
+ÇAKIŞMA YOK - SİSTEM TEMİZ!
+
+========================================
+
