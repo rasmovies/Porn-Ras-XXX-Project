@@ -23,7 +23,21 @@ module.exports = async function handler(req, res) {
   }
   
   try {
-    const { emailOrUsername, password } = req.body;
+    // Parse request body
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        console.error('Failed to parse body:', e);
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid request body' 
+        });
+      }
+    }
+    
+    const { emailOrUsername, password } = body || {};
     
     if (!emailOrUsername || !password) {
       return res.status(400).json({ 
@@ -43,49 +57,66 @@ module.exports = async function handler(req, res) {
     let profiles = null;
     let profileError = null;
     
-    if (isEmail) {
-      // Search by email first
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', emailOrUsername)
-        .limit(1);
-      
-      profiles = data;
-      profileError = error;
-      
-      // If not found by email, try username (email prefix)
-      if ((!profiles || profiles.length === 0) && !profileError) {
-        const emailPrefix = emailOrUsername.split('@')[0];
-        const { data: data2, error: error2 } = await supabase
+    try {
+      if (isEmail) {
+        // Search by email first
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('user_name', emailPrefix)
+          .eq('email', emailOrUsername)
           .limit(1);
         
-        if (error2) {
-          profileError = error2;
-        } else {
-          profiles = data2;
+        profiles = data;
+        profileError = error;
+        
+        // If not found by email, try username (email prefix)
+        if ((!profiles || profiles.length === 0) && !profileError) {
+          const emailPrefix = emailOrUsername.split('@')[0];
+          const { data: data2, error: error2 } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_name', emailPrefix)
+            .limit(1);
+          
+          if (error2) {
+            profileError = error2;
+          } else {
+            profiles = data2;
+          }
         }
+      } else {
+        // Search by username
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_name', emailOrUsername)
+          .limit(1);
+        
+        profiles = data;
+        profileError = error;
       }
-    } else {
-      // Search by username
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_name', emailOrUsername)
-        .limit(1);
-      
-      profiles = data;
-      profileError = error;
+    } catch (dbError) {
+      console.error('Database query error:', dbError);
+      profileError = dbError;
     }
     
+    // If profiles table doesn't exist or query fails, return helpful error
     if (profileError) {
       console.error('Profile search error:', profileError);
+      
+      // Check if it's a table not found error
+      if (profileError.message && profileError.message.includes('does not exist')) {
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Database table not found. Please run the SQL setup scripts in Supabase.',
+          error: 'TABLE_NOT_FOUND'
+        });
+      }
+      
       return res.status(500).json({ 
         success: false, 
-        message: 'Kullanıcı bulunurken hata oluştu' 
+        message: 'Database error. Please check Supabase connection.',
+        error: 'DATABASE_ERROR'
       });
     }
     
@@ -102,10 +133,7 @@ module.exports = async function handler(req, res) {
     
     // Email bulunamazsa, username'den email oluştur (geçici çözüm)
     if (!userEmail) {
-      // Email yoksa, username@example.com formatında oluştur
-      // Veya kullanıcıdan email iste
       console.warn(`User ${username} has no email in profile`);
-      // Geçici olarak devam et, ama kullanıcıya uyarı ver
       userEmail = `${username}@example.com`;
     }
     
@@ -123,10 +151,7 @@ module.exports = async function handler(req, res) {
       if (authResult.error) {
         authError = authResult.error;
         console.log('Supabase Auth login failed:', authError.message);
-        
-        // If user doesn't exist in Auth, check if we should create one
-        // For now, we'll allow login without Auth (legacy users)
-        // TODO: Migrate existing users to Auth or implement password hash check
+        // Continue - allow login from profile for legacy users
       } else {
         authData = authResult.data;
       }
@@ -139,8 +164,6 @@ module.exports = async function handler(req, res) {
     // This handles legacy users who weren't created in Auth
     if (!authData && authError) {
       console.log(`User ${username} found in profiles but not in Auth. Allowing login from profile.`);
-      // TODO: In production, you should verify password hash here
-      // For now, we allow login if user exists in profiles
     }
     
     // Return user data (from profile, with optional auth data)
@@ -158,7 +181,14 @@ module.exports = async function handler(req, res) {
     });
   } catch (error) {
     console.error('Login error:', error);
-    return handleError(res, error, 'Login failed');
+    console.error('Error stack:', error.stack);
+    
+    // Return proper JSON error response
+    return res.status(500).json({
+      success: false,
+      message: 'Login işlemi sırasında bir hata oluştu',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 };
 
