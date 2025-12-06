@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTP Dosya Yöneticisi - Streamtape</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ftp-manager.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 FTP Dosya Yöneticisi</h1>
+            <div class="header-actions">
+                <a href="/" class="btn btn-secondary">← Ana Sayfa</a>
+                <button class="btn btn-primary" id="refreshBtn">🔄 Yenile</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-item active" data-path="/">Ana Dizin</span>
+            </div>
+
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-icon" id="uploadBtn" title="Yükle">📤 Yükle</button>
+                    <button class="btn btn-icon" id="newFolderBtn" title="Yeni Klasör">📁 Yeni Klasör</button>
+                </div>
+                <div class="toolbar-right">
+                    <input type="text" id="searchInput" placeholder="🔍 Ara..." class="search-input">
+                </div>
+            </div>
+
+            <div class="file-manager">
+                <div class="file-list-header">
+                    <div class="file-header-item">İsim</div>
+                    <div class="file-header-item">Boyut</div>
+                    <div class="file-header-item">Değiştirilme</div>
+                    <div class="file-header-item">İşlemler</div>
+                </div>
+                <div class="file-list" id="fileList">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+            </div>
+        </main>
+
+        <div class="notification-container" id="notifications"></div>
+    </div>
+
+    <!-- Dosya Yükleme Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dosya Yükle</h2>
+                <button class="modal-close" id="closeUploadModal">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="file" id="fileInput" multiple>
+                <div class="upload-progress-container" id="uploadProgressContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelUploadBtn">İptal</button>
+                <button class="btn btn-primary" id="confirmUploadBtn">Yükle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yeni Klasör Modal -->
+    <div class="modal" id="folderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Yeni Klasör</h2>
+                <button class="modal-close" id="closeFolderModal">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="folderNameInput" placeholder="Klasör adı" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelFolderBtn">İptal</button>
+                <button class="btn btn-primary" id="confirmFolderBtn">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Düzenleme Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Dosya Düzenle</h2>
+                <button class="modal-close" id="closeEditModal">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="editContent" class="edit-textarea"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEditBtn">İptal</button>
+                <button class="btn btn-primary" id="saveEditBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="ftp-manager.js"></script>
+</body>
+</html>
+
