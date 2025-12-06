@@ -46,6 +46,22 @@ BEGIN
   END IF;
 END $$;
 
+-- Add password_hash column to profiles table if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_name = 'profiles' 
+    AND column_name = 'password_hash'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN password_hash TEXT;
+    RAISE NOTICE 'Password_hash column added to profiles table';
+  ELSE
+    RAISE NOTICE 'Password_hash column already exists in profiles table';
+  END IF;
+END $$;
+
 -- Update RLS policies to ensure public access
 DROP POLICY IF EXISTS "Allow public read access" ON profiles;
 CREATE POLICY "Allow public read access" ON profiles FOR SELECT USING (true);

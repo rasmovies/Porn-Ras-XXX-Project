@@ -1,6 +1,7 @@
 const { setCorsHeaders, handleOptions } = require('../_helpers/cors');
 const { handleError } = require('../_helpers/errorHandler');
 const { supabase } = require('../../lib/supabase');
+const { hashPassword } = require('../../lib/password');
 
 /**
  * POST /api/auth/register
@@ -105,19 +106,36 @@ module.exports = async function handler(req, res) {
       // Continue anyway
     }
     
-    // Step 2: Create profile in profiles table
+    // Step 2: Hash password for storage (optional - if we want to store in profiles)
+    // Note: Supabase Auth already handles password hashing, but we can store hash in profiles too
+    let passwordHash = null;
+    try {
+      passwordHash = await hashPassword(password);
+    } catch (hashError) {
+      console.warn('Password hashing failed, continuing without hash:', hashError);
+    }
+    
+    // Step 3: Create profile in profiles table
+    const profileData = {
+      user_name: username,
+      email: email,
+      name: username,
+      subscriber_count: 0,
+      videos_watched: 0,
+      email_verified: false, // Will be set to true after email verification
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Add password_hash if we want to store it (optional)
+    // Uncomment if you want to store password hash in profiles table
+    // if (passwordHash) {
+    //   profileData.password_hash = passwordHash;
+    // }
+    
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .insert({
-        user_name: username,
-        email: email,
-        name: username,
-        subscriber_count: 0,
-        videos_watched: 0,
-        email_verified: false, // Will be set to true after email verification
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(profileData)
       .select()
       .single();
     

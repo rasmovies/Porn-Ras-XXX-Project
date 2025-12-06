@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   user_name VARCHAR(255) NOT NULL UNIQUE,
   email VARCHAR(255),
   name VARCHAR(255),
+  password_hash TEXT,
   banner_image TEXT,
   avatar_image TEXT,
   avatar TEXT,

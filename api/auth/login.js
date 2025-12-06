@@ -1,6 +1,7 @@
 const { setCorsHeaders, handleOptions } = require('../_helpers/cors');
 const { handleError } = require('../_helpers/errorHandler');
 const { supabase } = require('../../lib/supabase');
+const { comparePassword } = require('../../lib/password');
 
 /**
  * POST /api/auth/login
@@ -160,10 +161,30 @@ module.exports = async function handler(req, res) {
       // Continue without Auth
     }
     
-    // If Auth login failed but user exists in profile, allow login anyway
+    // If Auth login failed but user exists in profile, check password hash if available
     // This handles legacy users who weren't created in Auth
     if (!authData && authError) {
-      console.log(`User ${username} found in profiles but not in Auth. Allowing login from profile.`);
+      console.log(`User ${username} found in profiles but not in Auth. Checking password hash...`);
+      
+      // If profile has password_hash, verify password
+      if (profile.password_hash) {
+        try {
+          const passwordMatch = await comparePassword(password, profile.password_hash);
+          if (!passwordMatch) {
+            return res.status(401).json({ 
+              success: false, 
+              message: 'Geçersiz email/kullanıcı adı veya şifre' 
+            });
+          }
+          console.log('Password verified via hash');
+        } catch (hashError) {
+          console.error('Password hash comparison error:', hashError);
+          // If hash comparison fails, allow login for legacy users (backward compatibility)
+        }
+      } else {
+        // No password hash, allow login for legacy users (backward compatibility)
+        console.log('No password hash found, allowing login for legacy user');
+      }
     }
     
     // Return user data (from profile, with optional auth data)
