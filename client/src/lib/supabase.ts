@@ -93,6 +93,9 @@ export interface Channel {
 export interface Profile {
   id: string;
   user_name: string;
+  email?: string | null;
+  name?: string | null;
+  avatar?: string | null;
   banner_image: string | null;
   avatar_image: string | null;
   subscriber_count: number;

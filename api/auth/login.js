@@ -100,12 +100,13 @@ module.exports = async function handler(req, res) {
     username = profile.user_name;
     userEmail = profile.email;
     
-    // Email bulunamazsa hata döndür
+    // Email bulunamazsa, username'den email oluştur (geçici çözüm)
     if (!userEmail) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Kullanıcı email adresi bulunamadı' 
-      });
+      // Email yoksa, username@example.com formatında oluştur
+      // Veya kullanıcıdan email iste
+      console.warn(`User ${username} has no email in profile`);
+      // Geçici olarak devam et, ama kullanıcıya uyarı ver
+      userEmail = `${username}@example.com`;
     }
     
     // Şimdilik Supabase Auth kullanmadan, sadece kullanıcıyı bulup döndürüyoruz
