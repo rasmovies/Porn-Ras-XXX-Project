@@ -7,7 +7,7 @@ import {
   Alert,
   TextField,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../components/Auth/AuthProvider';

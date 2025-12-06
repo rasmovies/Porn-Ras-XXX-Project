@@ -35,19 +35,57 @@ const Register: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (!formData.username || !formData.email || !formData.password) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    // Simulate registration
     setError('');
-    navigate('/login');
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Şifreler eşleşmiyor');
+      return;
+    }
+    
+    if (!formData.username || !formData.email || !formData.password) {
+      setError('Lütfen tüm alanları doldurun');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Şifre en az 6 karakter olmalıdır');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+      
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError, 'Response:', responseText);
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Kayıt başarısız');
+      }
+      
+      // Registration successful
+      setError('');
+      navigate('/login', { state: { message: 'Kayıt başarılı! Giriş yapabilirsiniz.' } });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setError(error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
+    }
   };
 
   return (
