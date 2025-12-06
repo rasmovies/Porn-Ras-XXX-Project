@@ -175,21 +175,33 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     try {
       setIsSubmitting(true);
       
-      // TODO: Backend'e kayıt isteği gönder
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
+      // Step 1: Register user via backend API
+      const registerResponse = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
       
-      // Generate and send 6-digit verification code
+      const registerData = await registerResponse.json();
+      
+      if (!registerResponse.ok || !registerData.success) {
+        throw new Error(registerData.message || 'Kayıt başarısız');
+      }
+      
+      console.log('✅ User registered:', registerData);
+      
+      // Step 2: Generate and send 6-digit verification code
       try {
         await emailApi.generateVerificationCode({
           email: formData.email,
           username: formData.username,
         });
         console.log('✅ Verification code sent');
-        toast.success('Verification code sent! Please check your email.');
+        toast.success('Kayıt başarılı! Doğrulama kodu email adresinize gönderildi.');
         
         // Store email and username for verification
         setRegisteredEmail(formData.email);
@@ -201,8 +213,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
         setShowVerificationModal(true);
       } catch (emailError: any) {
         console.error('⚠️ Verification code gönderilemedi:', emailError);
-        toast.error(emailError.message || 'Verification code could not be sent. Please try again.');
-        setError('Failed to send verification code. Please try again.');
+        // User is registered but email verification failed
+        toast.warning('Kayıt başarılı ancak doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
+        setError('Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
         setIsSubmitting(false);
       }
     } catch (error: any) {
