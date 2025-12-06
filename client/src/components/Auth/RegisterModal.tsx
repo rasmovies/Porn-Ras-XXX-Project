@@ -214,7 +214,10 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       } catch (emailError: any) {
         console.error('⚠️ Verification code gönderilemedi:', emailError);
         // User is registered but email verification failed
-        toast.warning('Kayıt başarılı ancak doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
+        toast('Kayıt başarılı ancak doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.', {
+          icon: '⚠️',
+          duration: 5000
+        });
         setError('Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
         setIsSubmitting(false);
       }
