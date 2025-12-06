@@ -122,14 +122,17 @@ CREATE POLICY "Allow public insert" ON admin_users FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update" ON admin_users FOR UPDATE USING (true);
 
 -- Step 4: admin_users tablosuna admin kullanıcısını ekle
-INSERT INTO admin_users (user_name, is_admin, created_at, updated_at)
-VALUES ('Pornras Admin', true, NOW(), NOW())
-ON CONFLICT (user_name) 
-DO UPDATE SET 
-  is_admin = true,
-  updated_at = NOW();
-
-RAISE NOTICE '✅ Admin user added to admin_users table';
+DO $$
+BEGIN
+  INSERT INTO admin_users (user_name, is_admin, created_at, updated_at)
+  VALUES ('Pornras Admin', true, NOW(), NOW())
+  ON CONFLICT (user_name) 
+  DO UPDATE SET 
+    is_admin = true,
+    updated_at = NOW();
+  
+  RAISE NOTICE '✅ Admin user added to admin_users table';
+END $$;
 
 -- Step 5: Kontrol - Admin kullanıcısını göster
 SELECT 
