@@ -40,18 +40,46 @@ module.exports = async function handler(req, res) {
     let profile = null;
     
     // Find user in profiles table
-    let query = supabase.from('profiles').select('*');
+    let profiles = null;
+    let profileError = null;
     
     if (isEmail) {
-      // Search by email or username (email prefix)
-      const emailPrefix = emailOrUsername.split('@')[0];
-      query = query.or(`email.eq.${emailOrUsername},user_name.eq.${emailPrefix}`);
+      // Search by email first
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', emailOrUsername)
+        .limit(1);
+      
+      profiles = data;
+      profileError = error;
+      
+      // If not found by email, try username (email prefix)
+      if ((!profiles || profiles.length === 0) && !profileError) {
+        const emailPrefix = emailOrUsername.split('@')[0];
+        const { data: data2, error: error2 } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_name', emailPrefix)
+          .limit(1);
+        
+        if (error2) {
+          profileError = error2;
+        } else {
+          profiles = data2;
+        }
+      }
     } else {
       // Search by username
-      query = query.eq('user_name', emailOrUsername);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_name', emailOrUsername)
+        .limit(1);
+      
+      profiles = data;
+      profileError = error;
     }
-    
-    const { data: profiles, error: profileError } = await query.limit(1);
     
     if (profileError) {
       console.error('Profile search error:', profileError);
