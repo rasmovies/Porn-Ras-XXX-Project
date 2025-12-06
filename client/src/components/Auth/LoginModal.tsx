@@ -29,7 +29,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    emailOrUsername: '',
     password: '',
   });
 
@@ -44,28 +44,37 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
     e.preventDefault();
     setError('');
     
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all fields');
+    if (!formData.emailOrUsername || !formData.password) {
+      setError('Lütfen tüm alanları doldurun');
       return;
     }
     
     try {
-      // TODO: Backend'e giriş isteği gönder
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailOrUsername: formData.emailOrUsername,
+          password: formData.password,
+        }),
+      });
       
-      // Şimdilik simüle ediyoruz
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Giriş başarısız');
+      }
+      
       const userData = {
-        username: formData.email.split('@')[0],
-        email: formData.email,
-        name: formData.email.split('@')[0],
+        username: data.user.username,
+        email: data.user.email,
+        name: data.user.name,
+        avatar: data.user.avatar,
+        id: data.user.id,
       };
       
       login(userData);
-      toast.success('Welcome back!');
+      toast.success('Hoş geldiniz!');
       onClose();
       
       if (onLoginSuccess) {
@@ -73,8 +82,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      setError('Invalid email or password');
-      toast.error('Login failed');
+      setError(error.message || 'Geçersiz email/kullanıcı adı veya şifre');
+      toast.error('Giriş başarısız');
     }
   };
 
@@ -330,12 +339,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                   <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <TextField
                       fullWidth
-                      label="Email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
+                      label="Email veya Kullanıcı Adı"
+                      name="emailOrUsername"
+                      type="text"
+                      value={formData.emailOrUsername}
                       onChange={handleFormChange}
                       required
+                      placeholder="email@example.com veya kullaniciadi"
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           color: 'white',
@@ -405,7 +415,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                       onClick={() => {
                         setShowForm(false);
                         setError('');
-                        setFormData({ email: '', password: '' });
+                        setFormData({ emailOrUsername: '', password: '' });
                       }}
                       sx={{
                         py: 1.5,
