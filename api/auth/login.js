@@ -37,81 +37,61 @@ module.exports = async function handler(req, res) {
     
     let userEmail = null;
     let username = null;
+    let profile = null;
+    
+    // Find user in profiles table
+    let query = supabase.from('profiles').select('*');
     
     if (isEmail) {
-      userEmail = emailOrUsername;
-      // Find user by email in profiles table
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .or(`email.eq.${userEmail},user_name.eq.${userEmail.split('@')[0]}`)
-        .limit(1);
-      
-      if (profileError) {
-        throw new Error('Failed to find user: ' + profileError.message);
-      }
-      
-      if (!profiles || profiles.length === 0) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Invalid email/username or password' 
-        });
-      }
-      
-      username = profiles[0].user_name;
-      userEmail = profiles[0].email || userEmail;
+      // Search by email or username (email prefix)
+      const emailPrefix = emailOrUsername.split('@')[0];
+      query = query.or(`email.eq.${emailOrUsername},user_name.eq.${emailPrefix}`);
     } else {
-      username = emailOrUsername;
-      // Find user by username in profiles table
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_name', username)
-        .limit(1);
-      
-      if (profileError) {
-        throw new Error('Failed to find user: ' + profileError.message);
-      }
-      
-      if (!profiles || profiles.length === 0) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Invalid email/username or password' 
-        });
-      }
-      
-      userEmail = profiles[0].email;
+      // Search by username
+      query = query.eq('user_name', emailOrUsername);
     }
     
-    // Try to sign in with Supabase Auth using email
-    if (!userEmail) {
-      return res.status(401).json({ 
+    const { data: profiles, error: profileError } = await query.limit(1);
+    
+    if (profileError) {
+      console.error('Profile search error:', profileError);
+      return res.status(500).json({ 
         success: false, 
-        message: 'User email not found' 
+        message: 'Kullanıcı bulunurken hata oluştu' 
       });
     }
     
+    if (!profiles || profiles.length === 0) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Geçersiz email/kullanıcı adı veya şifre' 
+      });
+    }
+    
+    profile = profiles[0];
+    username = profile.user_name;
+    userEmail = profile.email;
+    
+    // Email bulunamazsa hata döndür
+    if (!userEmail) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Kullanıcı email adresi bulunamadı' 
+      });
+    }
+    
+    // Try to sign in with Supabase Auth using email
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: userEmail,
       password: password,
     });
     
     if (authError) {
+      console.error('Auth error:', authError);
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid email/username or password' 
+        message: 'Geçersiz email/kullanıcı adı veya şifre' 
       });
-    }
-    
-    // Get user profile
-    const { data: profile, error: profileError2 } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_name', username)
-      .single();
-    
-    if (profileError2) {
-      console.error('Profile fetch error:', profileError2);
     }
     
     // Return user data
@@ -121,8 +101,8 @@ module.exports = async function handler(req, res) {
         id: authData.user.id,
         username: username,
         email: userEmail,
-        name: profile?.name || username,
-        avatar: profile?.avatar || null,
+        name: profile.name || username,
+        avatar: profile.avatar || null,
       },
       session: authData.session
     });
