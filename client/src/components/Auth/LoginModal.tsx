@@ -59,10 +59,23 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
         }),
       });
       
-      const data = await response.json();
+      // Response text olarak al ve JSON parse et
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError, 'Response:', responseText);
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
       
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Giriş başarısız');
+      }
+      
+      if (!data.user) {
+        throw new Error('Kullanıcı bilgileri alınamadı');
       }
       
       const userData = {
