@@ -63,7 +63,7 @@ module.exports = async function handler(req, res) {
         .single();
       
       if (profileError) {
-        throw new Error('Failed to create admin profile: ' + profileError.message);
+        throw new Error('Admin profili oluşturulamadı: ' + profileError.message);
       }
       
       profile = newProfile;
@@ -149,7 +149,7 @@ module.exports = async function handler(req, res) {
     
     res.json({
       success: true,
-      message: 'Admin user created/updated successfully',
+      message: 'Admin kullanıcısı başarıyla oluşturuldu/güncellendi',
       user: {
         username: adminUsername,
         email: adminEmail,
@@ -160,7 +160,7 @@ module.exports = async function handler(req, res) {
     });
   } catch (error) {
     console.error('Create admin error:', error);
-    return handleError(res, error, 'Failed to create admin user');
+    return handleError(res, error, 'Admin kullanıcısı oluşturulamadı');
   }
 };
 

@@ -76,12 +76,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     const code = verificationCode.join('');
     
     if (code.length !== 6) {
-      setError('Please enter the complete 6-digit code');
+      setError('Lütfen 6 haneli doğrulama kodunu girin');
       return;
     }
     
     if (!registeredEmail) {
-      setError('Email not found. Please register again.');
+      setError('Email bulunamadı. Lütfen tekrar kayıt olun.');
       return;
     }
     
@@ -122,7 +122,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
 
   const handleResendCode = async () => {
     if (!registeredEmail || !registeredUsername) {
-      setError('Email or username not found. Please register again.');
+      setError('Email veya kullanıcı adı bulunamadı. Lütfen tekrar kayıt olun.');
       return;
     }
     
@@ -158,17 +158,17 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     setError('');
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Şifreler eşleşmiyor');
       return;
     }
     
     if (!formData.username || !formData.email || !formData.password) {
-      setError('Please fill in all required fields');
+      setError('Lütfen tüm alanları doldurun');
       return;
     }
     
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Şifre en az 6 karakter olmalıdır');
       return;
     }
     
@@ -189,7 +189,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       const registerData = await registerResponse.json();
       
       if (!registerResponse.ok || !registerData.success) {
-        throw new Error(registerData.message || 'Kayıt başarısız');
+        throw new Error(registerData.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
       }
       
       console.log('✅ User registered:', registerData);
@@ -220,8 +220,8 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      setError('Registration failed. Please try again.');
-      toast.error('Registration failed');
+      setError(error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
+      toast.error('Kayıt başarısız');
     } finally {
       setIsSubmitting(false);
     }

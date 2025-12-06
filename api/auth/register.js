@@ -155,7 +155,7 @@ module.exports = async function handler(req, res) {
       
       return res.status(500).json({ 
         success: false, 
-        message: 'Failed to create user profile' 
+        message: 'Kullanıcı profili oluşturulamadı' 
       });
     }
     
@@ -172,12 +172,12 @@ module.exports = async function handler(req, res) {
       profile: profile,
       authCreated: !!authUser,
       message: authUser 
-        ? 'User registered successfully. Please verify your email.' 
-        : 'User profile created. Auth user creation failed, but you can still login with email/username.'
+        ? 'Kayıt başarılı! Lütfen email adresinizi doğrulayın.' 
+        : 'Kullanıcı profili oluşturuldu. Auth kullanıcısı oluşturulamadı, ancak email/kullanıcı adı ile giriş yapabilirsiniz.'
     });
   } catch (error) {
     console.error('Register error:', error);
-    return handleError(res, error, 'Registration failed');
+    return handleError(res, error, 'Kayıt başarısız');
   }
 };
 
