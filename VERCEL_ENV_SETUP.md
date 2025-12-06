@@ -1,66 +1,79 @@
-# Vercel Environment Variables Setup
+# 🔧 Vercel Environment Variables Kurulumu
 
-## 🔧 Gerekli Environment Variables
+## ✅ Gerekli Environment Variables
 
-Verification email göndermek için Vercel'de aşağıdaki environment variables'ları ayarlamanız gerekiyor:
+Vercel Dashboard → Projeniz → Settings → Environment Variables bölümüne şu değişkenleri ekleyin:
 
-### Spacemail SMTP Ayarları
+### Backend (Serverless Functions) için:
 
-```
-SPACEMAIL_SMTP_HOST=mail.spacemail.com
-SPACEMAIL_SMTP_PORT=465
-SPACEMAIL_SMTP_SECURE=true
-SPACEMAIL_SMTP_USERNAME=info@pornras.com
-SPACEMAIL_SMTP_PASSWORD=your-spacemail-password
-SPACEMAIL_FROM_EMAIL=info@pornras.com
-SPACEMAIL_FROM_NAME=PORNRAS
-```
+| Key | Value | Environment |
+|-----|-------|-------------|
+| `SUPABASE_URL` | `https://xgyjhofakpatrqgvleze.supabase.co` | Production, Preview, Development |
+| `SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhneWpob2Zha3BhdHJxZ3ZsZXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MjA2NDEsImV4cCI6MjA3Njk5NjY0MX0.RB2QQkjtXaM-GaH0HXP_B14BIDm0Y-MvlvDpOt7V1sQ` | Production, Preview, Development |
 
-### Supabase Ayarları (Email Verification için)
+### Frontend (React App) için:
 
-```
-SUPABASE_URL=https://xgyjhofakpatrqgvleze.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+| Key | Value | Environment |
+|-----|-------|-------------|
+| `REACT_APP_SUPABASE_URL` | `https://xgyjhofakpatrqgvleze.supabase.co` | Production, Preview, Development |
+| `REACT_APP_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhneWpob2Zha3BhdHJxZ3ZsZXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MjA2NDEsImV4cCI6MjA3Njk5NjY0MX0.RB2QQkjtXaM-GaH0HXP_B14BIDm0Y-MvlvDpOt7V1sQ` | Production, Preview, Development |
 
-## 📋 Vercel'de Ayarlama Adımları
+## 📝 Adım Adım Kurulum
 
-1. Vercel Dashboard'a gidin
-2. Projenizi seçin
-3. **Settings** > **Environment Variables** bölümüne gidin
-4. Her bir variable'ı ekleyin:
-   - **Name:** Variable adı (örn: `SPACEMAIL_SMTP_USERNAME`)
-   - **Value:** Variable değeri (örn: `info@pornras.com`)
-   - **Environment:** Production, Preview, Development (hepsini seçin)
+1. **Vercel Dashboard'a gidin:**
+   - https://vercel.com/dashboard
+   - Projenizi seçin: `porn-ras-xxx-project`
 
-5. **Save** butonuna tıklayın
-6. Yeni bir deployment yapın (değişikliklerin aktif olması için)
+2. **Settings → Environment Variables:**
+   - Sol menüden "Settings" seçin
+   - "Environment Variables" sekmesine tıklayın
+
+3. **Her bir değişkeni ekleyin:**
+   - "Add New" butonuna tıklayın
+   - Key ve Value'yu girin
+   - Environment'ları seçin (Production, Preview, Development - hepsini seçin)
+   - "Save" butonuna tıklayın
+
+4. **Redeploy yapın:**
+   - Environment variable ekledikten sonra yeni bir deployment gerekir
+   - "Deployments" sekmesine gidin
+   - En üstteki deployment'ın yanındaki "..." menüsünden "Redeploy" seçin
+   - "Use existing Build Cache" seçeneğini KAPATIN
+   - "Redeploy" butonuna tıklayın
+
+## 🔍 Kontrol
+
+Deployment tamamlandıktan sonra:
+
+1. **Test endpoint'ini kontrol edin:**
+   ```
+   https://www.pornras.com/api/test-supabase
+   ```
+   Bu endpoint Supabase bağlantısını test eder.
+
+2. **Browser console'u kontrol edin:**
+   - Siteyi açın
+   - F12 → Console
+   - Supabase bağlantı loglarını kontrol edin
 
 ## ⚠️ Önemli Notlar
 
-- `SPACEMAIL_SMTP_PASSWORD` değeri Spacemail hesabınızın şifresi veya uygulama şifresi olmalıdır
-- Eğer 2FA aktifse, uygulama şifresi kullanmanız gerekebilir
-- Environment variables eklendikten sonra **mutlaka yeni bir deployment yapın**
-- Production, Preview ve Development ortamları için ayrı ayrı ayarlayabilirsiniz
+- Environment variable'lar deployment sırasında build'e dahil edilir
+- Değişiklik yaptıktan sonra mutlaka redeploy yapın
+- `REACT_APP_` prefix'i olan değişkenler frontend'de kullanılır
+- Prefix olmayan değişkenler backend (serverless functions) için kullanılır
 
-## 🧪 Test
+## 🐛 Sorun Giderme
 
-Environment variables eklendikten sonra:
-1. Yeni bir deployment yapın
-2. Register sayfasından yeni bir kullanıcı oluşturun
-3. Verification email'inin gönderildiğini kontrol edin
+Eğer hala sorun varsa:
 
-## ❌ Hata Durumları
+1. **Vercel Logs'u kontrol edin:**
+   - Deployments → Son deployment → "View Function Logs"
+   - Hata mesajlarını kontrol edin
 
-### "Email servisi yapılandırma hatası"
-- Environment variables eksik veya yanlış
-- `SPACEMAIL_SMTP_USERNAME` veya `SPACEMAIL_SMTP_PASSWORD` eksik
+2. **Environment variable'ların doğru olduğundan emin olun:**
+   - Key'ler tam olarak yukarıdaki gibi olmalı
+   - Value'lar doğru kopyalanmış olmalı (boşluk yok)
 
-### "Email servisi kimlik doğrulama hatası"
-- SMTP şifresi yanlış
-- 2FA aktifse uygulama şifresi kullanılmalı
-
-### "Email servisi şu anda kullanılamıyor"
-- SMTP sunucusuna bağlanılamıyor
-- Port veya host ayarları yanlış olabilir
-
+3. **Redeploy yaptığınızdan emin olun:**
+   - Environment variable ekledikten sonra mutlaka redeploy yapın
