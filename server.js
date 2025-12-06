@@ -583,9 +583,14 @@ io.on('connection', (socket) => {
   });
 });
 
-// Sunucuyu başlat
-server.listen(PORT, () => {
-  console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor`);
-  startWatching();
-});
+// Sunucuyu başlat (sadece local development için)
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor`);
+    startWatching();
+  });
+}
+
+// Vercel için export
+module.exports = app;
 

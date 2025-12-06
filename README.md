@@ -2,6 +2,22 @@
 
 Streamtape FTP sunucusuna otomatik dosya yükleme web uygulaması.
 
+## ⚠️ Vercel Deployment Notu
+
+Bu uygulama dosya sistemi ve sürekli çalışan bir sunucu gerektirir. Vercel serverless functions kullandığı için:
+
+- ✅ API endpoint'leri çalışır
+- ❌ Dosya izleme (chokidar) çalışmaz
+- ❌ Otomatik yükleme özelliği çalışmaz
+- ❌ Socket.io real-time özellikleri sınırlı olabilir
+
+**Önerilen Platformlar:**
+- Railway.app
+- Render.com
+- Heroku
+- DigitalOcean App Platform
+- AWS EC2 / Lightsail
+
 ## Özellikler
 
 - 📁 Ana dizindeki video dosyalarını otomatik izleme
