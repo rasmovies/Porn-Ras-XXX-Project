@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // Fallback to hardcoded values for development (DO NOT commit these in production)
 const supabaseUrl = 
   process.env.REACT_APP_SUPABASE_URL || 
-  'https://xgyjhofakpatrqgvleze.supabase.co';
+  'https://rjjzviliwwlbjxfnpxsi.supabase.co';
 
 const supabaseAnonKey = 
   process.env.REACT_APP_SUPABASE_ANON_KEY || 
