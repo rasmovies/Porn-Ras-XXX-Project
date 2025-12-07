@@ -12,7 +12,7 @@
 **Kontrol:**
 1. Vercel Dashboard → Projeniz → Settings → Environment Variables
 2. Şu variable'ları kontrol et:
-   - `REACT_APP_SUPABASE_URL` = `https://rjjzviliwwlbjxfnpxsi.supabase.co`
+   - `REACT_APP_SUPABASE_URL` = `https://xgyjhofakpatrqgvleze.supabase.co`
    - `REACT_APP_SUPABASE_ANON_KEY` = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
 
 ### 2. localStorage Fallback
@@ -47,7 +47,7 @@
    ```
    🔍 Supabase Configuration (ALWAYS):
      Environment: development
-     URL: https://rjjzviliwwlbjxfnpxsi.supabase.co
+     URL: https://xgyjhofakpatrqgvleze.supabase.co
      URL from ENV: NO ❌ (using hardcoded)
      Key from ENV: NO ❌ (using hardcoded)
    
@@ -65,7 +65,7 @@
    ```
    🔍 Supabase Configuration (ALWAYS):
      Environment: production
-     URL: https://rjjzviliwwlbjxfnpxsi.supabase.co
+     URL: https://xgyjhofakpatrqgvleze.supabase.co
      URL from ENV: YES ✅ / NO ❌
      Key from ENV: YES ✅ / NO ❌
    
@@ -78,7 +78,7 @@
 ### Adım 1: Vercel Environment Variables Kontrol Et
 1. Vercel Dashboard → Projeniz → Settings → Environment Variables
 2. Şu variable'ların olduğundan emin ol:
-   - `REACT_APP_SUPABASE_URL` = `https://rjjzviliwwlbjxfnpxsi.supabase.co`
+   - `REACT_APP_SUPABASE_URL` = `https://xgyjhofakpatrqgvleze.supabase.co`
    - `REACT_APP_SUPABASE_ANON_KEY` = (doğru key)
 3. Environment'ları kontrol et: Production, Preview, Development (hepsini seç)
 
@@ -102,7 +102,7 @@
 ```
 🔍 Supabase Configuration (ALWAYS):
   Environment: production
-  URL: https://rjjzviliwwlbjxfnpxsi.supabase.co
+  URL: https://xgyjhofakpatrqgvleze.supabase.co
   URL from ENV: YES ✅
   Key from ENV: YES ✅
   Key length: 195
@@ -129,7 +129,7 @@
 ```
 🔍 Supabase Configuration (ALWAYS):
   Environment: production
-  URL: https://rjjzviliwwlbjxfnpxsi.supabase.co
+  URL: https://xgyjhofakpatrqgvleze.supabase.co
   URL from ENV: NO ❌ (using hardcoded)
   Key from ENV: NO ❌ (using hardcoded)
 
@@ -147,7 +147,7 @@
 ## 🎯 Hızlı Çözüm
 
 1. **Vercel'de Environment Variables ekle/güncelle:**
-   - `REACT_APP_SUPABASE_URL` = `https://rjjzviliwwlbjxfnpxsi.supabase.co`
+   - `REACT_APP_SUPABASE_URL` = `https://xgyjhofakpatrqgvleze.supabase.co`
    - `REACT_APP_SUPABASE_ANON_KEY` = (doğru key)
 
 2. **Supabase'de Models tablosunu oluştur:**

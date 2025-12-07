@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
   
   try {
     // Test 1: Check Supabase client
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://rjjzviliwwlbjxfnpxsi.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://xgyjhofakpatrqgvleze.supabase.co';
     const supabaseKey = process.env.SUPABASE_ANON_KEY ? 'Present' : 'Missing';
     
     // Test 2: Try to query profiles table

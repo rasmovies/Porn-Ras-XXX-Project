@@ -36,7 +36,7 @@ Server şu adreste çalışacak: **http://localhost:3000**
 #### Başarılı Senaryo (Tablolar Varsa):
 ```
 🔍 Supabase Configuration:
-  URL: https://rjjzviliwwlbjxfnpxsi.supabase.co
+  URL: https://xgyjhofakpatrqgvleze.supabase.co
   Key from ENV: NO ❌
   Key length: 195
   Key preview: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
@@ -75,7 +75,7 @@ Console'da şu hatalar **GÖRÜNMEMELİ**:
 
 ### Adım 1: Supabase Dashboard
 1. https://supabase.com/dashboard
-2. Proje: `rjjzviliwwlbjxfnpxsi`
+2. Proje: `xgyjhofakpatrqgvleze`
 3. **SQL Editor** sekmesine git
 
 ### Adım 2: SQL Script'i Çalıştır

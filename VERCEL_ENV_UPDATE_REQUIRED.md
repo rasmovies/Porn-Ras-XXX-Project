@@ -8,12 +8,12 @@ Yeni Supabase projesi bilgileri:
 
 **Supabase URL:**
 ```
-https://rjjzviliwwlbjxfnpxsi.supabase.co
+https://xgyjhofakpatrqgvleze.supabase.co
 ```
 
 **Supabase Anon Key:**
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqanp2aWxpd3dsYmp4Zm5weHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4OTE0OTMsImV4cCI6MjA3NDQ2NzQ5M30.Mz1QxAZZz6POk7M5B8n9oM0-Pi2jSFJDLzhTT7cwPPE
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhneWpob2Zha3BhdHJxZ3ZsZXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MjA2NDEsImV4cCI6MjA3Njk5NjY0MX0.RB2QQkjtXaM-GaH0HXP_B14BIDm0Y-MvlvDpOt7V1sQ
 ```
 
 ## ✅ Vercel'de Yapılacaklar
@@ -28,7 +28,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqanp2aWx
 #### Frontend için:
 1. **REACT_APP_SUPABASE_URL**
    - Eski: `https://xgyjhofakpatrqgvleze.supabase.co`
-   - **YENİ:** `https://rjjzviliwwlbjxfnpxsi.supabase.co`
+   - **YENİ:** `https://xgyjhofakpatrqgvleze.supabase.co`
    - Edit → Value'yu güncelle → Save
 
 2. **REACT_APP_SUPABASE_ANON_KEY**
@@ -38,7 +38,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqanp2aWx
 #### Backend için:
 1. **SUPABASE_URL**
    - Eski: `https://xgyjhofakpatrqgvleze.supabase.co`
-   - **YENİ:** `https://rjjzviliwwlbjxfnpxsi.supabase.co`
+   - **YENİ:** `https://xgyjhofakpatrqgvleze.supabase.co`
    - Edit → Value'yu güncelle → Save
 
 2. **SUPABASE_ANON_KEY**

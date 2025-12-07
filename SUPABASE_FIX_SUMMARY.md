@@ -57,7 +57,7 @@ Bu script:
 ### Adım 1: Supabase'de Tabloları Oluştur
 
 1. **Supabase Dashboard:** https://supabase.com/dashboard
-2. Projenizi seçin: `rjjzviliwwlbjxfnpxsi`
+2. Projenizi seçin: `xgyjhofakpatrqgvleze`
 3. **SQL Editor** sekmesine git
 4. `scripts/sql/create_missing_tables.sql` dosyasının içeriğini kopyala
 5. SQL Editor'e yapıştır
