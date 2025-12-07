@@ -38,7 +38,10 @@ CREATE POLICY "Allow public delete" ON models FOR DELETE USING (true);
 CREATE INDEX IF NOT EXISTS idx_models_name ON models(name);
 CREATE INDEX IF NOT EXISTS idx_models_created_at ON models(created_at);
 
-RAISE NOTICE '✅ Models table created successfully';
+DO $$ 
+BEGIN
+  RAISE NOTICE '✅ Models table created successfully';
+END $$;
 
 -- ============================================
 -- 2. CHANNELS TABLOSU
