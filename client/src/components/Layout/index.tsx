@@ -69,7 +69,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       if (user?.username) {
+        console.log('🔍 Checking admin status for user:', user.username);
         const adminStatus = await adminUserService.isAdmin(user.username);
+        console.log('🔍 Admin status result:', adminStatus);
         setIsAdmin(adminStatus);
         
         // Load notifications
