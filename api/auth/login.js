@@ -132,6 +132,12 @@ module.exports = async function handler(req, res) {
     username = profile.user_name;
     userEmail = profile.email;
     
+    // Debug: Log the username that will be returned
+    console.log('🔍 Login: Profile found - username:', username);
+    console.log('🔍 Login: Profile user_name type:', typeof username);
+    console.log('🔍 Login: Profile user_name length:', username?.length);
+    console.log('🔍 Login: Profile user_name trimmed:', username?.trim());
+    
     // Email bulunamazsa, username'den email oluştur (geçici çözüm)
     if (!userEmail) {
       console.warn(`User ${username} has no email in profile`);

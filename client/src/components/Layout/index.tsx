@@ -69,10 +69,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       if (user?.username) {
-        console.log('🔍 Checking admin status for user:', user.username);
-        const adminStatus = await adminUserService.isAdmin(user.username);
-        console.log('🔍 Admin status result:', adminStatus);
-        setIsAdmin(adminStatus);
+        console.log('🔍 Layout: Checking admin status for user:', user.username);
+        console.log('🔍 Layout: Full user object:', JSON.stringify(user, null, 2));
+        try {
+          const adminStatus = await adminUserService.isAdmin(user.username);
+          console.log('🔍 Layout: Admin status result:', adminStatus);
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error('❌ Layout: Admin check failed:', error);
+          setIsAdmin(false);
+        }
         
         // Load notifications
         try {
@@ -82,6 +88,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           console.error('Failed to load notifications:', error);
         }
       } else {
+        console.log('⚠️ Layout: No user.username found, setting isAdmin to false');
+        console.log('   User object:', user);
         setIsAdmin(false);
       }
     };

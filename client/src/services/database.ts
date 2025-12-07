@@ -396,47 +396,71 @@ export const profileService = {
 export const adminUserService = {
   // Check if user is admin (case-insensitive)
   async isAdmin(username: string): Promise<boolean> {
-    if (!username) return false;
+    if (!username) {
+      console.warn('⚠️ Admin check: username is empty');
+      return false;
+    }
     
     // Normalize username for comparison (trim and lowercase)
     const normalizedUsername = username.trim().toLowerCase();
+    console.log(`🔍 Admin check started for: "${username}" (normalized: "${normalizedUsername}")`);
     
     try {
       // First try exact match
       const { data: exactMatch, error: exactError } = await supabase
         .from('admin_users')
-        .select('is_admin')
+        .select('is_admin, user_name')
         .eq('user_name', username)
         .single();
       
-      if (!exactError && exactMatch?.is_admin === true) {
-        return true;
+      if (!exactError && exactMatch) {
+        console.log(`✅ Exact match found: "${exactMatch.user_name}" -> is_admin: ${exactMatch.is_admin}`);
+        if (exactMatch.is_admin === true) {
+          return true;
+        }
+      } else {
+        console.log(`⚠️ Exact match failed:`, exactError?.message || 'No match found');
       }
       
-      // If exact match fails, try case-insensitive match
-      const { data, error } = await supabase
+      // If exact match fails, try case-insensitive match by fetching all admins
+      console.log('🔍 Trying case-insensitive match...');
+      const { data: allAdmins, error: fetchError } = await supabase
         .from('admin_users')
         .select('is_admin, user_name');
       
-      if (error) {
-        console.error('Admin check error:', error);
+      if (fetchError) {
+        console.error('❌ Admin check error:', fetchError);
+        console.error('   Error details:', JSON.stringify(fetchError, null, 2));
         return false;
       }
       
-      // Check if any admin user matches (case-insensitive)
-      const isAdminUser = data?.some(
-        admin => admin.user_name?.toLowerCase() === normalizedUsername && admin.is_admin === true
-      );
-      
-      if (isAdminUser) {
-        console.log(`✅ Admin access granted for: ${username}`);
-      } else {
-        console.log(`❌ Admin access denied for: ${username} (normalized: ${normalizedUsername})`);
+      if (!allAdmins || allAdmins.length === 0) {
+        console.warn('⚠️ Admin_users table is empty!');
+        return false;
       }
       
-      return isAdminUser || false;
+      console.log(`📋 Found ${allAdmins.length} admin user(s) in database:`);
+      allAdmins.forEach(admin => {
+        console.log(`   - "${admin.user_name}" -> is_admin: ${admin.is_admin}`);
+      });
+      
+      // Check if any admin user matches (case-insensitive)
+      const matchingAdmin = allAdmins.find(
+        admin => admin.user_name?.toLowerCase().trim() === normalizedUsername && admin.is_admin === true
+      );
+      
+      if (matchingAdmin) {
+        console.log(`✅ Admin access granted for: "${username}" (matched with: "${matchingAdmin.user_name}")`);
+        return true;
+      } else {
+        console.log(`❌ Admin access denied for: "${username}"`);
+        console.log(`   Normalized username: "${normalizedUsername}"`);
+        console.log(`   Available admins:`, allAdmins.map(a => `"${a.user_name?.toLowerCase()}"`).join(', '));
+        return false;
+      }
     } catch (error) {
-      console.error('Admin check exception:', error);
+      console.error('❌ Admin check exception:', error);
+      console.error('   Stack:', error instanceof Error ? error.stack : 'N/A');
       return false;
     }
   },
