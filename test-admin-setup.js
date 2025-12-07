@@ -6,7 +6,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Try original URL first
-const supabaseUrl = process.env.SUPABASE_URL || 'https://xgyjhofakpatrqgvleze.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://rjjzviliwwlbjxfnpxsi.supabase.co';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqanp2aWxpd3dsYmp4Zm5weHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4OTE0OTMsImV4cCI6MjA3NDQ2NzQ5M30.Mz1QxAZZz6POk7M5B8n9oM0-Pi2jSFJDLzhTT7cwPPE';
 
 console.log('🔑 Using Supabase Key:', supabaseAnonKey.substring(0, 30) + '...');
