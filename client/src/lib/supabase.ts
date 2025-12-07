@@ -15,8 +15,13 @@ if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_
 }
 
 if (process.env.NODE_ENV === 'development') {
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase Key:', supabaseAnonKey ? 'Present' : 'Missing');
+  console.log('🔍 Supabase Configuration:');
+  console.log('  URL:', supabaseUrl);
+  console.log('  Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Missing');
+  console.log('  From ENV:', {
+    url: !!process.env.REACT_APP_SUPABASE_URL,
+    key: !!process.env.REACT_APP_SUPABASE_ANON_KEY
+  });
 }
 
 // Supabase client configuration with proper headers
