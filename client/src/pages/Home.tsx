@@ -20,10 +20,19 @@ const Home: React.FC = () => {
     const loadVideos = async () => {
       setLoadingVideos(true);
       try {
+        console.log('🔍 Home: Loading videos from Supabase...');
         const videos = await videoService.getAll();
+        console.log('✅ Home: Videos loaded:', videos.length);
         setAllVideos(videos);
-      } catch (error) {
-        console.error('Failed to load videos:', error);
+      } catch (error: any) {
+        console.error('❌ Home: Failed to load videos:', error);
+        console.error('   Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details
+        });
+        // Set empty array on error to prevent crash
+        setAllVideos([]);
       } finally {
         setLoadingVideos(false);
       }

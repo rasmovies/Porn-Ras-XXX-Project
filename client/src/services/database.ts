@@ -4,13 +4,28 @@ import { supabase, Category, Model, Video, Comment, Channel, Profile, BanUser, N
 export const categoryService = {
   // Get all categories
   async getAll(): Promise<Category[]> {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Categories fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Categories table does not exist, returning empty array');
+          return [];
+        }
+        throw error;
+      }
+      console.log('✅ Categories loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Categories service error:', error);
+      return [];
+    }
   },
 
   // Create category
@@ -75,13 +90,28 @@ export const categoryService = {
 export const modelService = {
   // Get all models
   async getAll(): Promise<Model[]> {
-    const { data, error } = await supabase
-      .from('models')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('models')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Models fetch error:', error);
+        // If table doesn't exist, return empty array instead of throwing
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Models table does not exist, returning empty array');
+          return [];
+        }
+        throw error;
+      }
+      console.log('✅ Models loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Models service error:', error);
+      // Return empty array on any error to prevent app crash
+      return [];
+    }
   },
 
   // Create model
@@ -124,17 +154,33 @@ export const modelService = {
 export const videoService = {
   // Get all videos
   async getAll(): Promise<Video[]> {
-    const { data, error } = await supabase
-      .from('videos')
-      .select(`
-        *,
-        categories(name),
-        models(name)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select(`
+          *,
+          categories(name),
+          models(name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Videos fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        // If table doesn't exist, return empty array
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Videos table does not exist, returning empty array');
+          return [];
+        }
+        throw error;
+      }
+      console.log('✅ Videos loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Videos service error:', error);
+      return [];
+    }
   },
 
   // Get video by slug
@@ -285,13 +331,28 @@ export const commentService = {
 export const channelService = {
   // Get all channels
   async getAll(): Promise<Channel[]> {
-    const { data, error } = await supabase
-      .from('channels')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('channels')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Channels fetch error:', error);
+        // If table doesn't exist, return empty array instead of throwing
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Channels table does not exist, returning empty array');
+          return [];
+        }
+        throw error;
+      }
+      console.log('✅ Channels loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Channels service error:', error);
+      // Return empty array on any error to prevent app crash
+      return [];
+    }
   },
 
   // Create channel

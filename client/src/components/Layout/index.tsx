@@ -51,14 +51,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     const loadModelsAndChannels = async () => {
       try {
+        console.log('🔍 Layout: Loading models and channels...');
         const [modelsData, channelsData] = await Promise.all([
           modelService.getAll(),
           channelService.getAll()
         ]);
+        console.log('✅ Layout: Models loaded:', modelsData.length);
+        console.log('✅ Layout: Channels loaded:', channelsData.length);
         setModels(modelsData);
         setChannels(channelsData);
-      } catch (error) {
-        console.error('Failed to load models and channels:', error);
+      } catch (error: any) {
+        console.error('❌ Layout: Failed to load models and channels:', error);
+        console.error('   Error details:', {
+          message: error.message,
+          code: error.code
+        });
+        // Set empty arrays on error
+        setModels([]);
+        setChannels([]);
       }
     };
     
