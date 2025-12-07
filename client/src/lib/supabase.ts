@@ -10,28 +10,21 @@ const supabaseAnonKey =
   process.env.REACT_APP_SUPABASE_ANON_KEY || 
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqanp2aWxpd3dsYmp4Zm5weHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4OTE0OTMsImV4cCI6MjA3NDQ2NzQ5M30.Mz1QxAZZz6POk7M5B8n9oM0-Pi2jSFJDLzhTT7cwPPE';
 
-// Debug logging
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 Supabase Configuration:');
-  console.log('  URL:', supabaseUrl);
-  console.log('  Key from ENV:', !!process.env.REACT_APP_SUPABASE_ANON_KEY ? 'YES ✅' : 'NO ❌');
-  console.log('  Key length:', supabaseAnonKey?.length || 0);
-  console.log('  Key preview:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 30)}...` : 'MISSING');
-}
+// Debug logging - ALWAYS log in both development and production
+console.log('🔍 Supabase Configuration (ALWAYS):');
+console.log('  Environment:', process.env.NODE_ENV);
+console.log('  URL:', supabaseUrl);
+console.log('  URL from ENV:', !!process.env.REACT_APP_SUPABASE_URL ? 'YES ✅' : 'NO ❌ (using hardcoded)');
+console.log('  Key from ENV:', !!process.env.REACT_APP_SUPABASE_ANON_KEY ? 'YES ✅' : 'NO ❌ (using hardcoded)');
+console.log('  Key length:', supabaseAnonKey?.length || 0);
+console.log('  Key preview:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 30)}...` : 'MISSING');
 
 if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_KEY) {
-  console.warn('⚠️ WARNING: Using hardcoded Supabase credentials. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in Vercel environment variables for production.');
+  console.warn('⚠️ WARNING: Using hardcoded Supabase credentials!');
   console.warn('⚠️ This will cause "Invalid API key" errors in production if the hardcoded key is wrong!');
-}
-
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 Supabase Configuration:');
-  console.log('  URL:', supabaseUrl);
-  console.log('  Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Missing');
-  console.log('  From ENV:', {
-    url: !!process.env.REACT_APP_SUPABASE_URL,
-    key: !!process.env.REACT_APP_SUPABASE_ANON_KEY
-  });
+  console.warn('⚠️ Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in Vercel environment variables.');
+} else {
+  console.log('✅ Using environment variables from Vercel');
 }
 
 // Supabase client configuration with proper headers
