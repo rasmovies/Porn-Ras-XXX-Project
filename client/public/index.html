@@ -38,27 +38,25 @@
       gtag('config', 'G-MWZ9JK7XP4');
     </script>
     <!-- Adsterra Popunder Ads -->
+    <!-- NOT: Adsterra script CORS hatası veriyor, bu yüzden devre dışı bırakıldı -->
+    <!-- Eğer Adsterra kullanmak istiyorsanız, doğru site ID ile ve CORS ayarlarıyla tekrar ekleyin -->
+    <!--
     <script type="text/javascript">
       (function() {
         try {
-          var adsterraScript = document.createElement('script');
-          adsterraScript.type = 'text/javascript';
-          adsterraScript.async = true;
-          adsterraScript.crossOrigin = 'anonymous';
-          adsterraScript.src = 'https://www.adsterra.com/popunder.js';
-          adsterraScript.setAttribute('data-site-id', 'YOUR_SITE_ID'); // Replace with your Adsterra site ID
-          adsterraScript.onerror = function() {
-            console.warn('Adsterra script yüklenemedi (CORS veya başka bir sorun)');
-          };
-          var firstScript = document.getElementsByTagName('script')[0];
-          if (firstScript && firstScript.parentNode) {
-            firstScript.parentNode.insertBefore(adsterraScript, firstScript);
-          }
+          // Adsterra için alternatif yükleme yöntemi (CORS sorunları nedeniyle şimdilik kapalı)
+          // var adsterraScript = document.createElement('script');
+          // adsterraScript.type = 'text/javascript';
+          // adsterraScript.async = true;
+          // adsterraScript.src = 'https://www.adsterra.com/popunder.js';
+          // adsterraScript.setAttribute('data-site-id', 'YOUR_SITE_ID');
+          // document.head.appendChild(adsterraScript);
         } catch (e) {
           console.warn('Adsterra script eklenirken hata:', e);
         }
       })();
     </script>
+    -->
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

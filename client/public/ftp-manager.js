@@ -65,10 +65,25 @@ async function loadFiles(path = '/') {
         const response = await fetch(`/api/ftp/list?path=${encodeURIComponent(path)}`);
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
         
-        const data = await response.json();
+        // Response'u text olarak oku, sonra JSON'a parse et
+        const responseText = await response.text();
+        let data;
+        
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.error('Response text:', responseText);
+            throw new Error(`Geçersiz JSON yanıtı: ${responseText.substring(0, 100)}`);
+        }
+        
+        if (!data || typeof data !== 'object') {
+            throw new Error('Geçersiz yanıt formatı');
+        }
         
         if (!data.success) {
             throw new Error(data.error || 'Dosyalar yüklenemedi');
