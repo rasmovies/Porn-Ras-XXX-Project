@@ -197,6 +197,9 @@ function startWatching() {
         
         // Onay için frontend'e bildir
         if (io) {
+          console.log(`📤 Onay isteği gönderiliyor: ${fileName} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
+          console.log(`🔍 Socket.io bağlı client sayısı: ${io.sockets.sockets.size}`);
+          
           io.emit('upload-pending-approval', { 
             fileName, 
             filePath,
@@ -204,10 +207,12 @@ function startWatching() {
             timestamp: Date.now()
           });
           
+          console.log(`✅ Onay isteği gönderildi: ${fileName}`);
+          
           // 30 saniye timeout - onay gelmezse iptal et
           const timeout = setTimeout(() => {
             if (global.pendingUploads.has(fileName)) {
-              console.log(`Yükleme onayı zaman aşımına uğradı: ${fileName}`);
+              console.log(`⏰ Yükleme onayı zaman aşımına uğradı: ${fileName}`);
               global.pendingUploads.delete(fileName);
               if (io) {
                 io.emit('upload-cancelled', { fileName, reason: 'Zaman aşımı' });
@@ -218,12 +223,12 @@ function startWatching() {
           global.pendingUploads.set(fileName, { filePath, timeout });
         } else {
           // Socket.io yoksa direkt yükle (fallback)
-          console.log('Socket.io yok, direkt yükleme başlatılıyor');
+          console.log('⚠️ Socket.io yok, direkt yükleme başlatılıyor');
           try {
             const result = await uploadFile(filePath);
-            console.log('Yükleme sonucu:', result);
+            console.log('✅ Yükleme sonucu:', result);
           } catch (error) {
-            console.error('Yükleme hatası:', error);
+            console.error('❌ Yükleme hatası:', error);
           }
         }
       }, 2000);

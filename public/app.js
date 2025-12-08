@@ -1,6 +1,19 @@
 // Socket.io bağlantısı
 const socket = io();
 
+// Debug: Socket.io bağlantı durumunu kontrol et
+socket.on('connect', () => {
+    console.log('✅ Socket.io bağlantısı kuruldu');
+});
+
+socket.on('disconnect', () => {
+    console.log('❌ Socket.io bağlantısı kesildi');
+});
+
+socket.on('connect_error', (error) => {
+    console.error('❌ Socket.io bağlantı hatası:', error);
+});
+
 // Ses efektleri oluştur
 function playSound(type) {
     try {
