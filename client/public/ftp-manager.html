@@ -106,6 +106,48 @@
         </div>
     </div>
 
+    <!-- Bağlantı Ayarları Modal -->
+    <div class="modal" id="connectionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔌 FTP Bağlantı Bilgileri</h2>
+                <button class="modal-close" id="closeConnectionModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="connection-info">
+                    <div class="info-item">
+                        <label>FTP Sunucusu:</label>
+                        <span class="info-value">ftp.streamtape.com</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Kullanıcı Adı:</label>
+                        <span class="info-value">e3eddd5f523e3391352b</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Port:</label>
+                        <span class="info-value">21 (FTP)</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Güvenlik:</label>
+                        <span class="info-value">FTP (FTPS değil)</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Durum:</label>
+                        <span class="info-value" id="connectionStatusValue">Bağlı</span>
+                    </div>
+                </div>
+                <div class="connection-note">
+                    <p><strong>ℹ️ Not:</strong> Bağlantı bilgileri backend'de tanımlıdır. Sayfa açıldığında otomatik olarak Streamtape FTP sunucusuna bağlanır.</p>
+                    <p>Bağlantıyı test etmek için "Bağlantıyı Test Et" butonuna tıklayın.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeConnectionBtn">Kapat</button>
+                <button class="btn btn-primary" id="testConnectionBtn">🔍 Bağlantıyı Test Et</button>
+            </div>
+        </div>
+    </div>
+
     <script src="ftp-manager.js"></script>
 </body>
 </html>
