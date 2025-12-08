@@ -40,13 +40,23 @@
     <!-- Adsterra Popunder Ads -->
     <script type="text/javascript">
       (function() {
-        var adsterraScript = document.createElement('script');
-        adsterraScript.type = 'text/javascript';
-        adsterraScript.async = true;
-        adsterraScript.src = 'https://www.adsterra.com/popunder.js';
-        adsterraScript.setAttribute('data-site-id', 'YOUR_SITE_ID'); // Replace with your Adsterra site ID
-        var firstScript = document.getElementsByTagName('script')[0];
-        firstScript.parentNode.insertBefore(adsterraScript, firstScript);
+        try {
+          var adsterraScript = document.createElement('script');
+          adsterraScript.type = 'text/javascript';
+          adsterraScript.async = true;
+          adsterraScript.crossOrigin = 'anonymous';
+          adsterraScript.src = 'https://www.adsterra.com/popunder.js';
+          adsterraScript.setAttribute('data-site-id', 'YOUR_SITE_ID'); // Replace with your Adsterra site ID
+          adsterraScript.onerror = function() {
+            console.warn('Adsterra script yüklenemedi (CORS veya başka bir sorun)');
+          };
+          var firstScript = document.getElementsByTagName('script')[0];
+          if (firstScript && firstScript.parentNode) {
+            firstScript.parentNode.insertBefore(adsterraScript, firstScript);
+          }
+        } catch (e) {
+          console.warn('Adsterra script eklenirken hata:', e);
+        }
       })();
     </script>
   </head>

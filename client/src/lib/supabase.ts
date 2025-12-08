@@ -41,6 +41,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      'apikey': supabaseAnonKey, // Explicitly set apikey header
     },
   },
 });
