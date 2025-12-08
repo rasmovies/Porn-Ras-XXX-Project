@@ -398,21 +398,43 @@ export const channelService = {
       const { data, error } = await supabase
         .from('channels')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500); // Timeout önleme için limit
       
       if (error) {
         console.error('❌ Channels fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+          return [];
+        }
+        
         // If table doesn't exist, return empty array instead of throwing
         if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
           console.warn('⚠️ Channels table does not exist, returning empty array');
           return [];
         }
-        throw error;
+        
+        // Diğer hatalar için de boş array döndür (crash önleme)
+        console.warn('⚠️ Channels fetch hatası, boş array döndürülüyor');
+        return [];
       }
       console.log('✅ Channels loaded:', data?.length || 0);
       return data || [];
     } catch (error: any) {
       console.error('❌ Channels service error:', error);
+      console.error('   Error code:', error?.code);
+      console.error('   Error message:', error?.message);
+      
+      // Timeout hatası kontrolü
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn('⚠️ Supabase timeout hatası (catch), boş array döndürülüyor');
+        return [];
+      }
+      
       // Return empty array on any error to prevent app crash
       return [];
     }
