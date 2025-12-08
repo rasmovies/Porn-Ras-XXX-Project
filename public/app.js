@@ -242,11 +242,23 @@ let pendingCheckInterval = null;
 // Bekleyen yüklemeleri kontrol et (polling)
 async function checkPendingUploads() {
     try {
+        console.log('🔍 Bekleyen yüklemeler kontrol ediliyor...');
         const response = await fetch('/api/upload/pending');
-        if (!response.ok) return;
+        
+        if (!response.ok) {
+            console.warn('⚠️ Pending uploads API hatası:', response.status, response.statusText);
+            return;
+        }
         
         const data = await response.json();
-        if (!data.success || !data.pending) return;
+        console.log('📋 Bekleyen yüklemeler:', data);
+        
+        if (!data.success || !data.pending || data.pending.length === 0) {
+            console.log('ℹ️ Bekleyen yükleme yok');
+            return;
+        }
+        
+        console.log(`✅ ${data.pending.length} bekleyen yükleme bulundu`);
         
         // Yeni bekleyen yüklemeleri kontrol et
         data.pending.forEach(pending => {
@@ -529,11 +541,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // İlk yükleme
+console.log('🚀 Uygulama başlatılıyor...');
 loadStatus();
 loadFiles();
 updateProgressPanel();
 
 // Bekleyen yüklemeleri kontrol et (her 2 saniyede bir)
+console.log('⏰ Polling başlatılıyor (her 2 saniyede bir)...');
 pendingCheckInterval = setInterval(checkPendingUploads, 2000);
 checkPendingUploads(); // İlk kontrol
+console.log('✅ Polling başlatıldı');
 

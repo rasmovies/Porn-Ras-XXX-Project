@@ -420,6 +420,95 @@ document.getElementById('saveEditBtn').addEventListener('click', saveFile);
 
 document.getElementById('uploadBtn').addEventListener('click', () => {
     document.getElementById('uploadModal').classList.add('active');
+    document.getElementById('fileInput').value = ''; // Reset file input
+    document.getElementById('uploadProgressContainer').innerHTML = ''; // Clear progress
+});
+
+// Dosya yükleme işlemi
+document.getElementById('confirmUploadBtn').addEventListener('click', async () => {
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
+    
+    if (!files || files.length === 0) {
+        showNotification('warning', 'Uyarı', 'Lütfen yüklenecek dosya seçin');
+        return;
+    }
+    
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    progressContainer.innerHTML = '';
+    
+    // Her dosya için yükleme işlemi
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileName = file.name;
+        const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        
+        // Progress bar oluştur
+        const progressItem = document.createElement('div');
+        progressItem.className = 'upload-progress-item';
+        progressItem.innerHTML = `
+            <div class="upload-progress-info">
+                <span>${fileName}</span>
+                <span class="upload-progress-percentage">0%</span>
+            </div>
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill" style="width: 0%"></div>
+            </div>
+        `;
+        progressContainer.appendChild(progressItem);
+        
+        try {
+            // FormData ile dosyayı yükle
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('path', filePath);
+            
+            const xhr = new XMLHttpRequest();
+            
+            // Progress tracking
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    const fill = progressItem.querySelector('.upload-progress-fill');
+                    const percentage = progressItem.querySelector('.upload-progress-percentage');
+                    if (fill) fill.style.width = percentComplete + '%';
+                    if (percentage) percentage.textContent = Math.round(percentComplete) + '%';
+                }
+            });
+            
+            // Upload complete
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    const fill = progressItem.querySelector('.upload-progress-fill');
+                    const percentage = progressItem.querySelector('.upload-progress-percentage');
+                    if (fill) fill.style.width = '100%';
+                    if (percentage) percentage.textContent = '100%';
+                    showNotification('success', 'Başarılı', `${fileName} yüklendi`);
+                } else {
+                    throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
+                }
+            });
+            
+            // Upload error
+            xhr.addEventListener('error', () => {
+                throw new Error('Yükleme hatası');
+            });
+            
+            // Send request
+            xhr.open('POST', '/api/ftp/upload');
+            xhr.send(formData);
+            
+        } catch (error) {
+            console.error('Upload error:', error);
+            showNotification('error', 'Hata', `${fileName}: ${error.message}`);
+        }
+    }
+    
+    // Modal'ı kapat
+    setTimeout(() => {
+        document.getElementById('uploadModal').classList.remove('active');
+        loadFiles(currentPath);
+    }, 2000);
 });
 
 document.getElementById('newFolderBtn').addEventListener('click', () => {
