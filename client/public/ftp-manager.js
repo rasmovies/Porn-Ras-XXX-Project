@@ -128,17 +128,33 @@ function renderFiles(files, path) {
         const size = file.type === 'directory' ? '-' : formatFileSize(file.size);
         const date = formatDate(file.modified);
         
-        // Dosya adını güvenli hale getir (XSS koruması)
-        const safeName = file.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        // Dosya adını güvenli hale getir (XSS koruması - kapsamlı)
+        const safeName = file.name
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/\//g, '&#x2F;');
+        
+        // Dosya adına tıklanınca Streamtape'e git (sadece dosyalar için ve yüklenenler klasörü dışında)
+        const isSentFolder = path.includes('/gönderilenler') || path.includes('/gonderilenler');
+        const fileNameClick = file.type === 'file' && !isSentFolder
+            ? `onclick="openStreamtape('${safeName}')" style="cursor: pointer; text-decoration: underline;" title="Streamtape'de aç"` 
+            : '';
+        
+        // Yüklenenler klasöründeki dosyalar için indir-taşı-kopyala butonlarını kaldır
+        const showActions = !isSentFolder;
         
         return `
             <div class="file-item-ftp ${file.type}" data-name="${safeName}" data-type="${file.type}">
-                <div class="file-name-ftp">
+                <div class="file-name-ftp" ${fileNameClick}>
                     <span class="file-icon">${icon}</span>
                     <span>${file.name}</span>
                 </div>
                 <div class="file-size-ftp">${size}</div>
                 <div class="file-date-ftp">${date}</div>
+                ${showActions ? `
                 <div class="file-actions">
                     ${file.type === 'file' ? `
                         <button class="file-action-btn" onclick="downloadFile('${safeName}')">⬇️ İndir</button>
@@ -148,6 +164,11 @@ function renderFiles(files, path) {
                     <button class="file-action-btn" onclick="copyFile('${safeName}')">📋 Kopyala</button>
                     <button class="file-action-btn" onclick="deleteFile('${safeName}')" style="color: var(--error);">🗑️ Sil</button>
                 </div>
+                ` : `
+                <div class="file-actions">
+                    <button class="file-action-btn" onclick="deleteFile('${safeName}')" style="color: var(--error);">🗑️ Sil</button>
+                </div>
+                `}
             </div>
         `;
     }).join('');
@@ -178,9 +199,45 @@ function updateBreadcrumb(path) {
         item.className = 'breadcrumb-item active';
         item.dataset.path = current;
         item.textContent = part;
+        item.style.cursor = 'pointer';
+        item.style.transition = 'color 0.2s';
         item.addEventListener('click', () => loadFiles(current));
+        item.addEventListener('mouseenter', () => {
+            item.style.color = 'var(--accent)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.color = 'var(--text-primary)';
+        });
         breadcrumb.appendChild(item);
     });
+}
+
+// Streamtape sayfasına git
+async function openStreamtape(fileName) {
+    try {
+        // Streamtape URL formatı: https://streamtape.com/v/[file_id] veya https://streamtape.com/e/[file_id]
+        // FTP'deki dosya adı genellikle Streamtape video ID'sini içerir
+        const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+        
+        // Dosya adından ID'yi çıkar (uzantıyı kaldır)
+        let fileId = fileName.replace(/\.[^/.]+$/, ''); // Uzantıyı kaldır
+        
+        // Streamtape video URL formatını dene
+        // Önce /v/ formatını dene, eğer 404 alırsa /e/ formatını dene
+        const streamtapeVUrl = `https://streamtape.com/v/${fileId}`;
+        const streamtapeEUrl = `https://streamtape.com/e/${fileId}`;
+        
+        // Önce /v/ formatını aç, eğer çalışmazsa /e/ formatını dene
+        // Not: Tarayıcı güvenlik nedeniyle 404 kontrolü yapamaz, bu yüzden direkt /e/ formatını kullan
+        // Streamtape'in embed URL'i genellikle daha güvenilir
+        const streamtapeUrl = streamtapeEUrl;
+        
+        window.open(streamtapeUrl, '_blank');
+        showNotification('info', 'Açılıyor', `${fileName} Streamtape'de açılıyor...`);
+    } catch (error) {
+        console.error('Streamtape açma hatası:', error);
+        showNotification('error', 'Hata', 'Streamtape sayfası açılamadı');
+    }
 }
 
 // Dosya indir
@@ -424,7 +481,70 @@ document.getElementById('uploadBtn').addEventListener('click', () => {
     document.getElementById('uploadProgressContainer').innerHTML = ''; // Clear progress
 });
 
-// Dosya yükleme işlemi
+// Aktif yüklemeleri takip et
+const activeUploads = new Map();
+
+// Upload panelini güncelle
+function updateUploadPanel() {
+    const panel = document.getElementById('uploadPanel');
+    const content = document.getElementById('uploadPanelContent');
+    
+    if (activeUploads.size === 0) {
+        panel.style.display = 'none';
+        content.innerHTML = '<div class="empty-upload">Aktif yükleme yok</div>';
+        return;
+    }
+    
+    panel.style.display = 'block';
+    content.innerHTML = Array.from(activeUploads.entries()).map(([fileName, data]) => {
+        const progress = data.progress || 0;
+        const status = data.status || 'uploading';
+        const transferred = data.transferred || 0;
+        const total = data.total || 0;
+        const speed = data.speed || 0;
+        const estimatedSeconds = data.estimatedSeconds || 0;
+        
+        const statusText = {
+            'uploading': 'Yükleniyor...',
+            'completed': 'Tamamlandı ✅',
+            'error': 'Hata ❌',
+            'cancelled': 'İptal edildi'
+        }[status] || 'Bilinmeyen';
+        
+        const transferredMB = (transferred / 1024 / 1024).toFixed(2);
+        const totalMB = (total / 1024 / 1024).toFixed(2);
+        const speedMB = (speed / 1024 / 1024).toFixed(2);
+        
+        const formatTime = (seconds) => {
+            if (seconds < 60) return `${Math.round(seconds)}s`;
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return `${mins}m ${secs}s`;
+        };
+        
+        return `
+            <div class="upload-panel-item ${status}">
+                <div class="upload-panel-info">
+                    <span class="upload-panel-filename">${fileName}</span>
+                    <span class="upload-panel-status">${statusText}</span>
+                </div>
+                <div class="upload-panel-progress-bar">
+                    <div class="upload-panel-progress-fill" style="width: ${progress}%"></div>
+                </div>
+                <div class="upload-panel-details">
+                    <span>${Math.round(progress)}%</span>
+                    ${status === 'uploading' && total > 0 ? `
+                        <span>📊 ${transferredMB} MB / ${totalMB} MB</span>
+                        <span>⚡ ${speedMB} MB/s</span>
+                        <span>⏱️ ${formatTime(estimatedSeconds)}</span>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Dosya yükleme işlemi - Paralel yükleme
 document.getElementById('confirmUploadBtn').addEventListener('click', async () => {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
@@ -434,89 +554,169 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
         return;
     }
     
-    const progressContainer = document.getElementById('uploadProgressContainer');
-    progressContainer.innerHTML = '';
+    // Modal'ı kapat
+    document.getElementById('uploadModal').classList.remove('active');
     
-    // Her dosya için yükleme işlemi
+    // Tüm dosyaları paralel olarak yükle
+    const uploadPromises = [];
+    
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileName = file.name;
         const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
         
-        // Progress bar oluştur
-        const progressItem = document.createElement('div');
-        progressItem.className = 'upload-progress-item';
-        progressItem.innerHTML = `
-            <div class="upload-progress-info">
-                <span>${fileName}</span>
-                <span class="upload-progress-percentage">0%</span>
-            </div>
-            <div class="upload-progress-bar">
-                <div class="upload-progress-fill" style="width: 0%"></div>
-            </div>
-        `;
-        progressContainer.appendChild(progressItem);
+        // Aktif yüklemelere ekle
+        activeUploads.set(fileName, { progress: 0, status: 'uploading' });
+        updateUploadPanel();
         
-        try {
-            // FormData ile dosyayı yükle
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('path', filePath);
-            
-            const xhr = new XMLHttpRequest();
-            
-            // Progress tracking
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    const fill = progressItem.querySelector('.upload-progress-fill');
-                    const percentage = progressItem.querySelector('.upload-progress-percentage');
-                    if (fill) fill.style.width = percentComplete + '%';
-                    if (percentage) percentage.textContent = Math.round(percentComplete) + '%';
+        // Yükleme promise'i oluştur
+        const uploadPromise = new Promise((resolve, reject) => {
+            try {
+                // FormData ile dosyayı yükle
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('path', filePath);
+                
+                const xhr = new XMLHttpRequest();
+                
+                // Progress tracking - Gerçek zamanlı
+                let lastLoaded = 0;
+                let lastTime = Date.now();
+                
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const now = Date.now();
+                        const timeDiff = (now - lastTime) / 1000; // saniye
+                        const loadedDiff = e.loaded - lastLoaded;
+                        const speed = timeDiff > 0 ? loadedDiff / timeDiff : 0; // bytes/saniye
+                        const remaining = e.total - e.loaded;
+                        const estimatedSeconds = speed > 0 ? remaining / speed : 0;
+                        
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        const uploadData = activeUploads.get(fileName);
+                        if (uploadData) {
+                            uploadData.progress = percentComplete;
+                            uploadData.transferred = e.loaded;
+                            uploadData.total = e.total;
+                            uploadData.speed = speed;
+                            uploadData.estimatedSeconds = estimatedSeconds;
+                            updateUploadPanel();
+                        }
+                        
+                        lastLoaded = e.loaded;
+                        lastTime = now;
+                    }
+                });
+                
+                // Upload complete
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                const uploadData = activeUploads.get(fileName);
+                                if (uploadData) {
+                                    uploadData.progress = 100;
+                                    uploadData.status = 'completed';
+                                    updateUploadPanel();
+                                }
+                                showNotification('success', 'Başarılı', `${fileName} yüklendi`);
+                                resolve(fileName);
+                                
+                                // 3 saniye sonra listeden kaldır
+                                setTimeout(() => {
+                                    activeUploads.delete(fileName);
+                                    updateUploadPanel();
+                                    loadFiles(currentPath);
+                                }, 3000);
+                            } else {
+                                throw new Error(response.error || 'Yükleme başarısız');
+                            }
+                        } catch (parseError) {
+                            // Response JSON değilse, başarılı sayabiliriz (200 status)
+                            const uploadData = activeUploads.get(fileName);
+                            if (uploadData) {
+                                uploadData.progress = 100;
+                                uploadData.status = 'completed';
+                                updateUploadPanel();
+                            }
+                            showNotification('success', 'Başarılı', `${fileName} yüklendi`);
+                            resolve(fileName);
+                            
+                            setTimeout(() => {
+                                activeUploads.delete(fileName);
+                                updateUploadPanel();
+                                loadFiles(currentPath);
+                            }, 3000);
+                        }
+                    } else {
+                        const errorText = xhr.responseText || xhr.statusText;
+                        let errorMsg = `HTTP ${xhr.status}: ${errorText}`;
+                        try {
+                            const errorResponse = JSON.parse(errorText);
+                            errorMsg = errorResponse.error || errorMsg;
+                        } catch (e) {}
+                        const uploadData = activeUploads.get(fileName);
+                        if (uploadData) {
+                            uploadData.status = 'error';
+                            updateUploadPanel();
+                        }
+                        showNotification('error', 'Hata', `${fileName}: ${errorMsg}`);
+                        reject(new Error(errorMsg));
+                    }
+                });
+                
+                // Upload error
+                xhr.addEventListener('error', () => {
+                    const errorMsg = xhr.status === 413 
+                        ? 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
+                        : 'Yükleme hatası';
+                    const uploadData = activeUploads.get(fileName);
+                    if (uploadData) {
+                        uploadData.status = 'error';
+                        updateUploadPanel();
+                    }
+                    showNotification('error', 'Hata', `${fileName}: ${errorMsg}`);
+                    reject(new Error(errorMsg));
+                });
+                
+                // Network error
+                xhr.addEventListener('abort', () => {
+                    const uploadData = activeUploads.get(fileName);
+                    if (uploadData) {
+                        uploadData.status = 'cancelled';
+                        updateUploadPanel();
+                    }
+                    showNotification('warning', 'İptal', `${fileName} yüklemesi iptal edildi`);
+                    reject(new Error('İptal edildi'));
+                });
+                
+                // Send request
+                xhr.open('POST', '/api/ftp/upload');
+                xhr.send(formData);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                const uploadData = activeUploads.get(fileName);
+                if (uploadData) {
+                    uploadData.status = 'error';
+                    updateUploadPanel();
                 }
-            });
-            
-            // Upload complete
-            xhr.addEventListener('load', () => {
-                if (xhr.status === 200) {
-                    const fill = progressItem.querySelector('.upload-progress-fill');
-                    const percentage = progressItem.querySelector('.upload-progress-percentage');
-                    if (fill) fill.style.width = '100%';
-                    if (percentage) percentage.textContent = '100%';
-                    showNotification('success', 'Başarılı', `${fileName} yüklendi`);
-                } else {
-                    throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
-                }
-            });
-            
-            // Upload error
-            xhr.addEventListener('error', () => {
-                const errorMsg = xhr.status === 413 
-                    ? 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
-                    : 'Yükleme hatası';
-                throw new Error(errorMsg);
-            });
-            
-            // Network error
-            xhr.addEventListener('abort', () => {
-                throw new Error('Yükleme iptal edildi');
-            });
-            
-            // Send request
-            xhr.open('POST', '/api/ftp/upload');
-            xhr.send(formData);
-            
-        } catch (error) {
-            console.error('Upload error:', error);
-            showNotification('error', 'Hata', `${fileName}: ${error.message}`);
-        }
+                showNotification('error', 'Hata', `${fileName}: ${error.message || 'Bilinmeyen hata'}`);
+                reject(error);
+            }
+        });
+        
+        uploadPromises.push(uploadPromise);
     }
     
-    // Modal'ı kapat
-    setTimeout(() => {
-        document.getElementById('uploadModal').classList.remove('active');
-        loadFiles(currentPath);
-    }, 2000);
+    // Tüm yüklemeleri paralel olarak başlat
+    Promise.allSettled(uploadPromises).then(() => {
+        // Tüm yüklemeler tamamlandığında dosya listesini yenile
+        setTimeout(() => {
+            loadFiles(currentPath);
+        }, 1000);
+    });
 });
 
 document.getElementById('newFolderBtn').addEventListener('click', () => {
@@ -531,14 +731,18 @@ document.getElementById('confirmFolderBtn').addEventListener('click', async () =
         return;
     }
     
-    // Klasör oluşturma için uploadFrom ile boş dosya yükleyebiliriz veya özel bir endpoint ekleyebiliriz
-    // Şimdilik basit bir çözüm: boş bir .keep dosyası oluştur
+    // Klasör oluşturma: FTP'de klasör oluşturmak için önce klasör yoluna bir dosya yazıyoruz
+    // Sonra o dosyayı silip klasörü bırakıyoruz (bazı FTP sunucuları için)
+    // Alternatif: Sadece .keep dosyası oluştur (klasör oluşturur)
     try {
-        const folderPath = currentPath === '/' ? `/${folderName}/.keep` : `${currentPath}/${folderName}/.keep`;
+        const folderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`;
+        const keepFilePath = `${folderPath}/.keep`;
+        
+        // Önce .keep dosyası oluştur (klasör oluşturur)
         const response = await fetch('/api/ftp/write', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: folderPath, content: '' })
+            body: JSON.stringify({ path: keepFilePath, content: '' })
         });
         
         const data = await response.json();
@@ -551,11 +755,340 @@ document.getElementById('confirmFolderBtn').addEventListener('click', async () =
         document.getElementById('folderModal').classList.remove('active');
         loadFiles(currentPath);
     } catch (error) {
-        showNotification('error', 'Hata', error.message);
+        console.error('Folder creation error:', error);
+        showNotification('error', 'Hata', error.message || 'Klasör oluşturulamadı');
+    }
+});
+
+// Modal ESC tuşu desteği
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        // Tüm modal'ları kapat
+        document.querySelectorAll('.modal.active').forEach(modal => {
+            modal.classList.remove('active');
+        });
+    }
+});
+
+// Modal dışına tıklayınca kapat
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+        }
+    });
+});
+
+// Bağlantı durumu otomatik kontrol (her 30 saniyede bir)
+setInterval(() => {
+    checkConnection();
+}, 30000);
+
+// Yuklenecekler klasörünü yükle
+async function loadYuklenecekler() {
+    const section = document.getElementById('yukleneceklerSection');
+    const content = document.getElementById('yukleneceklerContent');
+    
+    try {
+        const response = await fetch('/api/ftp/list?path=/yuklenecekler');
+        const data = await response.json();
+        
+        if (data.success && data.files && data.files.length > 0) {
+            section.style.display = 'block';
+            content.innerHTML = data.files.map(file => {
+                const icon = file.type === 'directory' ? '📁' : '📄';
+                const size = file.type === 'directory' ? '-' : formatFileSize(file.size);
+                const safeName = file.name
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;');
+                return `
+                    <div class="special-folder-item" onclick="loadFiles('/yuklenecekler${file.type === 'directory' ? '/' + safeName : ''}')" style="cursor: pointer;">
+                        <span class="file-icon">${icon}</span>
+                        <span>${file.name}</span>
+                        <span class="file-size">${size}</span>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            section.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Yuklenecekler yükleme hatası:', error);
+        section.style.display = 'none';
+    }
+}
+
+// Upload panel kapatma
+document.getElementById('closeUploadPanel').addEventListener('click', () => {
+    document.getElementById('uploadPanel').style.display = 'none';
+});
+
+// Seçilen yerel dosyalar
+let selectedLocalFiles = [];
+
+// Yerel dosya seçme
+document.getElementById('selectLocalFilesBtn').addEventListener('click', () => {
+    document.getElementById('localFileInput').click();
+});
+
+document.getElementById('localFileInput').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    // Yeni dosyaları ekle (duplikasyon kontrolü)
+    files.forEach(file => {
+        const exists = selectedLocalFiles.some(f => f.name === file.name && f.size === file.size);
+        if (!exists) {
+            selectedLocalFiles.push(file);
+        }
+    });
+    
+    updateSelectedFilesList();
+    showNotification('success', 'Dosyalar Seçildi', `${files.length} dosya seçildi`);
+});
+
+// Seçilen dosyalar listesini güncelle
+function updateSelectedFilesList() {
+    const container = document.getElementById('selectedLocalFiles');
+    const list = document.getElementById('selectedFilesList');
+    const uploadBtn = document.getElementById('uploadSelectedFilesBtn');
+    
+    if (selectedLocalFiles.length === 0) {
+        container.style.display = 'none';
+        uploadBtn.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    uploadBtn.style.display = 'inline-block';
+    
+    list.innerHTML = selectedLocalFiles.map((file, index) => {
+        const size = formatFileSize(file.size);
+        return `
+            <div class="selected-file-item">
+                <div class="selected-file-item-info">
+                    <span class="file-icon">📄</span>
+                    <span class="selected-file-item-name">${file.name}</span>
+                </div>
+                <span class="selected-file-item-size">${size}</span>
+                <button class="selected-file-item-remove" onclick="removeSelectedFile(${index})">✕</button>
+            </div>
+        `;
+    }).join('');
+}
+
+// Seçilen dosyayı kaldır
+function removeSelectedFile(index) {
+    selectedLocalFiles.splice(index, 1);
+    updateSelectedFilesList();
+}
+
+// Tüm seçilen dosyaları temizle
+document.getElementById('clearSelectedFiles').addEventListener('click', () => {
+    selectedLocalFiles = [];
+    document.getElementById('localFileInput').value = '';
+    updateSelectedFilesList();
+    showNotification('info', 'Temizlendi', 'Seçilen dosyalar temizlendi');
+});
+
+// Seçilen dosyaları yükle
+document.getElementById('uploadSelectedFilesBtn').addEventListener('click', async () => {
+    if (selectedLocalFiles.length === 0) {
+        showNotification('warning', 'Uyarı', 'Yüklenecek dosya seçin');
+        return;
+    }
+    
+    // Yükleme panelini göster
+    const panel = document.getElementById('uploadPanel');
+    panel.style.display = 'block';
+    
+    // Tüm dosyaları paralel olarak yükle
+    const uploadPromises = [];
+    
+    for (let i = 0; i < selectedLocalFiles.length; i++) {
+        const file = selectedLocalFiles[i];
+        const fileName = file.name;
+        const filePath = `/yuklenecekler/${fileName}`;
+        
+        // Aktif yüklemelere ekle
+        activeUploads.set(fileName, { progress: 0, status: 'uploading' });
+        updateUploadPanel();
+        
+        // Yükleme promise'i oluştur
+        const uploadPromise = new Promise((resolve, reject) => {
+            try {
+                // FormData ile dosyayı yükle
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('path', filePath);
+                
+                const xhr = new XMLHttpRequest();
+                
+                // Progress tracking - Gerçek zamanlı
+                let lastLoaded = 0;
+                let lastTime = Date.now();
+                
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const now = Date.now();
+                        const timeDiff = (now - lastTime) / 1000; // saniye
+                        const loadedDiff = e.loaded - lastLoaded;
+                        const speed = timeDiff > 0 ? loadedDiff / timeDiff : 0; // bytes/saniye
+                        const remaining = e.total - e.loaded;
+                        const estimatedSeconds = speed > 0 ? remaining / speed : 0;
+                        
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        const uploadData = activeUploads.get(fileName);
+                        if (uploadData) {
+                            uploadData.progress = percentComplete;
+                            uploadData.transferred = e.loaded;
+                            uploadData.total = e.total;
+                            uploadData.speed = speed;
+                            uploadData.estimatedSeconds = estimatedSeconds;
+                            updateUploadPanel();
+                        }
+                        
+                        lastLoaded = e.loaded;
+                        lastTime = now;
+                    }
+                });
+                
+                // Upload complete
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                const uploadData = activeUploads.get(fileName);
+                                if (uploadData) {
+                                    uploadData.progress = 100;
+                                    uploadData.status = 'completed';
+                                    updateUploadPanel();
+                                }
+                                showNotification('success', 'Başarılı', `${fileName} yüklendi`);
+                                resolve(fileName);
+                                
+                                // 3 saniye sonra listeden kaldır
+                                setTimeout(() => {
+                                    activeUploads.delete(fileName);
+                                    updateUploadPanel();
+                                }, 3000);
+                            } else {
+                                throw new Error(response.error || 'Yükleme başarısız');
+                            }
+                        } catch (parseError) {
+                            // Response JSON değilse, başarılı sayabiliriz (200 status)
+                            const uploadData = activeUploads.get(fileName);
+                            if (uploadData) {
+                                uploadData.progress = 100;
+                                uploadData.status = 'completed';
+                                updateUploadPanel();
+                            }
+                            showNotification('success', 'Başarılı', `${fileName} yüklendi`);
+                            resolve(fileName);
+                            
+                            setTimeout(() => {
+                                activeUploads.delete(fileName);
+                                updateUploadPanel();
+                            }, 3000);
+                        }
+                    } else {
+                        const errorText = xhr.responseText || xhr.statusText;
+                        let errorMsg = `HTTP ${xhr.status}: ${errorText}`;
+                        try {
+                            const errorResponse = JSON.parse(errorText);
+                            errorMsg = errorResponse.error || errorMsg;
+                        } catch (e) {}
+                        const uploadData = activeUploads.get(fileName);
+                        if (uploadData) {
+                            uploadData.status = 'error';
+                            updateUploadPanel();
+                        }
+                        showNotification('error', 'Hata', `${fileName}: ${errorMsg}`);
+                        reject(new Error(errorMsg));
+                    }
+                });
+                
+                // Upload error
+                xhr.addEventListener('error', () => {
+                    const errorMsg = xhr.status === 413 
+                        ? 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
+                        : 'Yükleme hatası';
+                    const uploadData = activeUploads.get(fileName);
+                    if (uploadData) {
+                        uploadData.status = 'error';
+                        updateUploadPanel();
+                    }
+                    showNotification('error', 'Hata', `${fileName}: ${errorMsg}`);
+                    reject(new Error(errorMsg));
+                });
+                
+                // Network error
+                xhr.addEventListener('abort', () => {
+                    const uploadData = activeUploads.get(fileName);
+                    if (uploadData) {
+                        uploadData.status = 'cancelled';
+                        updateUploadPanel();
+                    }
+                    showNotification('warning', 'İptal', `${fileName} yüklemesi iptal edildi`);
+                    reject(new Error('İptal edildi'));
+                });
+                
+                // Send request
+                xhr.open('POST', '/api/ftp/upload');
+                xhr.send(formData);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                const uploadData = activeUploads.get(fileName);
+                if (uploadData) {
+                    uploadData.status = 'error';
+                    updateUploadPanel();
+                }
+                showNotification('error', 'Hata', `${fileName}: ${error.message || 'Bilinmeyen hata'}`);
+                reject(error);
+            }
+        });
+        
+        uploadPromises.push(uploadPromise);
+    }
+    
+    // Tüm yüklemeleri paralel olarak başlat
+    Promise.allSettled(uploadPromises).then(() => {
+        // Yüklemeler tamamlandığında seçilen dosyaları temizle
+        selectedLocalFiles = [];
+        document.getElementById('localFileInput').value = '';
+        updateSelectedFilesList();
+        
+        // Dosya listesini yenile
+        setTimeout(() => {
+            loadFiles(currentPath);
+            loadYuklenecekler();
+        }, 1000);
+    });
+});
+
+// Yuklenecekler toggle
+let yukleneceklerExpanded = true;
+document.getElementById('toggleYuklenecekler').addEventListener('click', () => {
+    yukleneceklerExpanded = !yukleneceklerExpanded;
+    const content = document.getElementById('yukleneceklerContent');
+    const toggle = document.getElementById('toggleYuklenecekler');
+    
+    if (yukleneceklerExpanded) {
+        content.style.display = 'block';
+        toggle.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
     }
 });
 
 // İlk yükleme
 loadFiles('/');
 checkConnection(); // Bağlantı durumunu kontrol et
+loadYuklenecekler(); // Yuklenecekler klasörünü yükle
 

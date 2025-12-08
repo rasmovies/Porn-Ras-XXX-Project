@@ -33,6 +33,17 @@
                 <span class="breadcrumb-item active" data-path="/">Ana Dizin</span>
             </div>
 
+            <!-- Aktif Yüklemeler Paneli -->
+            <div class="upload-panel" id="uploadPanel" style="display: none;">
+                <div class="upload-panel-header">
+                    <h3>📤 Aktif Yüklemeler</h3>
+                    <button class="btn-icon-small" id="closeUploadPanel">×</button>
+                </div>
+                <div class="upload-panel-content" id="uploadPanelContent">
+                    <div class="empty-upload">Aktif yükleme yok</div>
+                </div>
+            </div>
+
             <div class="toolbar">
                 <div class="toolbar-left">
                     <button class="btn btn-icon" id="uploadBtn" title="Yükle">📤 Yükle</button>
@@ -40,6 +51,30 @@
                 </div>
                 <div class="toolbar-right">
                     <input type="text" id="searchInput" placeholder="🔍 Ara..." class="search-input">
+                </div>
+            </div>
+
+            <!-- Yuklenecekler Klasörü Özel Bölüm -->
+            <div class="special-folder-section" id="yukleneceklerSection" style="display: none;">
+                <div class="special-folder-header">
+                    <h3>📥 Yüklenecekler Klasörü</h3>
+                    <div class="special-folder-actions">
+                        <input type="file" id="localFileInput" multiple style="display: none;" accept="*/*">
+                        <button class="btn btn-small" id="selectLocalFilesBtn" title="Bilgisayarından Dosya Seç">📁 Dosya Seç</button>
+                        <button class="btn btn-small" id="uploadSelectedFilesBtn" title="Seçilen Dosyaları Yükle" style="display: none;">📤 Yükle</button>
+                        <button class="btn-icon-small" id="toggleYuklenecekler">▼</button>
+                    </div>
+                </div>
+                <div class="special-folder-content" id="yukleneceklerContent">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+                <!-- Seçilen Yerel Dosyalar -->
+                <div class="selected-local-files" id="selectedLocalFiles" style="display: none;">
+                    <div class="selected-files-header">
+                        <h4>📋 Seçilen Dosyalar</h4>
+                        <button class="btn-icon-small" id="clearSelectedFiles">✕</button>
+                    </div>
+                    <div class="selected-files-list" id="selectedFilesList"></div>
                 </div>
             </div>
 
