@@ -103,7 +103,8 @@ function renderFileList(files, containerId, type = 'pending') {
             pending: 'Bekliyor',
             uploading: 'Yükleniyor...',
             success: 'Yüklendi',
-            error: 'Hata'
+            error: 'Hata',
+            cancelled: 'İptal Edildi'
         };
         
         // Tahmini süreyi formatla
