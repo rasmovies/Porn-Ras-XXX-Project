@@ -226,28 +226,41 @@ socket.on('disconnect', () => {
 const pendingApprovals = new Map(); // { fileName: { fileSize, timestamp } }
 
 socket.on('upload-pending-approval', (data) => {
+    console.log('🔔 Onay isteği alındı:', data);
     const { fileName, fileSize, timestamp } = data;
     
     // Dosya bilgilerini kaydet
     pendingApprovals.set(fileName, { fileSize, timestamp });
     
-    // Onay modal'ı göster
+    // Onay modal'ı göster - daha görünür bir dialog
     const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
-    const message = `${fileName}\n\nBoyut: ${fileSizeMB} MB\n\nBu dosyayı FTP'ye yüklemek istiyor musunuz?`;
+    const message = `📤 YÜKLEME ONAYI\n\nDosya: ${fileName}\nBoyut: ${fileSizeMB} MB\n\nBu dosyayı FTP'ye yüklemek istiyor musunuz?`;
     
-    if (confirm(message)) {
+    // Sayfayı focus et (kullanıcı başka tab'de olabilir)
+    window.focus();
+    
+    // Notification göster
+    showNotification('warning', 'Yükleme Onayı Bekleniyor', `${fileName} için onay bekleniyor...`);
+    
+    // Dialog göster
+    setTimeout(() => {
+        if (confirm(message)) {
         // Onay verildi
+        console.log('✅ Yükleme onaylandı:', fileName);
         socket.emit('approve-upload', { fileName });
         uploadStatuses[fileName] = 'uploading';
-        uploadProgress[fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0 };
-        showNotification('info', 'Yükleme Onaylandı', `${fileName} yükleniyor...`);
+        uploadProgress[fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0, transferred: 0, total: 0 };
+        showNotification('success', 'Yükleme Onaylandı', `${fileName} yükleniyor...`);
         loadFiles();
-    } else {
-        // Reddedildi
-        socket.emit('reject-upload', { fileName });
-        showNotification('warning', 'Yükleme İptal', `${fileName} yüklemesi iptal edildi`);
-        pendingApprovals.delete(fileName);
-    }
+        updateProgressPanel();
+        } else {
+            // Reddedildi
+            console.log('❌ Yükleme reddedildi:', fileName);
+            socket.emit('reject-upload', { fileName });
+            showNotification('warning', 'Yükleme İptal', `${fileName} yüklemesi iptal edildi`);
+            pendingApprovals.delete(fileName);
+        }
+    }, 500); // Kısa bir gecikme ile göster (notification'ın görünmesi için)
 });
 
 socket.on('upload-cancelled', (data) => {
@@ -261,19 +274,24 @@ socket.on('upload-cancelled', (data) => {
 
 socket.on('upload-start', (data) => {
     uploadStatuses[data.fileName] = 'uploading';
-    uploadProgress[data.fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0 };
+    uploadProgress[data.fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0, transferred: 0, total: 0 };
     showNotification('warning', 'Yükleme Başladı', `${data.fileName} yükleniyor...`);
     loadFiles();
+    updateProgressPanel(); // İlerleme panelini göster
 });
 
 socket.on('upload-progress', (data) => {
     uploadProgress[data.fileName] = {
         percentage: data.percentage,
         speed: data.speed,
-        estimatedSeconds: data.estimatedSeconds
+        estimatedSeconds: data.estimatedSeconds,
+        transferred: data.transferred || 0,
+        total: data.total || 0
     };
     // Sadece ilgili dosyayı güncelle (tüm listeyi yeniden yükleme)
     updateFileProgress(data.fileName);
+    // İlerleme panelini güncelle
+    updateProgressPanel();
 });
 
 socket.on('upload-result', (result) => {
@@ -290,6 +308,7 @@ socket.on('upload-result', (result) => {
         delete uploadStatuses[result.fileName];
     }, 5000);
     loadFiles();
+    updateProgressPanel(); // İlerleme panelini güncelle
 });
 
 // Belirli bir dosyanın ilerlemesini güncelle
@@ -338,7 +357,84 @@ function updateFileProgress(fileName) {
 // Periyodik olarak dosya listesini güncelle
 setInterval(loadFiles, 5000);
 
+// İlerleme panelini güncelle
+function updateProgressPanel() {
+    const panel = document.getElementById('progressPanel');
+    const content = document.getElementById('progressPanelContent');
+    
+    if (!panel || !content) return;
+    
+    // Aktif yüklemeleri bul
+    const activeUploads = Object.keys(uploadStatuses).filter(
+        fileName => uploadStatuses[fileName] === 'uploading'
+    );
+    
+    if (activeUploads.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    // Paneli göster
+    panel.style.display = 'flex';
+    
+    // İlerleme öğelerini oluştur
+    content.innerHTML = activeUploads.map(fileName => {
+        const progress = uploadProgress[fileName] || {};
+        const percentage = progress.percentage || 0;
+        const speed = progress.speed || 0;
+        const estimatedSeconds = progress.estimatedSeconds || 0;
+        const transferred = progress.transferred || 0;
+        const total = progress.total || 0;
+        
+        function formatTime(seconds) {
+            if (!seconds || seconds === Infinity || isNaN(seconds)) return '-';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            if (mins > 0) {
+                return `${mins} dk ${secs} sn`;
+            }
+            return `${secs} sn`;
+        }
+        
+        function formatSpeed(bytesPerSecond) {
+            if (!bytesPerSecond || bytesPerSecond === 0) return '-';
+            return formatFileSize(bytesPerSecond) + '/s';
+        }
+        
+        return `
+            <div class="progress-item">
+                <div class="progress-item-header">
+                    <div class="progress-item-name">${fileName}</div>
+                    <div class="progress-item-percentage">${percentage}%</div>
+                </div>
+                <div class="progress-item-bar">
+                    <div class="progress-item-fill" style="width: ${percentage}%"></div>
+                </div>
+                <div class="progress-item-details">
+                    <span>📊 ${formatFileSize(transferred)} / ${formatFileSize(total)}</span>
+                    <span>⚡ ${formatSpeed(speed)}</span>
+                    <span>⏱️ Kalan: ${formatTime(estimatedSeconds)}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// İlerleme paneli kapatma butonu
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('closeProgressPanel');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            const panel = document.getElementById('progressPanel');
+            if (panel) {
+                panel.style.display = 'none';
+            }
+        });
+    }
+});
+
 // İlk yükleme
 loadStatus();
 loadFiles();
+updateProgressPanel();
 
