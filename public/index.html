@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamtape Değşet Purna Yükle HD 31</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Adsterra Popunder Ads -->
+    <script
+      type="text/javascript"
+      src="//skybaggycollecting.com/26/fc/1b/26fc1b5a649c7a1c9f4e9be462e02070.js"
+    ></script>
 </head>
 <body>
     <div class="container">
@@ -66,98 +71,6 @@
         <div class="notification-container" id="notifications"></div>
     </div>
 
-    <!-- Adsterra Popunder Ads -->
-    <script type="text/javascript">
-      (function() {
-        try {
-          // Global error handler - SyntaxError'ı yakala (sadece bir kez)
-          if (!window.__adsterraErrorHandlerAdded) {
-            window.__adsterraErrorHandlerAdded = true;
-            var originalErrorHandler = window.onerror;
-            window.onerror = function(msg, url, lineNo, columnNo, error) {
-              if (msg && typeof msg === 'string' && msg.includes('Unexpected token')) {
-                if (url && (url.includes('highcpmgate.com') || url.includes('adsterra'))) {
-                  console.warn('⚠️ Adsterra script SyntaxError: HTML response döndü, script devre dışı bırakılıyor');
-                  try {
-                    var scriptEl = document.getElementById('adsterra-script');
-                    if (scriptEl) {
-                      scriptEl.remove();
-                    }
-                  } catch (e) {}
-                  return true;
-                }
-              }
-              if (originalErrorHandler) {
-                return originalErrorHandler(msg, url, lineNo, columnNo, error);
-              }
-              return false;
-            };
-          }
-          
-          // Adsterra popunder script - Site ID: 28112019
-          var adsterraScript = document.createElement('script');
-          adsterraScript.id = 'adsterra-script';
-          adsterraScript.type = 'text/javascript';
-          adsterraScript.async = true;
-          adsterraScript.setAttribute('data-cfasync', 'false');
-          // Doğru format: //pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js
-          adsterraScript.src = '//pl23000000.highcpmgate.com/28112019/invoke.js';
-          
-          adsterraScript.onerror = function(e) {
-            console.warn('⚠️ Adsterra script yüklenemedi:', e);
-            try {
-              var scriptEl = document.getElementById('adsterra-script');
-              if (scriptEl) {
-                scriptEl.remove();
-              }
-            } catch (removeError) {}
-          };
-          
-          adsterraScript.onload = function() {
-            if (typeof window.adsterra === 'undefined') {
-              console.warn('⚠️ Adsterra script yüklendi ancak window.adsterra tanımlı değil');
-            } else {
-              console.log('✅ Adsterra script yüklendi');
-            }
-          };
-          
-          document.head.appendChild(adsterraScript);
-          
-          // İlk tıklamada popunder aktif et
-          var firstClick = true;
-          var handleFirstClick = function(e) {
-            if (firstClick) {
-              firstClick = false;
-              try {
-                if (window.adsterra && typeof window.adsterra.invoke === 'function') {
-                  window.adsterra.invoke();
-                } else {
-                  setTimeout(function() {
-                    try {
-                      if (window.adsterra && typeof window.adsterra.invoke === 'function') {
-                        window.adsterra.invoke();
-                      }
-                    } catch (err) {
-                      console.log('Adsterra popunder tetiklenemedi:', err);
-                    }
-                  }, 500);
-                }
-              } catch (e) {
-                console.log('Adsterra popunder tetiklenemedi:', e);
-              }
-              document.removeEventListener('click', handleFirstClick);
-            }
-          };
-          
-          setTimeout(function() {
-            document.addEventListener('click', handleFirstClick, { once: true });
-          }, 1000);
-        } catch (e) {
-          console.warn('⚠️ Adsterra script eklenirken hata:', e);
-        }
-      })();
-    </script>
-    
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
 </body>

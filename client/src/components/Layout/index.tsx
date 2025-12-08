@@ -48,143 +48,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, isAuthenticated, logout, openLoginModal } = useAuth();
   
   // Adsterra popunder - Admin ve Upload sayfaları hariç
+  // Not: Adsterra script'i artık HTML dosyalarında direkt olarak yükleniyor
+  // Bu component'te sadece Admin/Upload sayfalarında script'i devre dışı bırakıyoruz
   useEffect(() => {
     const isAdminPage = location.pathname === '/admin';
     const isUploadPage = location.pathname === '/upload';
     
     if (isAdminPage || isUploadPage) {
-      return; // Admin ve Upload sayfalarında Adsterra çalışmasın
+      // Admin ve Upload sayfalarında Adsterra script'ini kaldır
+      const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]');
+      if (adsterraScript) {
+        adsterraScript.remove();
+      }
     }
-    
-    // Global error handler - SyntaxError'ı yakala (sadece bir kez ekle)
-    let errorHandlerAdded = false;
-    const setupGlobalErrorHandler = () => {
-      if (errorHandlerAdded) return;
-      errorHandlerAdded = true;
-      
-      const originalErrorHandler = (window as any).__originalOnError;
-      if (!originalErrorHandler) {
-        (window as any).__originalOnError = window.onerror;
-      }
-      
-      window.onerror = function(msg: any, url: any, lineNo: any, columnNo: any, error: any) {
-        // Adsterra script'inden gelen SyntaxError'ı yakala
-        if (msg && typeof msg === 'string' && msg.includes('Unexpected token')) {
-          if (url && (url.includes('highcpmgate.com') || url.includes('adsterra'))) {
-            console.warn('⚠️ Adsterra script SyntaxError: HTML response döndü, script devre dışı bırakılıyor');
-            try {
-              const scriptEl = document.getElementById('adsterra-script');
-              if (scriptEl) {
-                scriptEl.remove();
-              }
-            } catch (e) {}
-            // Hata handle edildi, uygulama crash olmayacak
-            return true;
-          }
-        }
-        // Diğer hatalar için original handler'ı çağır
-        const original = (window as any).__originalOnError;
-        if (original) {
-          return original(msg, url, lineNo, columnNo, error);
-        }
-        return false;
-      };
-    };
-    
-    // Global error handler'ı ekle
-    setupGlobalErrorHandler();
-    
-    // Adsterra script yükleme - Adsterra dokümantasyonuna göre doğru implementasyon
-    const loadAdsterra = () => {
-      try {
-        // Script zaten yüklenmiş mi kontrol et
-        if (document.getElementById('adsterra-script')) {
-          return;
-        }
-        
-        // Adsterra'nın önerdiği şekilde script oluştur
-        const adsterraScript = document.createElement('script');
-        adsterraScript.id = 'adsterra-script';
-        adsterraScript.type = 'text/javascript';
-        adsterraScript.async = true;
-        adsterraScript.setAttribute('data-cfasync', 'false');
-        
-        // Adsterra popunder script URL'i - Site ID: 28112019
-        // Doğru format: //pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js
-        adsterraScript.src = '//pl23000000.highcpmgate.com/28112019/invoke.js';
-        
-        // Error handling - Script yüklenemezse kaldır
-        adsterraScript.onerror = (e) => {
-          console.warn('⚠️ Adsterra script yüklenemedi (onerror):', e);
-          try {
-            const scriptEl = document.getElementById('adsterra-script');
-            if (scriptEl) {
-              scriptEl.remove();
-            }
-          } catch (removeError) {
-            console.warn('Script kaldırılamadı:', removeError);
-          }
-        };
-        
-        // Load event - Script başarıyla yüklendiğinde
-        adsterraScript.onload = () => {
-          try {
-            // Script'in gerçekten yüklendiğini kontrol et
-            if (typeof (window as any).adsterra === 'undefined') {
-              console.warn('⚠️ Adsterra script yüklendi ancak window.adsterra tanımlı değil');
-            } else {
-              console.log('✅ Adsterra script yüklendi');
-            }
-          } catch (e) {
-            console.warn('⚠️ Adsterra script kontrolü sırasında hata:', e);
-          }
-        };
-        
-        document.head.appendChild(adsterraScript);
-      } catch (e) {
-        console.warn('⚠️ Adsterra script eklenirken hata:', e);
-      }
-    };
-    
-    // Sayfa yüklendiğinde script'i yükle
-    loadAdsterra();
-    
-    // İlk tıklamada popunder aktif et
-    let firstClick = true;
-    const handleFirstClick = (e: MouseEvent) => {
-      if (firstClick) {
-        firstClick = false;
-        // Adsterra popunder'ı tetikle
-        try {
-          if ((window as any).adsterra && typeof (window as any).adsterra.invoke === 'function') {
-            (window as any).adsterra.invoke();
-          } else {
-            // Adsterra henüz yüklenmemiş, biraz bekle
-            setTimeout(() => {
-              try {
-                if ((window as any).adsterra && typeof (window as any).adsterra.invoke === 'function') {
-                  (window as any).adsterra.invoke();
-                }
-              } catch (err) {
-                console.log('Adsterra popunder tetiklenemedi (delayed):', err);
-              }
-            }, 500);
-          }
-        } catch (e) {
-          console.log('Adsterra popunder tetiklenemedi:', e);
-        }
-        document.removeEventListener('click', handleFirstClick);
-      }
-    };
-    
-    // Sayfa yüklendikten sonra click listener ekle
-    setTimeout(() => {
-      document.addEventListener('click', handleFirstClick, { once: true });
-    }, 1000);
-    
-    return () => {
-      document.removeEventListener('click', handleFirstClick);
-    };
   }, [location.pathname]);
 
   // Load models and channels for navigation
