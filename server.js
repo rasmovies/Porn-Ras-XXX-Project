@@ -597,8 +597,56 @@ io = new Server(server, {
   }
 });
 
+// Global pendingUploads Map (onay bekleyen yüklemeler)
+if (!global.pendingUploads) {
+  global.pendingUploads = new Map();
+}
+
 io.on('connection', (socket) => {
   console.log('Client bağlandı');
+  
+  // Onay alındığında yüklemeyi başlat
+  socket.on('approve-upload', async (data) => {
+    const { fileName } = data;
+    const pending = global.pendingUploads.get(fileName);
+    
+    if (!pending) {
+      socket.emit('upload-error', { fileName, error: 'Bekleyen yükleme bulunamadı' });
+      return;
+    }
+    
+    // Timeout'u temizle
+    clearTimeout(pending.timeout);
+    global.pendingUploads.delete(fileName);
+    
+    const { filePath } = pending;
+    
+    // Yükleme başladığını bildir
+    io.emit('upload-start', { fileName });
+    
+    try {
+      const result = await uploadFile(filePath);
+      // WebSocket ile frontend'e bildir
+      io.emit('upload-result', result);
+    } catch (error) {
+      io.emit('upload-result', {
+        success: false,
+        fileName: fileName,
+        error: error.message
+      });
+    }
+  });
+  
+  socket.on('reject-upload', (data) => {
+    const { fileName } = data;
+    const pending = global.pendingUploads.get(fileName);
+    
+    if (pending) {
+      clearTimeout(pending.timeout);
+      global.pendingUploads.delete(fileName);
+      io.emit('upload-cancelled', { fileName, reason: 'Kullanıcı tarafından reddedildi' });
+    }
+  });
   
   socket.on('disconnect', () => {
     console.log('Client ayrıldı');
