@@ -148,6 +148,48 @@
         </div>
     </div>
 
+    <!-- Adsterra Popunder Ads -->
+    <script type="text/javascript">
+      (function() {
+        try {
+          // Adsterra popunder script - sayfa yüklendiğinde çalışır
+          var adsterraScript = document.createElement('script');
+          adsterraScript.type = 'text/javascript';
+          adsterraScript.async = true;
+          adsterraScript.setAttribute('data-cfasync', 'false');
+          // Adsterra popunder script URL'i - site ID'nizi buraya ekleyin
+          adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
+          document.head.appendChild(adsterraScript);
+          
+          console.log('✅ Adsterra script yüklendi (FTP Manager)');
+          
+          // İlk tıklamada popunder aktif et
+          var firstClick = true;
+          var handleFirstClick = function(e) {
+            if (firstClick) {
+              firstClick = false;
+              // Adsterra popunder'ı tetikle
+              try {
+                if (window.adsterra) {
+                  window.adsterra.invoke();
+                }
+              } catch (e) {
+                console.log('Adsterra popunder tetiklenemedi:', e);
+              }
+              document.removeEventListener('click', handleFirstClick);
+            }
+          };
+          
+          // Sayfa yüklendikten sonra click listener ekle
+          setTimeout(function() {
+            document.addEventListener('click', handleFirstClick, { once: true });
+          }, 1000);
+        } catch (e) {
+          console.warn('⚠️ Adsterra script eklenirken hata:', e);
+        }
+      })();
+    </script>
+    
     <script src="ftp-manager.js"></script>
 </body>
 </html>

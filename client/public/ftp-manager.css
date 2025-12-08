@@ -541,6 +541,60 @@ header h1 {
     margin-bottom: 0;
 }
 
+/* Upload Progress Styles */
+.upload-progress-container {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.upload-progress-item {
+    background: var(--bg-tertiary);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+}
+
+.upload-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.upload-progress-info span:first-child {
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-all;
+    flex: 1;
+    margin-right: 10px;
+}
+
+.upload-progress-percentage {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.upload-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .container {

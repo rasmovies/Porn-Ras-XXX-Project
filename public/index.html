@@ -66,6 +66,44 @@
         <div class="notification-container" id="notifications"></div>
     </div>
 
+    <!-- Adsterra Popunder Ads -->
+    <script type="text/javascript">
+      (function() {
+        try {
+          var adsterraScript = document.createElement('script');
+          adsterraScript.type = 'text/javascript';
+          adsterraScript.async = true;
+          adsterraScript.setAttribute('data-cfasync', 'false');
+          adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
+          document.head.appendChild(adsterraScript);
+          
+          console.log('✅ Adsterra script yüklendi (Upload Page)');
+          
+          // İlk tıklamada popunder aktif et
+          var firstClick = true;
+          var handleFirstClick = function(e) {
+            if (firstClick) {
+              firstClick = false;
+              try {
+                if (window.adsterra) {
+                  window.adsterra.invoke();
+                }
+              } catch (e) {
+                console.log('Adsterra popunder tetiklenemedi:', e);
+              }
+              document.removeEventListener('click', handleFirstClick);
+            }
+          };
+          
+          setTimeout(function() {
+            document.addEventListener('click', handleFirstClick, { once: true });
+          }, 1000);
+        } catch (e) {
+          console.warn('⚠️ Adsterra script eklenirken hata:', e);
+        }
+      })();
+    </script>
+    
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
 </body>

@@ -46,6 +46,70 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout, openLoginModal } = useAuth();
+  
+  // Adsterra popunder - Admin ve Upload sayfaları hariç
+  useEffect(() => {
+    const isAdminPage = location.pathname === '/admin';
+    const isUploadPage = location.pathname === '/upload';
+    
+    if (isAdminPage || isUploadPage) {
+      return; // Admin ve Upload sayfalarında Adsterra çalışmasın
+    }
+    
+    // Adsterra script yükle
+    const loadAdsterra = () => {
+      try {
+        // Script zaten yüklenmiş mi kontrol et
+        if (document.getElementById('adsterra-script')) {
+          return;
+        }
+        
+        const adsterraScript = document.createElement('script');
+        adsterraScript.id = 'adsterra-script';
+        adsterraScript.type = 'text/javascript';
+        adsterraScript.async = true;
+        adsterraScript.setAttribute('data-cfasync', 'false');
+        // Adsterra popunder script URL'i - site ID'nizi buraya ekleyin
+        adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
+        document.head.appendChild(adsterraScript);
+        
+        console.log('✅ Adsterra script yüklendi');
+      } catch (e) {
+        console.warn('⚠️ Adsterra script eklenirken hata:', e);
+      }
+    };
+    
+    // Sayfa yüklendiğinde script'i yükle
+    loadAdsterra();
+    
+    // İlk tıklamada popunder aktif et
+    let firstClick = true;
+    const handleFirstClick = (e: MouseEvent) => {
+      if (firstClick) {
+        firstClick = false;
+        // Adsterra popunder'ı tetikle
+        try {
+          // Adsterra genellikle otomatik çalışır, ama manuel tetikleme için:
+          if ((window as any).adsterra) {
+            (window as any).adsterra.invoke();
+          }
+        } catch (e) {
+          console.log('Adsterra popunder tetiklenemedi:', e);
+        }
+        // Event listener'ı kaldır (sadece ilk tıklamada çalışsın)
+        document.removeEventListener('click', handleFirstClick);
+      }
+    };
+    
+    // Sayfa yüklendikten sonra click listener ekle
+    setTimeout(() => {
+      document.addEventListener('click', handleFirstClick, { once: true });
+    }, 1000);
+    
+    return () => {
+      document.removeEventListener('click', handleFirstClick);
+    };
+  }, [location.pathname]);
 
   // Load models and channels for navigation
   useEffect(() => {
