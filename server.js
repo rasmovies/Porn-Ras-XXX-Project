@@ -206,16 +206,16 @@ function startWatching() {
           
           // 30 saniye timeout - onay gelmezse iptal et
           const timeout = setTimeout(() => {
-            if (pendingUploads.has(fileName)) {
+            if (global.pendingUploads.has(fileName)) {
               console.log(`Yükleme onayı zaman aşımına uğradı: ${fileName}`);
-              pendingUploads.delete(fileName);
+              global.pendingUploads.delete(fileName);
               if (io) {
                 io.emit('upload-cancelled', { fileName, reason: 'Zaman aşımı' });
               }
             }
           }, 30000); // 30 saniye
           
-          pendingUploads.set(fileName, { filePath, timeout });
+          global.pendingUploads.set(fileName, { filePath, timeout });
         } else {
           // Socket.io yoksa direkt yükle (fallback)
           console.log('Socket.io yok, direkt yükleme başlatılıyor');
@@ -229,53 +229,6 @@ function startWatching() {
       }, 2000);
     }
   });
-  
-  // Onay alındığında yüklemeyi başlat
-  if (io) {
-    io.on('connection', (socket) => {
-      socket.on('approve-upload', async (data) => {
-        const { fileName } = data;
-        const pending = pendingUploads.get(fileName);
-        
-        if (!pending) {
-          socket.emit('upload-error', { fileName, error: 'Bekleyen yükleme bulunamadı' });
-          return;
-        }
-        
-        // Timeout'u temizle
-        clearTimeout(pending.timeout);
-        pendingUploads.delete(fileName);
-        
-        const { filePath } = pending;
-        
-        // Yükleme başladığını bildir
-        io.emit('upload-start', { fileName });
-        
-        try {
-          const result = await uploadFile(filePath);
-          // WebSocket ile frontend'e bildir
-          io.emit('upload-result', result);
-        } catch (error) {
-          io.emit('upload-result', {
-            success: false,
-            fileName: fileName,
-            error: error.message
-          });
-        }
-      });
-      
-      socket.on('reject-upload', (data) => {
-        const { fileName } = data;
-        const pending = pendingUploads.get(fileName);
-        
-        if (pending) {
-          clearTimeout(pending.timeout);
-          pendingUploads.delete(fileName);
-          io.emit('upload-cancelled', { fileName, reason: 'Kullanıcı tarafından reddedildi' });
-        }
-      });
-    });
-  }
 }
 
 // API Endpoints
