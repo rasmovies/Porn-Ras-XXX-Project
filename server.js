@@ -591,10 +591,20 @@ app.post('/api/ftp/write', async (req, res) => {
 });
 
 // FTP dosya yükleme endpoint'i (multipart/form-data)
-const multer = require('multer');
-const upload = multer({ dest: path.join(__dirname, 'temp') });
+let multer, upload;
+try {
+  multer = require('multer');
+  upload = multer({ dest: path.join(__dirname, 'temp') });
+} catch (e) {
+  console.warn('⚠️ Multer yüklenemedi, dosya yükleme özelliği çalışmayabilir');
+}
 
-app.post('/api/ftp/upload', upload.single('file'), async (req, res) => {
+app.post('/api/ftp/upload', (req, res, next) => {
+  if (!upload) {
+    return res.status(500).json({ success: false, error: 'Multer yüklenemedi' });
+  }
+  upload.single('file')(req, res, next);
+}, async (req, res) => {
   const client = new Client();
   const remotePath = req.body.path || `/${req.file.originalname}`;
   const filePath = req.file.path;
