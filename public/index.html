@@ -85,8 +85,19 @@
             if (firstClick) {
               firstClick = false;
               try {
-                if (window.adsterra) {
+                if (window.adsterra && typeof window.adsterra.invoke === 'function') {
                   window.adsterra.invoke();
+                } else {
+                  // Adsterra henüz yüklenmemiş, biraz bekle
+                  setTimeout(function() {
+                    try {
+                      if (window.adsterra && typeof window.adsterra.invoke === 'function') {
+                        window.adsterra.invoke();
+                      }
+                    } catch (err) {
+                      console.log('Adsterra popunder tetiklenemedi (delayed):', err);
+                    }
+                  }, 500);
                 }
               } catch (e) {
                 console.log('Adsterra popunder tetiklenemedi:', e);

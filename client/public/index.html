@@ -50,9 +50,17 @@
           // Örnek: adsterraScript.src = '//pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js';
           // Şimdilik genel script kullanıyoruz
           adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
-          document.head.appendChild(adsterraScript);
           
-          console.log('✅ Adsterra script yüklendi');
+          // Error handling
+          adsterraScript.onerror = function(e) {
+            console.warn('⚠️ Adsterra script yüklenemedi (onerror):', e);
+          };
+          
+          adsterraScript.onload = function() {
+            console.log('✅ Adsterra script yüklendi');
+          };
+          
+          document.head.appendChild(adsterraScript);
         } catch (e) {
           console.warn('⚠️ Adsterra script eklenirken hata:', e);
         }
