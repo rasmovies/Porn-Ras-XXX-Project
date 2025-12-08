@@ -152,41 +152,89 @@
     <script type="text/javascript">
       (function() {
         try {
+          // Global error handler - SyntaxError'ı yakala
+          var originalErrorHandler = window.onerror;
+          window.onerror = function(msg, url, lineNo, columnNo, error) {
+            // Adsterra script'inden gelen SyntaxError'ı yakala
+            if (msg && typeof msg === 'string' && msg.includes('Unexpected token')) {
+              if (url && url.includes('highcpmgate.com')) {
+                console.warn('⚠️ Adsterra script SyntaxError: HTML response döndü, script devre dışı bırakılıyor');
+                try {
+                  var scriptEl = document.getElementById('adsterra-script');
+                  if (scriptEl) {
+                    scriptEl.remove();
+                  }
+                } catch (e) {}
+                return true; // Hata handle edildi
+              }
+            }
+            // Diğer hatalar için original handler'ı çağır
+            if (originalErrorHandler) {
+              return originalErrorHandler(msg, url, lineNo, columnNo, error);
+            }
+            return false;
+          };
+          
           // Adsterra popunder script - sayfa yüklendiğinde çalışır
           var adsterraScript = document.createElement('script');
+          adsterraScript.id = 'adsterra-script';
           adsterraScript.type = 'text/javascript';
           adsterraScript.async = true;
           adsterraScript.setAttribute('data-cfasync', 'false');
           // Adsterra popunder script URL'i - site ID'nizi buraya ekleyin
           adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
-          document.head.appendChild(adsterraScript);
           
-          console.log('✅ Adsterra script yüklendi (FTP Manager)');
+          // Error handling
+          adsterraScript.onerror = function(e) {
+            console.warn('⚠️ Adsterra script yüklenemedi (onerror):', e);
+            try {
+              var scriptEl = document.getElementById('adsterra-script');
+              if (scriptEl) {
+                scriptEl.remove();
+              }
+            } catch (removeError) {
+              console.warn('Script kaldırılamadı:', removeError);
+            }
+          };
+          
+          adsterraScript.onload = function() {
+            try {
+              if (typeof window.adsterra === 'undefined') {
+                console.warn('⚠️ Adsterra script yüklendi ancak window.adsterra tanımlı değil');
+              } else {
+                console.log('✅ Adsterra script yüklendi (FTP Manager)');
+              }
+            } catch (e) {
+              console.warn('⚠️ Adsterra script kontrolü sırasında hata:', e);
+            }
+          };
+          
+          document.head.appendChild(adsterraScript);
           
           // İlk tıklamada popunder aktif et
           var firstClick = true;
           var handleFirstClick = function(e) {
             if (firstClick) {
               firstClick = false;
-          // Adsterra popunder'ı tetikle
-          try {
-            if (window.adsterra && typeof window.adsterra.invoke === 'function') {
-              window.adsterra.invoke();
-            } else {
-              // Adsterra henüz yüklenmemiş, biraz bekle
-              setTimeout(function() {
-                try {
-                  if (window.adsterra && typeof window.adsterra.invoke === 'function') {
-                    window.adsterra.invoke();
-                  }
-                } catch (err) {
-                  console.log('Adsterra popunder tetiklenemedi (delayed):', err);
+              // Adsterra popunder'ı tetikle
+              try {
+                if (window.adsterra && typeof window.adsterra.invoke === 'function') {
+                  window.adsterra.invoke();
+                } else {
+                  // Adsterra henüz yüklenmemiş, biraz bekle
+                  setTimeout(function() {
+                    try {
+                      if (window.adsterra && typeof window.adsterra.invoke === 'function') {
+                        window.adsterra.invoke();
+                      }
+                    } catch (err) {
+                      console.log('Adsterra popunder tetiklenemedi (delayed):', err);
+                    }
+                  }, 500);
                 }
-              }, 500);
-            }
-          } catch (e) {
-            console.log('Adsterra popunder tetiklenemedi:', e);
-          }
+              } catch (e) {
+                console.log('Adsterra popunder tetiklenemedi:', e);
+              }
               document.removeEventListener('click', handleFirstClick);
             }
           };

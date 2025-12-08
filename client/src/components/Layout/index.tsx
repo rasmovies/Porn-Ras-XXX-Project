@@ -72,13 +72,56 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         // Adsterra popunder script URL'i - site ID'nizi buraya ekleyin
         adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
         
-        // Error handling
+        // Error handling - SyntaxError'ı yakala
         adsterraScript.onerror = (e) => {
           console.warn('⚠️ Adsterra script yüklenemedi (onerror):', e);
+          // Script element'ini kaldır (HTML response döndürmüş olabilir)
+          try {
+            const scriptEl = document.getElementById('adsterra-script');
+            if (scriptEl) {
+              scriptEl.remove();
+            }
+          } catch (removeError) {
+            console.warn('Script kaldırılamadı:', removeError);
+          }
         };
         
+        // Load event - script başarıyla yüklendiğinde
         adsterraScript.onload = () => {
-          console.log('✅ Adsterra script yüklendi');
+          try {
+            // Script'in gerçekten yüklendiğini kontrol et
+            if (typeof (window as any).adsterra === 'undefined') {
+              console.warn('⚠️ Adsterra script yüklendi ancak window.adsterra tanımlı değil');
+            } else {
+              console.log('✅ Adsterra script yüklendi');
+            }
+          } catch (e) {
+            console.warn('⚠️ Adsterra script kontrolü sırasında hata:', e);
+          }
+        };
+        
+        // Global error handler - SyntaxError'ı yakala
+        const originalErrorHandler = window.onerror;
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          // Adsterra script'inden gelen SyntaxError'ı yakala
+          if (msg && typeof msg === 'string' && msg.includes('Unexpected token')) {
+            if (url && url.includes('highcpmgate.com')) {
+              console.warn('⚠️ Adsterra script SyntaxError: HTML response döndü, script devre dışı bırakılıyor');
+              try {
+                const scriptEl = document.getElementById('adsterra-script');
+                if (scriptEl) {
+                  scriptEl.remove();
+                }
+              } catch (e) {}
+              // Original error handler'ı çağırma (hata zaten handle edildi)
+              return true;
+            }
+          }
+          // Diğer hatalar için original handler'ı çağır
+          if (originalErrorHandler) {
+            return originalErrorHandler(msg, url, lineNo, columnNo, error);
+          }
+          return false;
         };
         
         document.head.appendChild(adsterraScript);
