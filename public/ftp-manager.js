@@ -484,6 +484,96 @@ document.getElementById('uploadBtn').addEventListener('click', () => {
 // Aktif yüklemeleri takip et
 const activeUploads = new Map();
 
+// Chunked upload fonksiyonu
+async function uploadFileInChunks(file, filePath, fileName, resolve, reject) {
+    const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    let uploadedChunks = 0;
+    
+    try {
+        // Dosyayı parçalara böl ve yükle
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            const start = chunkIndex * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunk = file.slice(start, end);
+            
+            // Chunk'ı base64'e çevir
+            const chunkBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // ArrayBuffer'ı base64'e çevir
+                    const base64 = btoa(
+                        new Uint8Array(reader.result)
+                            .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                    );
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(chunk);
+            });
+            
+            // Chunk'ı backend'e gönder
+            const response = await fetch('/api/ftp/upload-chunk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    chunkIndex: chunkIndex,
+                    totalChunks: totalChunks,
+                    chunkData: chunkBase64,
+                    filePath: filePath
+                })
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Chunk ${chunkIndex + 1} yüklenemedi: ${errorText}`);
+            }
+            
+            const result = await response.json();
+            uploadedChunks++;
+            
+            // Progress güncelle
+            const progress = (uploadedChunks / totalChunks) * 100;
+            const uploadData = activeUploads.get(fileName);
+            if (uploadData) {
+                uploadData.progress = progress;
+                uploadData.transferred = uploadedChunks * CHUNK_SIZE;
+                uploadData.total = file.size;
+                updateUploadPanel();
+            }
+            
+            // Son chunk ise ve başarılıysa
+            if (result.success && uploadedChunks === totalChunks) {
+                const uploadData = activeUploads.get(fileName);
+                if (uploadData) {
+                    uploadData.progress = 100;
+                    uploadData.status = 'completed';
+                    updateUploadPanel();
+                }
+                showNotification('success', 'Başarılı', `${fileName} yüklendi`);
+                resolve(fileName);
+                
+                setTimeout(() => {
+                    activeUploads.delete(fileName);
+                    updateUploadPanel();
+                    loadFiles(currentPath);
+                }, 3000);
+                return;
+            }
+        }
+    } catch (error) {
+        console.error('Chunked upload error:', error);
+        const uploadData = activeUploads.get(fileName);
+        if (uploadData) {
+            uploadData.status = 'error';
+            updateUploadPanel();
+        }
+        showNotification('error', 'Hata', `${fileName}: ${error.message}`);
+        reject(error);
+    }
+}
+
 // Upload panelini güncelle
 function updateUploadPanel() {
     const panel = document.getElementById('uploadPanel');
