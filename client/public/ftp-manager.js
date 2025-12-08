@@ -444,4 +444,5 @@ document.getElementById('confirmFolderBtn').addEventListener('click', async () =
 
 // İlk yükleme
 loadFiles('/');
+checkConnection(); // Bağlantı durumunu kontrol et
 
