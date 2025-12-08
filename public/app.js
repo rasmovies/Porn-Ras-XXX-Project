@@ -221,6 +221,43 @@ socket.on('disconnect', () => {
     document.getElementById('statusText').textContent = 'Bağlantı Yok';
 });
 
+// Onay bekleyen yüklemeler
+const pendingApprovals = new Map(); // { fileName: { fileSize, timestamp } }
+
+socket.on('upload-pending-approval', (data) => {
+    const { fileName, fileSize, timestamp } = data;
+    
+    // Dosya bilgilerini kaydet
+    pendingApprovals.set(fileName, { fileSize, timestamp });
+    
+    // Onay modal'ı göster
+    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+    const message = `${fileName}\n\nBoyut: ${fileSizeMB} MB\n\nBu dosyayı FTP'ye yüklemek istiyor musunuz?`;
+    
+    if (confirm(message)) {
+        // Onay verildi
+        socket.emit('approve-upload', { fileName });
+        uploadStatuses[fileName] = 'uploading';
+        uploadProgress[fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0 };
+        showNotification('info', 'Yükleme Onaylandı', `${fileName} yükleniyor...`);
+        loadFiles();
+    } else {
+        // Reddedildi
+        socket.emit('reject-upload', { fileName });
+        showNotification('warning', 'Yükleme İptal', `${fileName} yüklemesi iptal edildi`);
+        pendingApprovals.delete(fileName);
+    }
+});
+
+socket.on('upload-cancelled', (data) => {
+    const { fileName, reason } = data;
+    uploadStatuses[fileName] = 'cancelled';
+    delete uploadProgress[fileName];
+    pendingApprovals.delete(fileName);
+    showNotification('warning', 'Yükleme İptal', `${fileName}: ${reason}`);
+    loadFiles();
+});
+
 socket.on('upload-start', (data) => {
     uploadStatuses[data.fileName] = 'uploading';
     uploadProgress[data.fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0 };

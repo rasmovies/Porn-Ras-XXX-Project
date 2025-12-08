@@ -169,6 +169,9 @@ function startWatching() {
     ignoreInitial: false
   });
   
+  // Bekleyen yüklemeler (onay bekliyor)
+  const pendingUploads = new Map(); // { fileName: { filePath, timeout } }
+  
   watcher.on('add', async (filePath) => {
     // Sadece dosyaları işle (klasörleri değil)
     const stats = await fs.stat(filePath).catch(() => null);
@@ -180,33 +183,99 @@ function startWatching() {
     
     if (videoExts.includes(ext)) {
       const fileName = path.basename(filePath);
-      console.log(`Yeni dosya tespit edildi: ${fileName}`);
-      
-      // Yükleme başladığını bildir
-      if (io) {
-        io.emit('upload-start', { fileName });
-      }
+      const fileSize = stats.size;
+      console.log(`Yeni dosya tespit edildi: ${fileName} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
       
       // Dosya tamamen yazıldı mı kontrol et (küçük bir gecikme)
       setTimeout(async () => {
-        try {
-          const result = await uploadFile(filePath);
-          // WebSocket ile frontend'e bildir
-          if (io) {
-            io.emit('upload-result', result);
-          }
-        } catch (error) {
-          if (io) {
-            io.emit('upload-result', {
-              success: false,
-              fileName: fileName,
-              error: error.message
-            });
+        // Dosya hala var mı kontrol et
+        const stillExists = await fs.pathExists(filePath).catch(() => false);
+        if (!stillExists) {
+          console.log(`Dosya silindi, yükleme iptal: ${fileName}`);
+          return;
+        }
+        
+        // Onay için frontend'e bildir
+        if (io) {
+          io.emit('upload-pending-approval', { 
+            fileName, 
+            filePath,
+            fileSize,
+            timestamp: Date.now()
+          });
+          
+          // 30 saniye timeout - onay gelmezse iptal et
+          const timeout = setTimeout(() => {
+            if (pendingUploads.has(fileName)) {
+              console.log(`Yükleme onayı zaman aşımına uğradı: ${fileName}`);
+              pendingUploads.delete(fileName);
+              if (io) {
+                io.emit('upload-cancelled', { fileName, reason: 'Zaman aşımı' });
+              }
+            }
+          }, 30000); // 30 saniye
+          
+          pendingUploads.set(fileName, { filePath, timeout });
+        } else {
+          // Socket.io yoksa direkt yükle (fallback)
+          console.log('Socket.io yok, direkt yükleme başlatılıyor');
+          try {
+            const result = await uploadFile(filePath);
+            console.log('Yükleme sonucu:', result);
+          } catch (error) {
+            console.error('Yükleme hatası:', error);
           }
         }
       }, 2000);
     }
   });
+  
+  // Onay alındığında yüklemeyi başlat
+  if (io) {
+    io.on('connection', (socket) => {
+      socket.on('approve-upload', async (data) => {
+        const { fileName } = data;
+        const pending = pendingUploads.get(fileName);
+        
+        if (!pending) {
+          socket.emit('upload-error', { fileName, error: 'Bekleyen yükleme bulunamadı' });
+          return;
+        }
+        
+        // Timeout'u temizle
+        clearTimeout(pending.timeout);
+        pendingUploads.delete(fileName);
+        
+        const { filePath } = pending;
+        
+        // Yükleme başladığını bildir
+        io.emit('upload-start', { fileName });
+        
+        try {
+          const result = await uploadFile(filePath);
+          // WebSocket ile frontend'e bildir
+          io.emit('upload-result', result);
+        } catch (error) {
+          io.emit('upload-result', {
+            success: false,
+            fileName: fileName,
+            error: error.message
+          });
+        }
+      });
+      
+      socket.on('reject-upload', (data) => {
+        const { fileName } = data;
+        const pending = pendingUploads.get(fileName);
+        
+        if (pending) {
+          clearTimeout(pending.timeout);
+          pendingUploads.delete(fileName);
+          io.emit('upload-cancelled', { fileName, reason: 'Kullanıcı tarafından reddedildi' });
+        }
+      });
+    });
+  }
 }
 
 // API Endpoints

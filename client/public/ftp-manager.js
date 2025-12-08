@@ -299,19 +299,35 @@ async function deleteFile(fileName) {
     
     try {
         const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
-        const response = await fetch(`/api/ftp/delete?path=${encodeURIComponent(filePath)}`, {
-            method: 'DELETE'
+        
+        // Vercel'de DELETE method'u bazen çalışmıyor, POST kullan
+        const response = await fetch('/api/ftp/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: filePath })
         });
         
-        const data = await response.json();
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const responseText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            throw new Error(`Geçersiz yanıt: ${responseText.substring(0, 100)}`);
+        }
         
         if (!data.success) {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Silme işlemi başarısız');
         }
         
         showNotification('success', 'Başarılı', 'Dosya silindi');
         loadFiles(currentPath);
     } catch (error) {
+        console.error('Delete error:', error);
         showNotification('error', 'Hata', error.message);
     }
 }
