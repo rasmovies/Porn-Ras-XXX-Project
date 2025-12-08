@@ -466,6 +466,81 @@ header h1 {
     background: var(--text-secondary);
 }
 
+/* Connection Status Styles */
+.connection-status {
+    background: var(--bg-secondary);
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.status-indicator {
+    font-size: 12px;
+}
+
+.status-text {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.connection-info {
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.connection-note {
+    background: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+    margin-top: 20px;
+}
+
+.connection-note p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.connection-note p:first-child {
+    margin-top: 0;
+}
+
+.connection-note p:last-child {
+    margin-bottom: 0;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .container {

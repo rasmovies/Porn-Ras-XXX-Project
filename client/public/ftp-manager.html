@@ -12,9 +12,16 @@
             <h1>📁 FTP Dosya Yöneticisi</h1>
             <div class="header-actions">
                 <a href="/" class="btn btn-secondary">← Ana Sayfa</a>
+                <button class="btn btn-icon" id="connectionBtn" title="Bağlantı Bilgileri">🔌 Bağlantı</button>
                 <button class="btn btn-primary" id="refreshBtn">🔄 Yenile</button>
             </div>
         </header>
+        
+        <!-- Bağlantı Durumu Göstergesi -->
+        <div class="connection-status" id="connectionStatus">
+            <span class="status-indicator" id="statusIndicator">🟢</span>
+            <span class="status-text" id="statusText">Streamtape FTP'ye bağlı</span>
+        </div>
 
         <main>
             <div class="breadcrumb" id="breadcrumb">

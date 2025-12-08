@@ -316,9 +316,64 @@ async function deleteFile(fileName) {
     }
 }
 
+// Bağlantı durumunu kontrol et
+async function checkConnection() {
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    const connectionStatusValue = document.getElementById('connectionStatusValue');
+    
+    try {
+        statusIndicator.textContent = '🟡';
+        statusText.textContent = 'Bağlantı kontrol ediliyor...';
+        
+        const response = await fetch('/api/ftp/list?path=/');
+        const data = await response.json();
+        
+        if (data.success) {
+            statusIndicator.textContent = '🟢';
+            statusText.textContent = 'Streamtape FTP\'ye bağlı';
+            if (connectionStatusValue) {
+                connectionStatusValue.textContent = 'Bağlı ✅';
+                connectionStatusValue.style.color = 'var(--success)';
+            }
+        } else {
+            throw new Error(data.error || 'Bağlantı başarısız');
+        }
+    } catch (error) {
+        statusIndicator.textContent = '🔴';
+        statusText.textContent = 'Bağlantı hatası: ' + error.message;
+        if (connectionStatusValue) {
+            connectionStatusValue.textContent = 'Bağlantı Hatası ❌';
+            connectionStatusValue.style.color = 'var(--error)';
+        }
+    }
+}
+
 // Event listeners
-document.getElementById('refreshBtn').addEventListener('click', () => loadFiles(currentPath));
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    checkConnection();
+    loadFiles(currentPath);
+});
 document.getElementById('searchInput').addEventListener('input', () => loadFiles(currentPath));
+
+// Bağlantı modal işlemleri
+document.getElementById('connectionBtn').addEventListener('click', () => {
+    document.getElementById('connectionModal').classList.add('active');
+    checkConnection();
+});
+
+document.getElementById('closeConnectionModal').addEventListener('click', () => {
+    document.getElementById('connectionModal').classList.remove('active');
+});
+
+document.getElementById('closeConnectionBtn').addEventListener('click', () => {
+    document.getElementById('connectionModal').classList.remove('active');
+});
+
+document.getElementById('testConnectionBtn').addEventListener('click', () => {
+    checkConnection();
+    showNotification('info', 'Test', 'Bağlantı test ediliyor...');
+});
 
 // Modal işlemleri
 document.getElementById('closeUploadModal').addEventListener('click', () => {
