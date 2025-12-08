@@ -50,7 +50,7 @@ module.exports = async function handler(req, res) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ 
           success: false, 
-          error: 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
+          error: 'Dosya çok büyük. Vercel limiti: 4.5MB. Büyük dosyalar için lütfen chunked upload kullanın veya direkt FTP kullanın.' 
         });
       }
       return res.status(400).json({ success: false, error: err.message });
