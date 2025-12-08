@@ -4,6 +4,14 @@ gönderilenler/
 .env
 *.log
 .DS_Store
-
 .vercel
 .env*.local
+temp/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.m4v
