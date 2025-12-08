@@ -669,7 +669,7 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
                 // Upload error
                 xhr.addEventListener('error', () => {
                     const errorMsg = xhr.status === 413 
-                        ? 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
+                        ? 'Dosya çok büyük. Vercel limiti: 4.5MB. Büyük dosyalar için lütfen direkt FTP kullanın.' 
                         : 'Yükleme hatası';
                     const uploadData = activeUploads.get(fileName);
                     if (uploadData) {
@@ -1015,7 +1015,7 @@ document.getElementById('uploadSelectedFilesBtn').addEventListener('click', asyn
                 // Upload error
                 xhr.addEventListener('error', () => {
                     const errorMsg = xhr.status === 413 
-                        ? 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
+                        ? 'Dosya çok büyük. Vercel limiti: 4.5MB. Büyük dosyalar için lütfen direkt FTP kullanın.' 
                         : 'Yükleme hatası';
                     const uploadData = activeUploads.get(fileName);
                     if (uploadData) {

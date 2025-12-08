@@ -4,6 +4,12 @@
   "outputDirectory": "client/build",
   "installCommand": "cd client && npm install --legacy-peer-deps",
   "framework": null,
+  "functions": {
+    "api/ftp/upload.js": {
+      "maxDuration": 300,
+      "memory": 3008
+    }
+  },
   "rewrites": [
     {
       "source": "/ftp-manager.html",

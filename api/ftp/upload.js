@@ -11,11 +11,15 @@ const FTP_CONFIG = {
   secure: false,
 };
 
-// Multer configuration - Büyük dosyalar için limit: 5GB
+// Multer configuration - Vercel'in limiti 4.5MB, bu yüzden chunked upload kullanılmalı
+// Ancak şimdilik maksimum limiti artırmaya çalışalım
+// Not: Vercel serverless function'ları için maksimum request body size 4.5MB'dir
+// Büyük dosyalar için chunked upload veya direkt FTP upload gerekir
 const upload = multer({ 
   dest: '/tmp',
   limits: {
-    fileSize: 5 * 1024 * 1024 * 1024 // 5GB
+    fileSize: 4.5 * 1024 * 1024 // Vercel limiti: 4.5MB (geçici çözüm)
+    // Not: 5GB dosyalar için chunked upload implementasyonu gerekli
   }
 });
 
