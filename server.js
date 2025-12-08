@@ -11,8 +11,8 @@ const PORT = 3131;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '100mb' })); // Büyük dosyalar için limit artırıldı
-app.use(express.urlencoded({ extended: true, limit: '100mb' })); // URL encoded için de limit
+app.use(express.json({ limit: '5gb' })); // Büyük dosyalar için limit: 5GB
+app.use(express.urlencoded({ extended: true, limit: '5gb' })); // URL encoded için de limit: 5GB
 // NOT: express.static en sonda olmalı, route'lardan sonra taşındı
 
 // Klasör yolları
@@ -595,11 +595,11 @@ app.post('/api/ftp/write', async (req, res) => {
 let multer, upload;
 try {
   multer = require('multer');
-  // Büyük dosyalar için limit: 100MB
+  // Büyük dosyalar için limit: 5GB
   upload = multer({ 
     dest: path.join(__dirname, 'temp'),
     limits: {
-      fileSize: 100 * 1024 * 1024 // 100MB
+      fileSize: 5 * 1024 * 1024 * 1024 // 5GB
     }
   });
 } catch (e) {
@@ -615,7 +615,7 @@ app.post('/api/ftp/upload', (req, res, next) => {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ 
           success: false, 
-          error: 'Dosya çok büyük. Maksimum dosya boyutu: 100MB' 
+          error: 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
         });
       }
       return res.status(400).json({ success: false, error: err.message });

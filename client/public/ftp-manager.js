@@ -492,7 +492,7 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
             // Upload error
             xhr.addEventListener('error', () => {
                 const errorMsg = xhr.status === 413 
-                    ? 'Dosya çok büyük. Maksimum dosya boyutu: 100MB' 
+                    ? 'Dosya çok büyük. Maksimum dosya boyutu: 5GB' 
                     : 'Yükleme hatası';
                 throw new Error(errorMsg);
             });
