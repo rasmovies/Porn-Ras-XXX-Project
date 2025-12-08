@@ -94,21 +94,43 @@ export const modelService = {
       const { data, error } = await supabase
         .from('models')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500); // Timeout önleme için limit
       
       if (error) {
         console.error('❌ Models fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+          return [];
+        }
+        
         // If table doesn't exist, return empty array instead of throwing
         if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
           console.warn('⚠️ Models table does not exist, returning empty array');
           return [];
         }
-        throw error;
+        
+        // Diğer hatalar için de boş array döndür (crash önleme)
+        console.warn('⚠️ Models fetch hatası, boş array döndürülüyor');
+        return [];
       }
       console.log('✅ Models loaded:', data?.length || 0);
       return data || [];
     } catch (error: any) {
       console.error('❌ Models service error:', error);
+      console.error('   Error code:', error?.code);
+      console.error('   Error message:', error?.message);
+      
+      // Timeout hatası kontrolü
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn('⚠️ Supabase timeout hatası (catch), boş array döndürülüyor');
+        return [];
+      }
+      
       // Return empty array on any error to prevent app crash
       return [];
     }
@@ -155,6 +177,7 @@ export const videoService = {
   // Get all videos
   async getAll(): Promise<Video[]> {
     try {
+      // Timeout hatasını önlemek için limit ekle ve optimize et
       const { data, error } = await supabase
         .from('videos')
         .select(`
@@ -162,7 +185,8 @@ export const videoService = {
           categories(name),
           models(name)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1000); // Maksimum 1000 video (timeout önleme)
       
       if (error) {
         console.error('❌ Videos fetch error:', error);
@@ -170,6 +194,12 @@ export const videoService = {
         console.error('   Error message:', error.message);
         console.error('   Error details:', error.details);
         console.error('   Error hint:', error.hint);
+        
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+          return [];
+        }
         
         // CORS veya network hatası
         if (error.message?.includes('Load failed') || 
@@ -196,6 +226,12 @@ export const videoService = {
       console.error('❌ Videos service error:', error);
       console.error('   Error type:', error?.constructor?.name);
       console.error('   Error message:', error?.message);
+      
+      // Timeout hatası (57014)
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+        return [];
+      }
       
       // Network hataları için boş array döndür
       if (error?.message?.includes('Load failed') || 

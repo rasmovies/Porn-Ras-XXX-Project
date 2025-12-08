@@ -56,7 +56,45 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       return; // Admin ve Upload sayfalarında Adsterra çalışmasın
     }
     
-    // Adsterra script yükle
+    // Global error handler - SyntaxError'ı yakala (sadece bir kez ekle)
+    let errorHandlerAdded = false;
+    const setupGlobalErrorHandler = () => {
+      if (errorHandlerAdded) return;
+      errorHandlerAdded = true;
+      
+      const originalErrorHandler = (window as any).__originalOnError;
+      if (!originalErrorHandler) {
+        (window as any).__originalOnError = window.onerror;
+      }
+      
+      window.onerror = function(msg: any, url: any, lineNo: any, columnNo: any, error: any) {
+        // Adsterra script'inden gelen SyntaxError'ı yakala
+        if (msg && typeof msg === 'string' && msg.includes('Unexpected token')) {
+          if (url && (url.includes('highcpmgate.com') || url.includes('adsterra'))) {
+            console.warn('⚠️ Adsterra script SyntaxError: HTML response döndü, script devre dışı bırakılıyor');
+            try {
+              const scriptEl = document.getElementById('adsterra-script');
+              if (scriptEl) {
+                scriptEl.remove();
+              }
+            } catch (e) {}
+            // Hata handle edildi, uygulama crash olmayacak
+            return true;
+          }
+        }
+        // Diğer hatalar için original handler'ı çağır
+        const original = (window as any).__originalOnError;
+        if (original) {
+          return original(msg, url, lineNo, columnNo, error);
+        }
+        return false;
+      };
+    };
+    
+    // Global error handler'ı ekle
+    setupGlobalErrorHandler();
+    
+    // Adsterra script yükleme - Adsterra dokümantasyonuna göre doğru implementasyon
     const loadAdsterra = () => {
       try {
         // Script zaten yüklenmiş mi kontrol et
@@ -64,18 +102,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           return;
         }
         
+        // Adsterra'nın önerdiği şekilde script oluştur
         const adsterraScript = document.createElement('script');
         adsterraScript.id = 'adsterra-script';
         adsterraScript.type = 'text/javascript';
         adsterraScript.async = true;
         adsterraScript.setAttribute('data-cfasync', 'false');
-        // Adsterra popunder script URL'i - site ID'nizi buraya ekleyin
+        
+        // Adsterra popunder script URL'i - Site ID'nizi buraya ekleyin
+        // Doğru format: //pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js
+        // Şimdilik placeholder kullanıyoruz - gerçek Site ID ile değiştirin
         adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
         
-        // Error handling - SyntaxError'ı yakala
+        // Error handling - Script yüklenemezse kaldır
         adsterraScript.onerror = (e) => {
           console.warn('⚠️ Adsterra script yüklenemedi (onerror):', e);
-          // Script element'ini kaldır (HTML response döndürmüş olabilir)
           try {
             const scriptEl = document.getElementById('adsterra-script');
             if (scriptEl) {
@@ -86,7 +127,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           }
         };
         
-        // Load event - script başarıyla yüklendiğinde
+        // Load event - Script başarıyla yüklendiğinde
         adsterraScript.onload = () => {
           try {
             // Script'in gerçekten yüklendiğini kontrol et
@@ -98,30 +139,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           } catch (e) {
             console.warn('⚠️ Adsterra script kontrolü sırasında hata:', e);
           }
-        };
-        
-        // Global error handler - SyntaxError'ı yakala
-        const originalErrorHandler = window.onerror;
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-          // Adsterra script'inden gelen SyntaxError'ı yakala
-          if (msg && typeof msg === 'string' && msg.includes('Unexpected token')) {
-            if (url && url.includes('highcpmgate.com')) {
-              console.warn('⚠️ Adsterra script SyntaxError: HTML response döndü, script devre dışı bırakılıyor');
-              try {
-                const scriptEl = document.getElementById('adsterra-script');
-                if (scriptEl) {
-                  scriptEl.remove();
-                }
-              } catch (e) {}
-              // Original error handler'ı çağırma (hata zaten handle edildi)
-              return true;
-            }
-          }
-          // Diğer hatalar için original handler'ı çağır
-          if (originalErrorHandler) {
-            return originalErrorHandler(msg, url, lineNo, columnNo, error);
-          }
-          return false;
         };
         
         document.head.appendChild(adsterraScript);
@@ -140,7 +157,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         firstClick = false;
         // Adsterra popunder'ı tetikle
         try {
-          // Adsterra genellikle otomatik çalışır, ama manuel tetikleme için:
           if ((window as any).adsterra && typeof (window as any).adsterra.invoke === 'function') {
             (window as any).adsterra.invoke();
           } else {
@@ -158,7 +174,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         } catch (e) {
           console.log('Adsterra popunder tetiklenemedi:', e);
         }
-        // Event listener'ı kaldır (sadece ilk tıklamada çalışsın)
         document.removeEventListener('click', handleFirstClick);
       }
     };
