@@ -32,6 +32,7 @@ const FTP_CONFIG = {
 };
 
 // FTP bağlantısı ve yükleme fonksiyonu
+// Export edilmeli (API endpoint'lerinde kullanılacak)
 async function uploadFile(filePath) {
   const client = new Client();
   const fileName = path.basename(filePath);

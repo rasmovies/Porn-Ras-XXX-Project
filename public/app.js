@@ -235,45 +235,127 @@ socket.on('disconnect', () => {
     document.getElementById('statusText').textContent = 'Bağlantı Yok';
 });
 
-// Onay bekleyen yüklemeler
+// Onay bekleyen yüklemeler - HTTP API ile polling
 const pendingApprovals = new Map(); // { fileName: { fileSize, timestamp } }
+let pendingCheckInterval = null;
 
-socket.on('upload-pending-approval', (data) => {
-    console.log('🔔 Onay isteği alındı:', data);
-    const { fileName, fileSize, timestamp } = data;
-    
-    // Dosya bilgilerini kaydet
-    pendingApprovals.set(fileName, { fileSize, timestamp });
-    
-    // Onay modal'ı göster - daha görünür bir dialog
-    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
-    const message = `📤 YÜKLEME ONAYI\n\nDosya: ${fileName}\nBoyut: ${fileSizeMB} MB\n\nBu dosyayı FTP'ye yüklemek istiyor musunuz?`;
-    
-    // Sayfayı focus et (kullanıcı başka tab'de olabilir)
-    window.focus();
-    
-    // Notification göster
-    showNotification('warning', 'Yükleme Onayı Bekleniyor', `${fileName} için onay bekleniyor...`);
-    
-    // Dialog göster
-    setTimeout(() => {
-        if (confirm(message)) {
-        // Onay verildi
-        console.log('✅ Yükleme onaylandı:', fileName);
-        socket.emit('approve-upload', { fileName });
-        uploadStatuses[fileName] = 'uploading';
-        uploadProgress[fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0, transferred: 0, total: 0 };
-        showNotification('success', 'Yükleme Onaylandı', `${fileName} yükleniyor...`);
-        loadFiles();
-        updateProgressPanel();
+// Bekleyen yüklemeleri kontrol et (polling)
+async function checkPendingUploads() {
+    try {
+        const response = await fetch('/api/upload/pending');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        if (!data.success || !data.pending) return;
+        
+        // Yeni bekleyen yüklemeleri kontrol et
+        data.pending.forEach(pending => {
+            const { fileName, fileSize, timestamp } = pending;
+            
+            // Zaten işlenmiş mi kontrol et
+            if (pendingApprovals.has(fileName)) return;
+            
+            // Dosya bilgilerini kaydet
+            pendingApprovals.set(fileName, { fileSize, timestamp });
+            
+            // Onay modal'ı göster
+            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+            const message = `📤 YÜKLEME ONAYI\n\nDosya: ${fileName}\nBoyut: ${fileSizeMB} MB\n\nBu dosyayı FTP'ye yüklemek istiyor musunuz?`;
+            
+            // Sayfayı focus et (kullanıcı başka tab'de olabilir)
+            window.focus();
+            
+            // Notification göster
+            showNotification('warning', 'Yükleme Onayı Bekleniyor', `${fileName} için onay bekleniyor...`);
+            
+            // Dialog göster
+            setTimeout(() => {
+                if (confirm(message)) {
+                    // Onay verildi
+                    console.log('✅ Yükleme onaylandı:', fileName);
+                    approveUpload(fileName);
+                } else {
+                    // Reddedildi
+                    console.log('❌ Yükleme reddedildi:', fileName);
+                    rejectUpload(fileName);
+                }
+            }, 500);
+        });
+    } catch (error) {
+        console.error('Pending uploads check error:', error);
+    }
+}
+
+// Yükleme onayla
+async function approveUpload(fileName) {
+    try {
+        const response = await fetch('/api/upload/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            uploadStatuses[fileName] = 'uploading';
+            uploadProgress[fileName] = { percentage: 0, speed: 0, estimatedSeconds: 0, transferred: 0, total: 0 };
+            showNotification('success', 'Yükleme Onaylandı', `${fileName} yükleniyor...`);
+            loadFiles();
+            updateProgressPanel();
         } else {
-            // Reddedildi
-            console.log('❌ Yükleme reddedildi:', fileName);
-            socket.emit('reject-upload', { fileName });
+            showNotification('error', 'Hata', data.error || 'Onay işlemi başarısız');
+        }
+    } catch (error) {
+        console.error('Approve upload error:', error);
+        showNotification('error', 'Hata', 'Onay işlemi sırasında hata oluştu');
+    }
+}
+
+// Yükleme reddet
+async function rejectUpload(fileName) {
+    try {
+        const response = await fetch('/api/upload/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
             showNotification('warning', 'Yükleme İptal', `${fileName} yüklemesi iptal edildi`);
             pendingApprovals.delete(fileName);
         }
-    }, 500); // Kısa bir gecikme ile göster (notification'ın görünmesi için)
+    } catch (error) {
+        console.error('Reject upload error:', error);
+    }
+}
+
+// Socket.io event (local development için - fallback)
+socket.on('upload-pending-approval', (data) => {
+    console.log('🔔 Socket.io onay isteği alındı:', data);
+    const { fileName, fileSize, timestamp } = data;
+    
+    if (pendingApprovals.has(fileName)) return; // Zaten işlenmiş
+    
+    pendingApprovals.set(fileName, { fileSize, timestamp });
+    
+    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+    const message = `📤 YÜKLEME ONAYI\n\nDosya: ${fileName}\nBoyut: ${fileSizeMB} MB\n\nBu dosyayı FTP'ye yüklemek istiyor musunuz?`;
+    
+    window.focus();
+    showNotification('warning', 'Yükleme Onayı Bekleniyor', `${fileName} için onay bekleniyor...`);
+    
+    setTimeout(() => {
+        if (confirm(message)) {
+            socket.emit('approve-upload', { fileName });
+            approveUpload(fileName);
+        } else {
+            socket.emit('reject-upload', { fileName });
+            rejectUpload(fileName);
+        }
+    }, 500);
 });
 
 socket.on('upload-cancelled', (data) => {
@@ -450,4 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
 loadStatus();
 loadFiles();
 updateProgressPanel();
+
+// Bekleyen yüklemeleri kontrol et (her 2 saniyede bir)
+pendingCheckInterval = setInterval(checkPendingUploads, 2000);
+checkPendingUploads(); // İlk kontrol
 
