@@ -168,17 +168,44 @@ export const videoService = {
         console.error('❌ Videos fetch error:', error);
         console.error('   Error code:', error.code);
         console.error('   Error message:', error.message);
+        console.error('   Error details:', error.details);
+        console.error('   Error hint:', error.hint);
+        
+        // CORS veya network hatası
+        if (error.message?.includes('Load failed') || 
+            error.message?.includes('TypeError') ||
+            error.message?.includes('Failed to fetch') ||
+            error.message?.includes('NetworkError')) {
+          console.warn('⚠️ Network/CORS hatası, boş array döndürülüyor');
+          return [];
+        }
+        
         // If table doesn't exist, return empty array
         if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
           console.warn('⚠️ Videos table does not exist, returning empty array');
           return [];
         }
-        throw error;
+        
+        // Diğer hatalar için de boş array döndür (crash önleme)
+        console.warn('⚠️ Videos fetch hatası, boş array döndürülüyor');
+        return [];
       }
       console.log('✅ Videos loaded:', data?.length || 0);
       return data || [];
     } catch (error: any) {
       console.error('❌ Videos service error:', error);
+      console.error('   Error type:', error?.constructor?.name);
+      console.error('   Error message:', error?.message);
+      
+      // Network hataları için boş array döndür
+      if (error?.message?.includes('Load failed') || 
+          error?.message?.includes('TypeError') ||
+          error?.message?.includes('Failed to fetch') ||
+          error?.message?.includes('NetworkError')) {
+        console.warn('⚠️ Network hatası, boş array döndürülüyor');
+        return [];
+      }
+      
       return [];
     }
   },
