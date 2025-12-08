@@ -491,7 +491,15 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
             
             // Upload error
             xhr.addEventListener('error', () => {
-                throw new Error('Yükleme hatası');
+                const errorMsg = xhr.status === 413 
+                    ? 'Dosya çok büyük. Maksimum dosya boyutu: 100MB' 
+                    : 'Yükleme hatası';
+                throw new Error(errorMsg);
+            });
+            
+            // Network error
+            xhr.addEventListener('abort', () => {
+                throw new Error('Yükleme iptal edildi');
             });
             
             // Send request

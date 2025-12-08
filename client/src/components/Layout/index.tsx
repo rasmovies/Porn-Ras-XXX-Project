@@ -71,9 +71,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         adsterraScript.setAttribute('data-cfasync', 'false');
         // Adsterra popunder script URL'i - site ID'nizi buraya ekleyin
         adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
-        document.head.appendChild(adsterraScript);
         
-        console.log('✅ Adsterra script yüklendi');
+        // Error handling
+        adsterraScript.onerror = (e) => {
+          console.warn('⚠️ Adsterra script yüklenemedi (onerror):', e);
+        };
+        
+        adsterraScript.onload = () => {
+          console.log('✅ Adsterra script yüklendi');
+        };
+        
+        document.head.appendChild(adsterraScript);
       } catch (e) {
         console.warn('⚠️ Adsterra script eklenirken hata:', e);
       }
@@ -90,8 +98,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         // Adsterra popunder'ı tetikle
         try {
           // Adsterra genellikle otomatik çalışır, ama manuel tetikleme için:
-          if ((window as any).adsterra) {
+          if ((window as any).adsterra && typeof (window as any).adsterra.invoke === 'function') {
             (window as any).adsterra.invoke();
+          } else {
+            // Adsterra henüz yüklenmemiş, biraz bekle
+            setTimeout(() => {
+              try {
+                if ((window as any).adsterra && typeof (window as any).adsterra.invoke === 'function') {
+                  (window as any).adsterra.invoke();
+                }
+              } catch (err) {
+                console.log('Adsterra popunder tetiklenemedi (delayed):', err);
+              }
+            }, 500);
           }
         } catch (e) {
           console.log('Adsterra popunder tetiklenemedi:', e);

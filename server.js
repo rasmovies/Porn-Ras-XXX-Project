@@ -11,7 +11,8 @@ const PORT = 3131;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '100mb' })); // Büyük dosyalar için limit artırıldı
+app.use(express.urlencoded({ extended: true, limit: '100mb' })); // URL encoded için de limit
 // NOT: express.static en sonda olmalı, route'lardan sonra taşındı
 
 // Klasör yolları
@@ -594,7 +595,13 @@ app.post('/api/ftp/write', async (req, res) => {
 let multer, upload;
 try {
   multer = require('multer');
-  upload = multer({ dest: path.join(__dirname, 'temp') });
+  // Büyük dosyalar için limit: 100MB
+  upload = multer({ 
+    dest: path.join(__dirname, 'temp'),
+    limits: {
+      fileSize: 100 * 1024 * 1024 // 100MB
+    }
+  });
 } catch (e) {
   console.warn('⚠️ Multer yüklenemedi, dosya yükleme özelliği çalışmayabilir');
 }
@@ -603,13 +610,28 @@ app.post('/api/ftp/upload', (req, res, next) => {
   if (!upload) {
     return res.status(500).json({ success: false, error: 'Multer yüklenemedi' });
   }
-  upload.single('file')(req, res, next);
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ 
+          success: false, 
+          error: 'Dosya çok büyük. Maksimum dosya boyutu: 100MB' 
+        });
+      }
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    next();
+  });
 }, async (req, res) => {
   const client = new Client();
   const remotePath = req.body.path || `/${req.file.originalname}`;
   const filePath = req.file.path;
   
   try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Dosya bulunamadı' });
+    }
+    
     await client.access(FTP_CONFIG);
     await client.uploadFrom(filePath, remotePath);
     
@@ -623,7 +645,8 @@ app.post('/api/ftp/upload', (req, res, next) => {
       client.close();
     } catch (e) {}
     await fs.remove(filePath).catch(() => {});
-    res.status(500).json({ success: false, error: error.message });
+    console.error('FTP upload error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Yükleme hatası' });
   }
 });
 
