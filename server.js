@@ -590,6 +590,33 @@ app.post('/api/ftp/write', async (req, res) => {
   }
 });
 
+// FTP dosya yükleme endpoint'i (multipart/form-data)
+const multer = require('multer');
+const upload = multer({ dest: path.join(__dirname, 'temp') });
+
+app.post('/api/ftp/upload', upload.single('file'), async (req, res) => {
+  const client = new Client();
+  const remotePath = req.body.path || `/${req.file.originalname}`;
+  const filePath = req.file.path;
+  
+  try {
+    await client.access(FTP_CONFIG);
+    await client.uploadFrom(filePath, remotePath);
+    
+    // Geçici dosyayı sil
+    await fs.remove(filePath);
+    client.close();
+    
+    res.json({ success: true, message: 'Dosya yüklendi' });
+  } catch (error) {
+    try {
+      client.close();
+    } catch (e) {}
+    await fs.remove(filePath).catch(() => {});
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Static dosya servisi - EN SONDA olmalı (route'lardan sonra)
 app.use(express.static('public'));
 
