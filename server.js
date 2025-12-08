@@ -665,6 +665,9 @@ if (require.main === module) {
   });
 }
 
+// uploadFile fonksiyonunu export et (API endpoint'lerinde kullanılacak)
+module.exports.uploadFile = uploadFile;
+
 // Vercel için export
 module.exports = app;
 
