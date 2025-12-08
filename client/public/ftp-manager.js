@@ -1010,7 +1010,16 @@ document.getElementById('uploadSelectedFilesBtn').addEventListener('click', asyn
         // Yükleme promise'i oluştur
         const uploadPromise = new Promise((resolve, reject) => {
             try {
-                // FormData ile dosyayı yükle
+                // Büyük dosyalar için chunked upload kullan (4MB'dan büyükse)
+                const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks (Vercel limiti 4.5MB)
+                
+                if (file.size > CHUNK_SIZE) {
+                    // Chunked upload
+                    uploadFileInChunks(file, filePath, fileName, resolve, reject);
+                    return;
+                }
+                
+                // Küçük dosyalar için normal upload
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('path', filePath);
@@ -1105,7 +1114,7 @@ document.getElementById('uploadSelectedFilesBtn').addEventListener('click', asyn
                 // Upload error
                 xhr.addEventListener('error', () => {
                     const errorMsg = xhr.status === 413 
-                        ? 'Dosya çok büyük. Vercel limiti: 4.5MB. Büyük dosyalar için lütfen direkt FTP kullanın.' 
+                        ? 'Dosya çok büyük. Chunked upload kullanılıyor...' 
                         : 'Yükleme hatası';
                     const uploadData = activeUploads.get(fileName);
                     if (uploadData) {
