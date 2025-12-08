@@ -109,10 +109,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         adsterraScript.async = true;
         adsterraScript.setAttribute('data-cfasync', 'false');
         
-        // Adsterra popunder script URL'i - Site ID'nizi buraya ekleyin
+        // Adsterra popunder script URL'i - Site ID: 28112019
         // Doğru format: //pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js
-        // Şimdilik placeholder kullanıyoruz - gerçek Site ID ile değiştirin
-        adsterraScript.src = '//pl23000000.highcpmgate.com/0/0/0/0/invoke.js';
+        adsterraScript.src = '//pl23000000.highcpmgate.com/28112019/invoke.js';
         
         // Error handling - Script yüklenemezse kaldır
         adsterraScript.onerror = (e) => {

@@ -38,9 +38,6 @@
       gtag('config', 'G-MWZ9JK7XP4');
     </script>
     <!-- Adsterra Popunder Ads -->
-    <!-- NOT: Adsterra script'i şimdilik devre dışı - SyntaxError hatası nedeniyle -->
-    <!-- Doğru Site ID ile aktif edilebilir: https://help-publishers.adsterra.com/en/collections/2274770-ad-units-and-code-snippets -->
-    <!--
     <script type="text/javascript">
       (function() {
         try {
@@ -70,16 +67,14 @@
             };
           }
           
-          // Adsterra popunder script - Adsterra dokümantasyonuna göre
-          // Site ID'nizi Adsterra dashboard'dan alın ve aşağıdaki URL'e ekleyin
+          // Adsterra popunder script - Site ID: 28112019
           var adsterraScript = document.createElement('script');
           adsterraScript.id = 'adsterra-script';
           adsterraScript.type = 'text/javascript';
           adsterraScript.async = true;
           adsterraScript.setAttribute('data-cfasync', 'false');
           // Doğru format: //pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js
-          // YOUR_SITE_ID'yi Adsterra dashboard'dan alın
-          adsterraScript.src = '//pl23000000.highcpmgate.com/YOUR_SITE_ID/invoke.js';
+          adsterraScript.src = '//pl23000000.highcpmgate.com/28112019/invoke.js';
           
           // Error handling
           adsterraScript.onerror = function(e) {
@@ -112,7 +107,6 @@
         }
       })();
     </script>
-    -->
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
