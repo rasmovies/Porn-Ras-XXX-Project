@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Get Supabase credentials from environment variables
-// Fallback to hardcoded values for development (DO NOT commit these in production)
+// Fallback to hardcoded values (ALWAYS use hardcoded in production until Vercel env vars are set)
+// Production'da Vercel environment variable'ları yüklenmemişse hardcoded key kullanılacak
 const supabaseUrl = 
   process.env.REACT_APP_SUPABASE_URL || 
   'https://xgyjhofakpatrqgvleze.supabase.co';
 
+// IMPORTANT: Always use hardcoded key if env var is missing or empty
+const envKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabaseAnonKey = 
-  process.env.REACT_APP_SUPABASE_ANON_KEY || 
+  (envKey && envKey.trim() !== '') ? envKey : 
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhneWpob2Zha3BhdHJxZ3ZsZXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MjA2NDEsImV4cCI6MjA3Njk5NjY0MX0.RB2QQkjtXaM-GaH0HXP_B14BIDm0Y-MvlvDpOt7V1sQ';
 
 // Debug logging - ALWAYS log in both development and production
