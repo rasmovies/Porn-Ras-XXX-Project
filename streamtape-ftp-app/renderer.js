@@ -243,28 +243,55 @@ function updateRemoteBreadcrumb(path) {
 
 // Update queue
 function updateQueue() {
+    const queueCount = document.getElementById('queueCount');
+    if (queueCount) {
+        queueCount.textContent = `(${uploadQueue.length})`;
+    }
+    
     if (uploadQueue.length === 0) {
-        queueList.innerHTML = '<div class="empty-state">Yükleme kuyruğu boş</div>';
+        queueList.innerHTML = '<div class="empty-state">Yükleme kuyruğu boş<br><small style="color: var(--text-secondary);">Dosyaları sürükleyip bırakın veya sağ tıklayın</small></div>';
         return;
     }
     
     queueList.innerHTML = uploadQueue.map((item, index) => {
         const progress = item.progress || 0;
         const status = item.status || 'pending';
+        const statusText = status === 'uploading' ? `${Math.round(progress)}%` : 
+                          status === 'completed' ? '✅ Tamamlandı' :
+                          status.startsWith('error') ? '❌ Hata' : '⏳ Bekliyor';
         
         return `
-            <div class="queue-item">
+            <div class="queue-item" data-index="${index}">
                 <div class="queue-item-header">
                     <span class="queue-item-name">${item.fileName}</span>
-                    <span class="queue-item-status">${status === 'uploading' ? `${Math.round(progress)}%` : status}</span>
+                    <span class="queue-item-status">${statusText}</span>
                 </div>
                 <div class="queue-progress">
                     <div class="queue-progress-fill" style="width: ${progress}%"></div>
                 </div>
+                ${status === 'pending' || status === 'error' ? `
+                <div class="queue-item-actions">
+                    <button class="queue-item-btn" onclick="removeFromQueue(${index})">🗑️ Kaldır</button>
+                    ${status === 'pending' ? `<button class="queue-item-btn" onclick="uploadFromQueue(${index})">▶️ Yükle</button>` : ''}
+                </div>
+                ` : ''}
             </div>
         `;
     }).join('');
 }
+
+// Remove from queue
+window.removeFromQueue = function(index) {
+    uploadQueue.splice(index, 1);
+    updateQueue();
+};
+
+// Upload specific item from queue
+window.uploadFromQueue = function(index) {
+    if (index >= 0 && index < uploadQueue.length) {
+        processQueue();
+    }
+};
 
 // Connect to FTP
 connectBtn.addEventListener('click', async () => {
@@ -312,6 +339,33 @@ selectFolderBtn.addEventListener('click', async () => {
     }
 });
 
+// Add files to queue
+function addFilesToQueue(filePaths) {
+    for (const filePath of filePaths) {
+        const fs = require('fs');
+        const stats = fs.statSync(filePath);
+        
+        // Only add files, not directories
+        if (stats.isFile()) {
+            const fileName = require('path').basename(filePath);
+            const remotePath = currentRemotePath === '/' ? `/${fileName}` : `${currentRemotePath}/${fileName}`;
+            
+            // Check if already in queue
+            const exists = uploadQueue.some(item => item.localPath === filePath);
+            if (!exists) {
+                uploadQueue.push({
+                    fileName: fileName,
+                    localPath: filePath,
+                    remotePath: remotePath,
+                    progress: 0,
+                    status: 'pending'
+                });
+            }
+        }
+    }
+    updateQueue();
+}
+
 // Upload files
 uploadBtn.addEventListener('click', async () => {
     if (!isConnected) {
@@ -326,38 +380,162 @@ uploadBtn.addEventListener('click', async () => {
         // If no selection, ask user to select files
         const result = await ipcRenderer.invoke('select-files');
         if (result.success && result.files.length > 0) {
-            for (const filePath of result.files) {
-                const fileName = require('path').basename(filePath);
-                const remotePath = currentRemotePath === '/' ? `/${fileName}` : `${currentRemotePath}/${fileName}`;
-                
-                uploadQueue.push({
-                    fileName: fileName,
-                    localPath: filePath,
-                    remotePath: remotePath,
-                    progress: 0,
-                    status: 'pending'
-                });
-            }
-            updateQueue();
+            addFilesToQueue(result.files);
             processQueue();
         }
     } else {
         // Upload selected files
-        for (const item of selected) {
-            const filePath = item.dataset.path;
-            const fileName = require('path').basename(filePath);
-            const remotePath = currentRemotePath === '/' ? `/${fileName}` : `${currentRemotePath}/${fileName}`;
-            
-            uploadQueue.push({
-                fileName: fileName,
-                localPath: filePath,
-                remotePath: remotePath,
-                progress: 0,
-                status: 'pending'
+        const filePaths = selected
+            .map(item => item.dataset.path)
+            .filter(path => {
+                const fs = require('fs');
+                return fs.statSync(path).isFile();
             });
-        }
-        updateQueue();
+        
+        addFilesToQueue(filePaths);
         processQueue();
+    }
+});
+
+// Drag & Drop support for local files
+localFileList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    localFileList.style.backgroundColor = 'rgba(0, 122, 255, 0.1)';
+});
+
+localFileList.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    localFileList.style.backgroundColor = '';
+});
+
+localFileList.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    localFileList.style.backgroundColor = '';
+    
+    if (!isConnected) {
+        alert('Önce FTP\'ye bağlanın');
+        return;
+    }
+    
+    const files = Array.from(e.dataTransfer.files);
+    const filePaths = files.map(file => file.path);
+    
+    addFilesToQueue(filePaths);
+    processQueue();
+});
+
+// Drag & Drop support for remote panel (drop files here to upload)
+remoteFileList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    remoteFileList.style.backgroundColor = 'rgba(0, 122, 255, 0.1)';
+});
+
+remoteFileList.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    remoteFileList.style.backgroundColor = '';
+});
+
+remoteFileList.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    remoteFileList.style.backgroundColor = '';
+    
+    if (!isConnected) {
+        alert('Önce FTP\'ye bağlanın');
+        return;
+    }
+    
+    const files = Array.from(e.dataTransfer.files);
+    const filePaths = files.map(file => file.path);
+    
+    addFilesToQueue(filePaths);
+    processQueue();
+});
+
+// Double-click to add to queue (local files)
+localFileList.addEventListener('dblclick', (e) => {
+    const fileItem = e.target.closest('.file-item');
+    if (fileItem && fileItem.dataset.type === 'file') {
+        if (!isConnected) {
+            alert('Önce FTP\'ye bağlanın');
+            return;
+        }
+        
+        const filePath = fileItem.dataset.path;
+        addFilesToQueue([filePath]);
+        processQueue();
+    }
+});
+
+// Right-click context menu (local files)
+localFileList.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const fileItem = e.target.closest('.file-item');
+    if (fileItem && fileItem.dataset.type === 'file') {
+        // Select the file
+        localFileList.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+        fileItem.classList.add('selected');
+        
+        // Show context menu
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.style.position = 'fixed';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        menu.style.background = 'var(--bg-tertiary)';
+        menu.style.border = '1px solid var(--border)';
+        menu.style.borderRadius = '6px';
+        menu.style.padding = '5px 0';
+        menu.style.zIndex = '1000';
+        menu.style.minWidth = '150px';
+        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        
+        menu.innerHTML = `
+            <div class="context-menu-item" data-action="add-to-queue">📤 Kuyruğa Ekle</div>
+            <div class="context-menu-item" data-action="add-to-queue-and-upload">🚀 Kuyruğa Ekle ve Yükle</div>
+        `;
+        
+        document.body.appendChild(menu);
+        
+        // Handle menu clicks
+        menu.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                const filePath = fileItem.dataset.path;
+                
+                if (action === 'add-to-queue' || action === 'add-to-queue-and-upload') {
+                    if (!isConnected) {
+                        alert('Önce FTP\'ye bağlanın');
+                        document.body.removeChild(menu);
+                        return;
+                    }
+                    
+                    addFilesToQueue([filePath]);
+                    
+                    if (action === 'add-to-queue-and-upload') {
+                        processQueue();
+                    }
+                }
+                
+                document.body.removeChild(menu);
+            });
+        });
+        
+        // Remove menu on outside click
+        setTimeout(() => {
+            const removeMenu = (e) => {
+                if (!menu.contains(e.target)) {
+                    document.body.removeChild(menu);
+                    document.removeEventListener('click', removeMenu);
+                }
+            };
+            document.addEventListener('click', removeMenu);
+        }, 100);
     }
 });
 
@@ -365,12 +543,24 @@ uploadBtn.addEventListener('click', async () => {
 async function processQueue() {
     for (let i = 0; i < uploadQueue.length; i++) {
         const item = uploadQueue[i];
-        if (item.status === 'pending') {
+        if (item.status === 'pending' || item.status === 'uploading') {
             item.status = 'uploading';
+            item.progress = 0;
             updateQueue();
             
             try {
+                // Simulate progress (basic-ftp doesn't provide real-time progress)
+                const progressInterval = setInterval(() => {
+                    if (item.progress < 90) {
+                        item.progress += 10;
+                        updateQueue();
+                    }
+                }, 500);
+                
                 const result = await ipcRenderer.invoke('ftp-upload', item.localPath, item.remotePath);
+                
+                clearInterval(progressInterval);
+                
                 if (result.success) {
                     item.status = 'completed';
                     item.progress = 100;
@@ -386,8 +576,11 @@ async function processQueue() {
             // Remove completed items after 3 seconds
             if (item.status === 'completed') {
                 setTimeout(() => {
-                    uploadQueue.splice(i, 1);
-                    updateQueue();
+                    const index = uploadQueue.indexOf(item);
+                    if (index > -1) {
+                        uploadQueue.splice(index, 1);
+                        updateQueue();
+                    }
                 }, 3000);
             }
         }
@@ -416,8 +609,20 @@ newFolderBtn.addEventListener('click', async () => {
 
 // Clear queue
 clearQueueBtn.addEventListener('click', () => {
-    uploadQueue = [];
-    updateQueue();
+    if (confirm('Kuyruğu temizlemek istediğinize emin misiniz?')) {
+        uploadQueue = uploadQueue.filter(item => item.status === 'uploading');
+        updateQueue();
+    }
+});
+
+// Start queue
+const startQueueBtn = document.getElementById('startQueueBtn');
+startQueueBtn.addEventListener('click', () => {
+    if (!isConnected) {
+        alert('Önce FTP\'ye bağlanın');
+        return;
+    }
+    processQueue();
 });
 
 // Initialize

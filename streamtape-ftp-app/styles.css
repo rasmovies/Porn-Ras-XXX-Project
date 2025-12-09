@@ -337,6 +337,61 @@ body {
     font-size: 13px;
 }
 
+/* Context Menu */
+.context-menu {
+    font-size: 13px;
+}
+
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-primary);
+}
+
+.context-menu-item:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* Drag & Drop Visual Feedback */
+.file-list.drag-over {
+    background: rgba(0, 122, 255, 0.1) !important;
+    border: 2px dashed var(--accent);
+}
+
+/* Queue Item Actions */
+.queue-item-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.queue-item-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.2s;
+}
+
+.queue-item-btn:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.queue-item-btn.remove {
+    background: var(--error);
+    color: white;
+}
+
+.queue-item-btn.remove:hover {
+    background: #cc2e24;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
