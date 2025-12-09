@@ -761,23 +761,6 @@ const Admin: React.FC = () => {
           <Typography variant="h4" component="h1" className="gradient-text">
             Admin Panel
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Folder />}
-            onClick={() => {
-              const ftpManagerUrl = window.location.origin + '/ftp-manager.html';
-              window.open(ftpManagerUrl, '_blank');
-            }}
-            sx={{
-              background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #FE6B8B 60%, #FF8E53 100%)',
-              },
-            }}
-          >
-            FTP Manager
-          </Button>
         </Box>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           Manage categories and models for your video platform

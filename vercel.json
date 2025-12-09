@@ -12,18 +12,6 @@
   },
   "rewrites": [
     {
-      "source": "/ftp-manager.html",
-      "destination": "/ftp-manager.html"
-    },
-    {
-      "source": "/ftp-manager.css",
-      "destination": "/ftp-manager.css"
-    },
-    {
-      "source": "/ftp-manager.js",
-      "destination": "/ftp-manager.js"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamtape FTP Client</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>📁 Streamtape FTP</h1>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Bağlantı yok</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" id="connectBtn">🔌 Bağlan</button>
+                <button class="btn btn-secondary" id="disconnectBtn" style="display: none;">❌ Bağlantıyı Kes</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Left Panel - Local Files -->
+            <div class="panel local-panel">
+                <div class="panel-header">
+                    <h2>📂 Yerel Dosyalar</h2>
+                    <div class="panel-actions">
+                        <button class="btn-icon" id="refreshLocalBtn" title="Yenile">🔄</button>
+                        <button class="btn-icon" id="selectFolderBtn" title="Klasör Seç">📁</button>
+                    </div>
+                </div>
+                <div class="panel-path">
+                    <span id="localPath">~</span>
+                </div>
+                <div class="file-list" id="localFileList">
+                    <div class="empty-state">Klasör seçin</div>
+                </div>
+            </div>
+
+            <!-- Center - Transfer Queue -->
+            <div class="panel queue-panel">
+                <div class="panel-header">
+                    <h2>📤 Yükleme Kuyruğu</h2>
+                    <button class="btn-icon" id="clearQueueBtn" title="Kuyruğu Temizle">🗑️</button>
+                </div>
+                <div class="queue-list" id="queueList">
+                    <div class="empty-state">Yükleme kuyruğu boş</div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Remote Files -->
+            <div class="panel remote-panel">
+                <div class="panel-header">
+                    <h2>🌐 Streamtape FTP</h2>
+                    <div class="panel-actions">
+                        <button class="btn-icon" id="refreshRemoteBtn" title="Yenile">🔄</button>
+                        <button class="btn-icon" id="newFolderBtn" title="Yeni Klasör">📁</button>
+                        <button class="btn-icon" id="uploadBtn" title="Yükle">⬆️</button>
+                    </div>
+                </div>
+                <div class="panel-path">
+                    <div class="breadcrumb" id="remoteBreadcrumb">
+                        <span class="breadcrumb-item active" data-path="/">/</span>
+                    </div>
+                </div>
+                <div class="file-list" id="remoteFileList">
+                    <div class="empty-state">Bağlanın</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="statusMessage">Hazır</span>
+            </div>
+            <div class="status-right">
+                <span id="transferSpeed">-</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
+
