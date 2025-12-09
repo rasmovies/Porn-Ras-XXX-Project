@@ -539,6 +539,16 @@ localFileList.addEventListener('contextmenu', (e) => {
     }
 });
 
+// Listen for upload progress updates
+ipcRenderer.on('upload-progress', (event, data) => {
+    const { remotePath, progress } = data;
+    const item = uploadQueue.find(q => q.remotePath === remotePath);
+    if (item) {
+        item.progress = progress;
+        updateQueue();
+    }
+});
+
 // Process upload queue
 async function processQueue() {
     for (let i = 0; i < uploadQueue.length; i++) {
@@ -549,17 +559,7 @@ async function processQueue() {
             updateQueue();
             
             try {
-                // Simulate progress (basic-ftp doesn't provide real-time progress)
-                const progressInterval = setInterval(() => {
-                    if (item.progress < 90) {
-                        item.progress += 10;
-                        updateQueue();
-                    }
-                }, 500);
-                
                 const result = await ipcRenderer.invoke('ftp-upload', item.localPath, item.remotePath);
-                
-                clearInterval(progressInterval);
                 
                 if (result.success) {
                     item.status = 'completed';

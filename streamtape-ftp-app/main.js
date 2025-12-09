@@ -27,7 +27,8 @@ function createWindow() {
     },
     titleBarStyle: 'hiddenInset',
     frame: true,
-    show: false
+    show: false,
+    ...(iconPath && { icon: iconPath })
   });
 
   mainWindow.loadFile('index.html');
@@ -120,9 +121,45 @@ ipcMain.handle('ftp-list', async (event, remotePath = '/') => {
 
 ipcMain.handle('ftp-upload', async (event, localPath, remotePath) => {
   const client = new Client();
+  let uploadProgress = 0;
+  
   try {
     await client.access(FTP_CONFIG);
+    
+    // Get file size
+    const fs = require('fs');
+    const stats = fs.statSync(localPath);
+    const fileSize = stats.size;
+    
+    // Track upload progress by periodically checking remote file size
+    const progressInterval = setInterval(async () => {
+      try {
+        const remoteStats = await client.size(remotePath);
+        if (remoteStats) {
+          uploadProgress = Math.min((remoteStats / fileSize) * 100, 99);
+          // Send progress update to renderer
+          event.sender.send('upload-progress', {
+            remotePath: remotePath,
+            progress: uploadProgress
+          });
+        }
+      } catch (e) {
+        // File might not exist yet or other error, ignore
+      }
+    }, 500); // Check every 500ms
+    
+    // Upload file
     await client.uploadFrom(localPath, remotePath);
+    
+    clearInterval(progressInterval);
+    uploadProgress = 100;
+    
+    // Final progress update
+    event.sender.send('upload-progress', {
+      remotePath: remotePath,
+      progress: 100
+    });
+    
     return { success: true, message: 'Dosya yüklendi' };
   } catch (error) {
     console.error('FTP upload error:', error);

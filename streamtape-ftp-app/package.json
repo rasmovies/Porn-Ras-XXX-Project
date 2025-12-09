@@ -1,7 +1,7 @@
 {
-  "name": "streamtape-ftp-app",
+  "name": "rasengine-ftp",
   "version": "1.0.0",
-  "description": "Streamtape FTP Client - FileZilla benzeri macOS uygulaması",
+  "description": "RasEngine F.T.P. - FileZilla benzeri macOS FTP uygulaması",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -25,8 +25,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.streamtape.ftp",
-    "productName": "Streamtape FTP",
+    "appId": "com.rasengine.ftp",
+    "productName": "RasEngine F.T.P.",
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
