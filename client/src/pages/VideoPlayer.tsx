@@ -1045,7 +1045,6 @@ const VideoPlayer: React.FC = () => {
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                   <Button
                                     size="small"
-                                    startIcon={<ThumbUp />}
                                     onClick={() => handleCommentLike(comment.id)}
                                     disabled={false}
                                     sx={{ 
@@ -1077,7 +1076,6 @@ const VideoPlayer: React.FC = () => {
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                   <Button
                                     size="small"
-                                    startIcon={<ThumbDown />}
                                     onClick={() => handleCommentDislike(comment.id)}
                                     disabled={false}
                                     sx={{ 
