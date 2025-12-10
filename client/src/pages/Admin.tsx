@@ -20,6 +20,7 @@ import { emailApi } from '../services/emailApi';
 import { metadataApi, ModelMetadata } from '../services/metadataApi';
 import { Category, Model, Channel, Profile, BanUser } from '../lib/supabase';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, CircularProgress } from '@mui/material';
+import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
 

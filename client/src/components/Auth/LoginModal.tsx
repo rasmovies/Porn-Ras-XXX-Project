@@ -51,6 +51,44 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
     }
     
     try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailOrUsername: formData.emailOrUsername,
+          password: formData.password,
+        }),
+      });
+      
+      // Response text olarak al ve JSON parse et
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError, 'Response:', responseText);
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Giriş başarısız');
+      }
+      
+      if (!data.user) {
+        throw new Error('Kullanıcı bilgileri alınamadı');
+      }
+      
+      const userData = {
+        username: data.user.username,
+        email: data.user.email,
+        name: data.user.name,
+        avatar: data.user.avatar,
+        id: data.user.id,
+      };
+      
+      login(userData);
+      toast.success('Hoş geldiniz!');
       onClose();
       
       if (onLoginSuccess) {
@@ -58,6 +96,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      setError(error.message || 'Geçersiz email/kullanıcı adı veya şifre');
+      toast.error('Giriş başarısız');
     }
   };
 
@@ -313,10 +353,39 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                   <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <TextField
                       fullWidth
+                      label="Email veya Kullanıcı Adı"
+                      name="emailOrUsername"
+                      type="text"
+                      value={formData.emailOrUsername}
                       onChange={handleFormChange}
                       required
-                      placeholder="Enter your email or nickname"
-                      helperText="You can login with your email address or nickname"
+                      placeholder="email@example.com veya kullaniciadi"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(0, 255, 255, 0.5)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#00ffff',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleFormChange}
+                      required
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           color: 'white',
@@ -360,6 +429,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                       onClick={() => {
                         setShowForm(false);
                         setError('');
+                        setFormData({ emailOrUsername: '', password: '' });
                       }}
                       sx={{
                         py: 1.5,

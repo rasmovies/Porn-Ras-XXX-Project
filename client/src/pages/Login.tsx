@@ -17,6 +17,10 @@ import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    emailOrUsername: '',
+    password: '',
+  });
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -365,7 +369,6 @@ const Login: React.FC = () => {
                     },
                     '& .MuiInputLabel-root': {
                       color: 'rgba(255, 255, 255, 0.7)',
-                    },
                     },
                   }}
                 />
