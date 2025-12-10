@@ -49,12 +49,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // window.open'ın gerçek orijinal halini sakla (component mount olduğunda bir kez)
   const originalWindowOpenRef = useRef<typeof window.open | null>(null);
+  const isBlockingAdsterraRef = useRef<boolean>(false);
   
   // Component mount olduğunda window.open'ın orijinal halini sakla
   useEffect(() => {
     if (!originalWindowOpenRef.current) {
       // window.open'ın gerçek orijinal halini sakla (eğer henüz override edilmediyse)
-      originalWindowOpenRef.current = window.open;
+      // Native window.open'ı saklamak için descriptor kullan
+      const descriptor = Object.getOwnPropertyDescriptor(window, 'open');
+      if (descriptor && descriptor.value) {
+        originalWindowOpenRef.current = descriptor.value.bind(window);
+      } else {
+        originalWindowOpenRef.current = window.open.bind(window);
+      }
     }
   }, []);
   
@@ -65,45 +72,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const isAdminPage = location.pathname === '/admin';
     const isUploadPage = location.pathname === '/upload';
     
-    // window.open'ın orijinal halini al (eğer saklanmışsa, yoksa mevcut halini al)
-    const originalOpen = originalWindowOpenRef.current || window.open;
-    
     if (isAdminPage || isUploadPage) {
       // Admin ve Upload sayfalarında Adsterra popunder'larını engelle
-      // NOT: Script'i kaldırmıyoruz, sadece popunder'ları engelliyoruz
-      // Çünkü script bir kez yüklendikten sonra React SPA'da tekrar yüklenmez
-      
-      // Adsterra'nın oluşturduğu popunder event'lerini engelle
-      // Sadece beforeunload ve unload event'lerini engelle (click'leri engelleme - butonlar çalışsın)
-      const preventPopunder = (e: Event) => {
-        // Sadece beforeunload ve unload event'lerini engelle
-        if (e.type === 'beforeunload' || e.type === 'unload') {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          return false;
-        }
-      };
-      
-      // Popunder'ı engellemek için sadece beforeunload ve unload event'lerini dinle
-      const events = ['beforeunload', 'unload'];
-      events.forEach(eventType => {
-        window.addEventListener(eventType, preventPopunder, true);
-        document.addEventListener(eventType, preventPopunder, true);
-      });
+      isBlockingAdsterraRef.current = true;
       
       // window.open'ı override et (popunder'lar genellikle bunu kullanır)
-      window.open = function(...args) {
-        // Admin/Upload sayfalarında popup'ları engelle
-        return null;
-      };
+      if (originalWindowOpenRef.current) {
+        window.open = function(...args) {
+          // Admin/Upload sayfalarında popup'ları engelle
+          return null;
+        };
+      }
       
       // Cleanup function
       return () => {
-        events.forEach(eventType => {
-          window.removeEventListener(eventType, preventPopunder, true);
-          document.removeEventListener(eventType, preventPopunder, true);
-        });
+        isBlockingAdsterraRef.current = false;
         // window.open'ı orijinal haline geri yükle
         if (originalWindowOpenRef.current) {
           window.open = originalWindowOpenRef.current;
@@ -111,9 +94,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       };
     } else {
       // Diğer sayfalarda window.open'ın orijinal haline döndüğünden emin ol
-      // (eğer önceki sayfa admin/upload ise, window.open override edilmiş olabilir)
+      isBlockingAdsterraRef.current = false;
       if (originalWindowOpenRef.current) {
         window.open = originalWindowOpenRef.current;
+      }
+      
+      // Adsterra script'inin çalışması için gerekli olan şeyleri kontrol et
+      // Script'in yüklendiğinden emin ol
+      const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]') as HTMLScriptElement;
+      if (!adsterraScript) {
+        // Script yüklenmemişse, yeniden yükle
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = '//skybaggycollecting.com/26/fc/1b/26fc1b5a649c7a1c9f4e9be462e02070.js';
+        script.async = true;
+        document.head.appendChild(script);
       }
     }
   }, [location.pathname]);
