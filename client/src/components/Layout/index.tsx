@@ -49,17 +49,72 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // Adsterra popunder - Admin ve Upload sayfaları hariç
   // Not: Adsterra script'i artık HTML dosyalarında direkt olarak yükleniyor
-  // Bu component'te sadece Admin/Upload sayfalarında script'i devre dışı bırakıyoruz
+  // Bu component'te Admin/Upload sayfalarında script'i devre dışı bırakıyoruz
   useEffect(() => {
     const isAdminPage = location.pathname === '/admin';
     const isUploadPage = location.pathname === '/upload';
     
     if (isAdminPage || isUploadPage) {
-      // Admin ve Upload sayfalarında Adsterra script'ini kaldır
-      const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]');
+      // Admin ve Upload sayfalarında Adsterra script'ini kaldır veya devre dışı bırak
+      const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]') as HTMLScriptElement;
       if (adsterraScript) {
+        // Script'in src'ini boşalt (yüklenmesini engelle)
+        adsterraScript.src = '';
         adsterraScript.remove();
       }
+      
+      // Adsterra'nın oluşturduğu tüm popunder event'lerini engelle
+      const preventPopunder = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return false;
+      };
+      
+      // Popunder'ı engellemek için event listener'ları ekle (capture phase'de)
+      const events = ['beforeunload', 'unload', 'click', 'mousedown', 'mouseup'];
+      events.forEach(eventType => {
+        window.addEventListener(eventType, preventPopunder, true);
+        document.addEventListener(eventType, preventPopunder, true);
+      });
+      
+      // window.open'ı override et (popunder'lar genellikle bunu kullanır)
+      const originalOpen = window.open;
+      window.open = function(...args) {
+        // Admin/Upload sayfalarında popup'ları engelle
+        return null;
+      };
+      
+      // Adsterra'nın oluşturduğu iframe'leri ve elementleri kaldır
+      const removeAdsterraElements = () => {
+        // Script'leri kaldır
+        const scripts = document.querySelectorAll('script[src*="skybaggycollecting.com"], script[src*="adsterra"]');
+        scripts.forEach(script => script.remove());
+        
+        // Iframe'leri kaldır
+        const iframes = document.querySelectorAll('iframe[src*="skybaggycollecting.com"], iframe[src*="adsterra"]');
+        iframes.forEach(iframe => iframe.remove());
+        
+        // Div'leri kaldır (Adsterra bazen div oluşturur)
+        const divs = document.querySelectorAll('div[id*="adsterra"], div[class*="adsterra"]');
+        divs.forEach(div => div.remove());
+      };
+      
+      // İlk temizlik
+      removeAdsterraElements();
+      
+      // Periyodik olarak temizle
+      const cleanupInterval = setInterval(removeAdsterraElements, 500);
+      
+      // Cleanup function
+      return () => {
+        events.forEach(eventType => {
+          window.removeEventListener(eventType, preventPopunder, true);
+          document.removeEventListener(eventType, preventPopunder, true);
+        });
+        window.open = originalOpen;
+        clearInterval(cleanupInterval);
+      };
     }
   }, [location.pathname]);
 
