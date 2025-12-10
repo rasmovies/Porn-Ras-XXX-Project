@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -47,6 +47,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, isAuthenticated, logout, openLoginModal } = useAuth();
   
+  // window.open'ın gerçek orijinal halini sakla (component mount olduğunda bir kez)
+  const originalWindowOpenRef = useRef<typeof window.open | null>(null);
+  
+  // Component mount olduğunda window.open'ın orijinal halini sakla
+  useEffect(() => {
+    if (!originalWindowOpenRef.current) {
+      // window.open'ın gerçek orijinal halini sakla (eğer henüz override edilmediyse)
+      originalWindowOpenRef.current = window.open;
+    }
+  }, []);
+  
   // Adsterra popunder - Admin ve Upload sayfaları hariç
   // Not: Adsterra script'i artık HTML dosyalarında direkt olarak yükleniyor
   // Bu component'te Admin/Upload sayfalarında script'i devre dışı bırakıyoruz
@@ -54,17 +65,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const isAdminPage = location.pathname === '/admin';
     const isUploadPage = location.pathname === '/upload';
     
-    // window.open'ın orijinal halini sakla (sadece ilk kez)
-    const originalOpen = window.open.bind(window);
+    // window.open'ın orijinal halini al (eğer saklanmışsa, yoksa mevcut halini al)
+    const originalOpen = originalWindowOpenRef.current || window.open;
     
     if (isAdminPage || isUploadPage) {
-      // Admin ve Upload sayfalarında Adsterra script'ini kaldır veya devre dışı bırak
-      const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]') as HTMLScriptElement;
-      if (adsterraScript) {
-        // Script'in src'ini boşalt (yüklenmesini engelle)
-        adsterraScript.src = '';
-        adsterraScript.remove();
-      }
+      // Admin ve Upload sayfalarında Adsterra popunder'larını engelle
+      // NOT: Script'i kaldırmıyoruz, sadece popunder'ları engelliyoruz
+      // Çünkü script bir kez yüklendikten sonra React SPA'da tekrar yüklenmez
       
       // Adsterra'nın oluşturduğu popunder event'lerini engelle
       // Sadece beforeunload ve unload event'lerini engelle (click'leri engelleme - butonlar çalışsın)
@@ -91,27 +98,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         return null;
       };
       
-      // Adsterra'nın oluşturduğu iframe'leri ve elementleri kaldır
-      const removeAdsterraElements = () => {
-        // Script'leri kaldır
-        const scripts = document.querySelectorAll('script[src*="skybaggycollecting.com"], script[src*="adsterra"]');
-        scripts.forEach(script => script.remove());
-        
-        // Iframe'leri kaldır
-        const iframes = document.querySelectorAll('iframe[src*="skybaggycollecting.com"], iframe[src*="adsterra"]');
-        iframes.forEach(iframe => iframe.remove());
-        
-        // Div'leri kaldır (Adsterra bazen div oluşturur)
-        const divs = document.querySelectorAll('div[id*="adsterra"], div[class*="adsterra"]');
-        divs.forEach(div => div.remove());
-      };
-      
-      // İlk temizlik
-      removeAdsterraElements();
-      
-      // Periyodik olarak temizle
-      const cleanupInterval = setInterval(removeAdsterraElements, 500);
-      
       // Cleanup function
       return () => {
         events.forEach(eventType => {
@@ -119,13 +105,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           document.removeEventListener(eventType, preventPopunder, true);
         });
         // window.open'ı orijinal haline geri yükle
-        window.open = originalOpen;
-        clearInterval(cleanupInterval);
+        if (originalWindowOpenRef.current) {
+          window.open = originalWindowOpenRef.current;
+        }
       };
     } else {
       // Diğer sayfalarda window.open'ın orijinal haline döndüğünden emin ol
       // (eğer önceki sayfa admin/upload ise, window.open override edilmiş olabilir)
-      window.open = originalOpen;
+      if (originalWindowOpenRef.current) {
+        window.open = originalWindowOpenRef.current;
+      }
     }
   }, [location.pathname]);
 
