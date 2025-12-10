@@ -49,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // window.open'ın gerçek orijinal halini sakla (component mount olduğunda bir kez)
   const originalWindowOpenRef = useRef<typeof window.open | null>(null);
-  const isBlockingAdsterraRef = useRef<boolean>(false);
+  const popunderOpenedRef = useRef<boolean>(false);
   
   // Component mount olduğunda window.open'ın orijinal halini sakla
   useEffect(() => {
@@ -65,28 +65,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, []);
   
-  // Adsterra popunder - Admin ve Upload sayfaları hariç
-  // Not: Adsterra script'i artık HTML dosyalarında direkt olarak yükleniyor
-  // Bu component'te Admin/Upload sayfalarında script'i devre dışı bırakıyoruz
+  // Adsterra popunder kontrolü
+  // Admin ve Upload sayfalarında popunder sadece 1 kere açılsın
+  // Diğer sayfalarda normal çalışsın
   useEffect(() => {
     const isAdminPage = location.pathname === '/admin';
     const isUploadPage = location.pathname === '/upload';
     
     if (isAdminPage || isUploadPage) {
-      // Admin ve Upload sayfalarında Adsterra popunder'larını engelle
-      isBlockingAdsterraRef.current = true;
+      // Admin ve Upload sayfalarında popunder'ın bir kere açılmasına izin ver
+      popunderOpenedRef.current = false;
       
-      // window.open'ı override et (popunder'lar genellikle bunu kullanır)
+      // window.open'ı override et - ilk çağrıda izin ver, sonra engelle
       if (originalWindowOpenRef.current) {
+        const originalOpen = originalWindowOpenRef.current;
         window.open = function(...args) {
-          // Admin/Upload sayfalarında popup'ları engelle
+          // İlk popunder açılışına izin ver
+          if (!popunderOpenedRef.current) {
+            popunderOpenedRef.current = true;
+            // Orijinal window.open'ı çağır
+            return originalOpen.apply(window, args);
+          }
+          // Sonraki popunder'ları engelle
           return null;
         };
       }
       
       // Cleanup function
       return () => {
-        isBlockingAdsterraRef.current = false;
+        popunderOpenedRef.current = false;
         // window.open'ı orijinal haline geri yükle
         if (originalWindowOpenRef.current) {
           window.open = originalWindowOpenRef.current;
@@ -94,13 +101,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       };
     } else {
       // Diğer sayfalarda window.open'ın orijinal haline döndüğünden emin ol
-      isBlockingAdsterraRef.current = false;
+      popunderOpenedRef.current = false;
       if (originalWindowOpenRef.current) {
         window.open = originalWindowOpenRef.current;
       }
       
-      // Adsterra script'inin çalışması için gerekli olan şeyleri kontrol et
-      // Script'in yüklendiğinden emin ol
+      // Adsterra script'inin yüklendiğinden emin ol
       const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]') as HTMLScriptElement;
       if (!adsterraScript) {
         // Script yüklenmemişse, yeniden yükle
