@@ -54,6 +54,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const isAdminPage = location.pathname === '/admin';
     const isUploadPage = location.pathname === '/upload';
     
+    // window.open'ın orijinal halini sakla (sadece ilk kez)
+    const originalOpen = window.open.bind(window);
+    
     if (isAdminPage || isUploadPage) {
       // Admin ve Upload sayfalarında Adsterra script'ini kaldır veya devre dışı bırak
       const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]') as HTMLScriptElement;
@@ -83,7 +86,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       });
       
       // window.open'ı override et (popunder'lar genellikle bunu kullanır)
-      const originalOpen = window.open;
       window.open = function(...args) {
         // Admin/Upload sayfalarında popup'ları engelle
         return null;
@@ -116,9 +118,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           window.removeEventListener(eventType, preventPopunder, true);
           document.removeEventListener(eventType, preventPopunder, true);
         });
+        // window.open'ı orijinal haline geri yükle
         window.open = originalOpen;
         clearInterval(cleanupInterval);
       };
+    } else {
+      // Diğer sayfalarda window.open'ın orijinal haline döndüğünden emin ol
+      // (eğer önceki sayfa admin/upload ise, window.open override edilmiş olabilir)
+      window.open = originalOpen;
     }
   }, [location.pathname]);
 
