@@ -227,15 +227,15 @@ const Upload: React.FC = () => {
 
     if (validFiles.length === 0) {
       event.target.value = '';
-      return;
-    }
+        return;
+      }
 
     // Clear previous errors
-    setValidationErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors.videoFile;
-      return newErrors;
-    });
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.videoFile;
+        return newErrors;
+      });
 
     // If single file, use old behavior for preview
     if (validFiles.length === 1) {
@@ -256,7 +256,7 @@ const Upload: React.FC = () => {
 
       setUploadQueue(prev => [...prev, ...newItems]);
       toast.success(`${validFiles.length} dosya yükleme kuyruğuna eklendi`);
-    }
+          }
 
     event.target.value = '';
   };
@@ -656,9 +656,9 @@ const Upload: React.FC = () => {
       }
     }
 
-    setIsPublishing(true);
+            setIsPublishing(true);
   
-    try {
+      try {
       // If file mode, upload file to Streamtape first
       let finalStreamtapeUrl = streamtapeUrl;
       
@@ -879,33 +879,33 @@ const Upload: React.FC = () => {
         }
       }
 
-      // Sanitize inputs
-      const sanitizedTitle = sanitizeInput(videoTitle);
-      const sanitizedDescription = sanitizeInput(videoDescription);
+        // Sanitize inputs
+        const sanitizedTitle = sanitizeInput(videoTitle);
+        const sanitizedDescription = sanitizeInput(videoDescription);
   
-      const videoSlug = sanitizedTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .trim();
+        const videoSlug = sanitizedTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .trim();
 
-      // Use URL if available, otherwise use file preview
-      const thumbnailToUse = embedMode === 'streamtape' 
-        ? (streamtapeThumbnailUrl.trim() || streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail')
-        : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail');
-      
-      // Create video data for Supabase
-      const videoData = {
-        title: sanitizedTitle,
-        description: sanitizedDescription,
-        thumbnail: thumbnailToUse,
+        // Use URL if available, otherwise use file preview
+        const thumbnailToUse = embedMode === 'streamtape' 
+          ? (streamtapeThumbnailUrl.trim() || streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail')
+          : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail');
+        
+        // Create video data for Supabase
+        const videoData = {
+          title: sanitizedTitle,
+          description: sanitizedDescription,
+          thumbnail: thumbnailToUse,
         streamtape_url: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : (finalStreamtapeUrl ? getStreamtapeEmbedUrl(finalStreamtapeUrl) : null),
-        duration: videoDuration || '0:00',
-        category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
-        model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
-        channel_id: selectedChannelIds.length > 0 ? selectedChannelIds[0] : null,
-        slug: videoSlug
-      };
+          duration: videoDuration || '0:00',
+          category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
+          model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
+          channel_id: selectedChannelIds.length > 0 ? selectedChannelIds[0] : null,
+          slug: videoSlug
+        };
 
       // Save to Supabase
       const savedVideo = await videoService.create(videoData);

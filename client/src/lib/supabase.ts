@@ -78,6 +78,7 @@ export interface Video {
   views: number;
   likes: number;
   dislikes: number;
+  favorites: number;
   created_at: string;
   slug: string;
 }

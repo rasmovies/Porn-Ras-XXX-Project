@@ -18,8 +18,6 @@ import {
 } from '@mui/material';
 import { Grid } from '@mui/material';
 import {
-  ThumbUp,
-  ThumbDown,
   Share,
   Favorite,
   FavoriteBorder,
@@ -39,9 +37,8 @@ const VideoPlayer: React.FC = () => {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [likeStatus, setLikeStatus] = useState<'liked' | 'disliked' | 'none'>('none');
-  const [likeCount, setLikeCount] = useState(0);
-  const [dislikeCount, setDislikeCount] = useState(0);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -62,8 +59,11 @@ const VideoPlayer: React.FC = () => {
         const supabaseVideo = await videoService.getBySlug(id);
         if (supabaseVideo) {
           setVideo(supabaseVideo);
-          setLikeCount(supabaseVideo.likes);
-          setDislikeCount(supabaseVideo.dislikes);
+          setFavoriteCount(supabaseVideo.favorites || 0);
+          
+          // Check if user has already favorited this video
+          const favoritedVideos = JSON.parse(localStorage.getItem('favoritedVideos') || '[]');
+          setIsFavorited(favoritedVideos.includes(supabaseVideo.id));
           
           // Load comments from Supabase
           const supabaseComments = await commentService.getByVideoId(supabaseVideo.id);
@@ -91,8 +91,11 @@ const VideoPlayer: React.FC = () => {
           
           if (foundVideo) {
             setVideo(foundVideo);
-            setLikeCount(foundVideo.likes || 0);
-            setDislikeCount(foundVideo.dislikes || 0);
+            setFavoriteCount(foundVideo.favorites || 0);
+            
+            // Check if user has already favorited this video
+            const favoritedVideos = JSON.parse(localStorage.getItem('favoritedVideos') || '[]');
+            setIsFavorited(favoritedVideos.includes(foundVideo.id));
             
             // Load comments from localStorage
             const savedComments = JSON.parse(localStorage.getItem(`comments_${foundVideo.id}`) || '[]');
@@ -128,12 +131,16 @@ const VideoPlayer: React.FC = () => {
               views: 1234567,
               likes: 45678,
               dislikes: 1234,
+              favorites: 0,
               created_at: '2024-01-15T00:00:00Z',
               slug: id || 'amazing-video-title'
             };
             setVideo(mockVideo);
-            setLikeCount(mockVideo.likes || 0);
-            setDislikeCount(mockVideo.dislikes || 0);
+            setFavoriteCount(mockVideo.favorites || 0);
+            
+            // Check if user has already favorited this video
+            const favoritedVideos = JSON.parse(localStorage.getItem('favoritedVideos') || '[]');
+            setIsFavorited(favoritedVideos.includes(mockVideo.id));
           }
         }
       } catch (err) {
@@ -147,33 +154,33 @@ const VideoPlayer: React.FC = () => {
     loadVideoData();
   }, [id]);
 
-  const handleLikeToggle = () => {
-    if (likeStatus === 'liked') {
-      // Remove like
-      setLikeStatus('none');
-      setLikeCount(prev => Math.max(0, prev - 1));
-    } else {
-      // Add like, remove dislike if exists
-      setLikeStatus('liked');
-      setLikeCount(prev => prev + 1);
-      if (likeStatus === 'disliked') {
-        setDislikeCount(prev => Math.max(0, prev - 1));
-      }
+  const handleFavoriteToggle = async () => {
+    if (!video) return;
+    
+    // Check if user has already favorited this video
+    const favoritedVideos = JSON.parse(localStorage.getItem('favoritedVideos') || '[]');
+    
+    if (isFavorited) {
+      // Already favorited - cannot unfavorite (one-time only)
+      return;
     }
-  };
-
-  const handleDislikeToggle = () => {
-    if (likeStatus === 'disliked') {
-      // Remove dislike
-      setLikeStatus('none');
-      setDislikeCount(prev => Math.max(0, prev - 1));
-    } else {
-      // Add dislike, remove like if exists
-      setLikeStatus('disliked');
-      setDislikeCount(prev => prev + 1);
-      if (likeStatus === 'liked') {
-        setLikeCount(prev => Math.max(0, prev - 1));
-      }
+    
+    // Add favorite
+    try {
+      // Update in Supabase
+      const newFavoriteCount = favoriteCount + 1;
+      await videoService.update(video.id, { favorites: newFavoriteCount });
+      
+      // Update local state
+      setFavoriteCount(newFavoriteCount);
+      setIsFavorited(true);
+      
+      // Save to localStorage
+      const updatedFavoritedVideos = [...favoritedVideos, video.id];
+      localStorage.setItem('favoritedVideos', JSON.stringify(updatedFavoritedVideos));
+    } catch (error) {
+      console.error('Failed to update favorite:', error);
+      alert('Failed to favorite video. Please try again.');
     }
   };
 
@@ -615,94 +622,53 @@ const VideoPlayer: React.FC = () => {
             </Box>
             
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* Modern Like/Dislike Toggle Buttons */}
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <ToggleButton
-                    value="like"
-                    selected={likeStatus === 'liked'}
-                    onChange={handleLikeToggle}
-                    sx={{
-                      border: '2px solid',
-                      borderColor: likeStatus === 'liked' ? '#ff6b6b' : 'rgba(255, 255, 255, 0.23)',
-                      backgroundColor: likeStatus === 'liked' ? 'rgba(255, 107, 107, 0.1)' : 'transparent',
-                      color: likeStatus === 'liked' ? '#ff6b6b' : 'inherit',
-                      borderRadius: '25px',
-                      px: 2,
-                      py: 1,
-                      minWidth: '80px',
+              {/* Favorite Button */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <ToggleButton
+                  value="favorite"
+                  selected={isFavorited}
+                  onChange={handleFavoriteToggle}
+                  disabled={isFavorited}
+                  sx={{
+                    border: '2px solid',
+                    borderColor: isFavorited ? '#ff6b6b' : 'rgba(255, 255, 255, 0.23)',
+                    backgroundColor: isFavorited ? 'rgba(255, 107, 107, 0.1)' : 'transparent',
+                    color: isFavorited ? '#ff6b6b' : 'inherit',
+                    borderRadius: '25px',
+                    px: 2,
+                    py: 1,
+                    minWidth: '80px',
+                    '&:hover': {
+                      backgroundColor: isFavorited ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                      borderColor: isFavorited ? '#ff6b6b' : 'rgba(255, 255, 255, 0.4)',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                      color: '#ff6b6b',
                       '&:hover': {
-                        backgroundColor: likeStatus === 'liked' ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                        borderColor: likeStatus === 'liked' ? '#ff6b6b' : 'rgba(255, 255, 255, 0.4)',
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
                       },
-                      '&.Mui-selected': {
-                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                        color: '#ff6b6b',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 107, 107, 0.2)',
-                        },
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {likeStatus === 'liked' ? (
-                        <Favorite sx={{ fontSize: 20 }} />
-                      ) : (
-                        <FavoriteBorder sx={{ fontSize: 20 }} />
-                      )}
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {likeCount.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </ToggleButton>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                    },
+                    '&.Mui-disabled': {
+                      opacity: 0.7,
+                    },
+                  }}
                 >
-                  <ToggleButton
-                    value="dislike"
-                    selected={likeStatus === 'disliked'}
-                    onChange={handleDislikeToggle}
-                    sx={{
-                      border: '2px solid',
-                      borderColor: likeStatus === 'disliked' ? '#ff6b6b' : 'rgba(255, 255, 255, 0.23)',
-                      backgroundColor: likeStatus === 'disliked' ? 'rgba(255, 107, 107, 0.1)' : 'transparent',
-                      color: likeStatus === 'disliked' ? '#ff6b6b' : 'inherit',
-                      borderRadius: '25px',
-                      px: 2,
-                      py: 1,
-                      minWidth: '80px',
-                      '&:hover': {
-                        backgroundColor: likeStatus === 'disliked' ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                        borderColor: likeStatus === 'disliked' ? '#ff6b6b' : 'rgba(255, 255, 255, 0.4)',
-                      },
-                      '&.Mui-selected': {
-                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                        color: '#ff6b6b',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 107, 107, 0.2)',
-                        },
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <ThumbDown sx={{ 
-                        fontSize: 20,
-                        transform: likeStatus === 'disliked' ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s ease'
-                      }} />
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {dislikeCount.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </ToggleButton>
-                </motion.div>
-              </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {isFavorited ? (
+                      <Favorite sx={{ fontSize: 20 }} />
+                    ) : (
+                      <FavoriteBorder sx={{ fontSize: 20 }} />
+                    )}
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {favoriteCount.toLocaleString()}
+                    </Typography>
+                  </Box>
+                </ToggleButton>
+              </motion.div>
 
               {/* Magic Social Share Menu */}
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>{shareMenu}</Box>

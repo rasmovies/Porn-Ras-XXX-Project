@@ -30,7 +30,9 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
               background: 'transparent',
               boxShadow: 'none',
               maxHeight: '90vh',
-              overflow: 'visible',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
             }
           }}
           BackdropProps={{
@@ -47,16 +49,36 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.4 }}
           >
-            <DialogContent sx={{ p: 0, position: 'relative' }}>
+            <DialogContent sx={{ 
+              p: 0, 
+              position: 'relative',
+              overflowY: 'auto',
+              maxHeight: '90vh',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(255, 107, 107, 0.5)',
+                borderRadius: '4px',
+                '&:hover': {
+                  background: 'rgba(255, 107, 107, 0.7)',
+                },
+              },
+            }}>
               <Box
                 sx={{
                   background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%)',
                   borderRadius: '20px',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '3rem',
+                  padding: { xs: '2rem', sm: '3rem' },
                   position: 'relative',
-                  overflow: 'hidden',
+                  overflow: 'visible',
                   textAlign: 'center',
+                  minHeight: 'fit-content',
                   '&::before': {
                     content: '""',
                     position: 'absolute',

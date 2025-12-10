@@ -367,6 +367,26 @@ const Admin: React.FC = () => {
     }
   };
 
+  const handleModelImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate image file
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        toast.error(validation.error || 'Geçersiz resim dosyası');
+        event.target.value = ''; // Reset input
+        return;
+      }
+
+      setModelImageUrl(''); // Clear URL when file is selected
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setModelImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleRemoveModelImage = () => {
     setModelImagePreview(null);
     setModelImageUrl('');
@@ -1228,9 +1248,31 @@ const Admin: React.FC = () => {
                           size="small"
                           sx={{ mb: 1 }}
                         />
+                        {modelImagePreview && (
+                          <Box sx={{ mt: 1, mb: 1 }}>
+                            <img
+                              src={modelImagePreview}
+                              alt="Preview"
+                              style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }}
+                              onError={(e) => {
+                                console.error('Preview image load error:', e);
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </Box>
+                        )}
                         <input
-
+                          type="file"
+                          accept="image/*"
+                          onChange={handleModelImageUpload}
+                          style={{ display: 'none' }}
+                          id="model-image-upload"
                         />
+                        <label htmlFor="model-image-upload">
+                          <Button variant="outlined" component="span" startIcon={<CloudUpload />} size="small">
+                            Choose Image
+                          </Button>
+                        </label>
                       </Box>
                     )}
                   </Box>

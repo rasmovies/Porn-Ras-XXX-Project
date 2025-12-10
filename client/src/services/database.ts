@@ -287,14 +287,15 @@ export const videoService = {
   },
 
   // Create video
-  async create(video: Omit<Video, 'id' | 'created_at' | 'views' | 'likes' | 'dislikes'>): Promise<Video> {
+  async create(video: Omit<Video, 'id' | 'created_at' | 'views' | 'likes' | 'dislikes' | 'favorites'>): Promise<Video> {
     const { data, error } = await supabase
       .from('videos')
       .insert([{
         ...video,
         views: 0,
         likes: 0,
-        dislikes: 0
+        dislikes: 0,
+        favorites: 0
       }])
       .select()
       .single();

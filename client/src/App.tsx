@@ -108,9 +108,9 @@ function App() {
                         process.env.NODE_ENV === 'development' ? (
                           <Upload />
                         ) : (
-                          <ProtectedRoute requireAuth requireAdmin>
-                            <Upload />
-                          </ProtectedRoute>
+                        <ProtectedRoute requireAuth requireAdmin>
+                          <Upload />
+                        </ProtectedRoute>
                         )
                       }
                     />

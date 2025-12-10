@@ -267,7 +267,7 @@ const Login: React.FC = () => {
                   placeholder="email@example.com veya kullaniciadi"
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      color: 'white',
+                    color: 'white',
                       '& fieldset': {
                         borderColor: 'rgba(255, 255, 255, 0.2)',
                       },
