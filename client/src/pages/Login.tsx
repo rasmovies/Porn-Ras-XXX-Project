@@ -144,43 +144,6 @@ const Login: React.FC = () => {
     },
   });
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!emailOrNickname.trim()) {
-      setError('Please enter your email or nickname');
-      return;
-    }
-    
-    try {
-      setIsLoggingIn(true);
-      const userData = await authApi.loginWithEmailOrNickname(emailOrNickname.trim());
-      
-      if (!userData) {
-        throw new Error('Login failed - user data not returned');
-      }
-      
-      const user = {
-        username: userData.username,
-        email: userData.email || null,
-        name: userData.username,
-        id: userData.id,
-      };
-      
-      login(user);
-      toast.success(`Welcome back, ${userData.username}!`);
-      navigate('/');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      const errorMessage = error.message || 'Invalid email or nickname. Please try again.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
   return (
     <Box
       sx={{
@@ -292,68 +255,42 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Button
-                  variant="outlined"
+            <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <TextField
                   fullWidth
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-                      setError('Google Sign-In is not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env file.');
-                      toast.error('Google Sign-In is not configured');
-                      return;
-                    }
-                    handleGoogleLogin();
-                  }}
+                  label="Email veya Kullanıcı Adı"
+                  name="emailOrUsername"
+                  type="text"
+                  value={formData.emailOrUsername}
+                  onChange={handleFormChange}
+                  required
+                  placeholder="email@example.com veya kullaniciadi"
                   sx={{
-                    py: 1.5,
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    fontSize: '1rem',
-                    '&:hover': {
-                      border: '1px solid rgba(0, 255, 255, 0.5)',
-                      background: 'rgba(0, 255, 255, 0.1)',
-                    }
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(0, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#00ffff',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
                   }}
-                >
-                  Continue with Google
-                </Button>
-                <Button
-                  variant="outlined"
+                />
+                <TextField
                   fullWidth
-                  sx={{
-                    py: 1.5,
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    fontSize: '1rem',
-                    '&:hover': {
-                      border: '1px solid rgba(0, 255, 255, 0.5)',
-                      background: 'rgba(0, 255, 255, 0.1)',
-                    }
-                  }}
-                >
-                  Continue with Apple
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  sx={{
-                    py: 1.5,
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    fontSize: '1rem',
-                    mt: 1,
-                    '&:hover': {
-                      border: '1px solid rgba(0, 255, 255, 0.5)',
-                      background: 'rgba(0, 255, 255, 0.1)',
-                    }
-                  }}
-                >
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleFormChange}
+                  required
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       color: 'white',
@@ -385,13 +322,16 @@ const Login: React.FC = () => {
                     fontWeight: 'bold',
                     '&:hover': {
                       bgcolor: '#00cccc',
+                    }
+                  }}
+                >
+                  Sign In
                 </Button>
                 <Button
                   type="button"
                   variant="outlined"
                   fullWidth
-                  onClick={() => {
-                  }}
+                  onClick={() => navigate('/register')}
                   sx={{
                     py: 1.5,
                     borderRadius: '12px',
@@ -404,9 +344,9 @@ const Login: React.FC = () => {
                     }
                   }}
                 >
+                  Create an account
                 </Button>
               </Box>
-            )}
 
               <Box sx={{ textAlign: 'center', mt: 2 }}>
                 <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>
