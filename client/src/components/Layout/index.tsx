@@ -63,16 +63,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         adsterraScript.remove();
       }
       
-      // Adsterra'nın oluşturduğu tüm popunder event'lerini engelle
+      // Adsterra'nın oluşturduğu popunder event'lerini engelle
+      // Sadece beforeunload ve unload event'lerini engelle (click'leri engelleme - butonlar çalışsın)
       const preventPopunder = (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
+        // Sadece beforeunload ve unload event'lerini engelle
+        if (e.type === 'beforeunload' || e.type === 'unload') {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
       };
       
-      // Popunder'ı engellemek için event listener'ları ekle (capture phase'de)
-      const events = ['beforeunload', 'unload', 'click', 'mousedown', 'mouseup'];
+      // Popunder'ı engellemek için sadece beforeunload ve unload event'lerini dinle
+      const events = ['beforeunload', 'unload'];
       events.forEach(eventType => {
         window.addEventListener(eventType, preventPopunder, true);
         document.addEventListener(eventType, preventPopunder, true);
