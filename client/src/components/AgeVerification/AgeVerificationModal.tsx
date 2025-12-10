@@ -29,10 +29,12 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
             sx: {
               background: 'transparent',
               boxShadow: 'none',
-              maxHeight: '90vh',
+              maxHeight: { xs: '95vh', sm: '90vh' },
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              margin: { xs: '8px', sm: '24px' },
+              maxWidth: { xs: 'calc(100% - 16px)', sm: '600px' },
             }
           }}
           BackdropProps={{
@@ -53,7 +55,9 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
               p: 0, 
               position: 'relative',
               overflowY: 'auto',
-              maxHeight: '90vh',
+              maxHeight: { xs: '95vh', sm: '90vh' },
+              display: 'flex',
+              flexDirection: 'column',
               '&::-webkit-scrollbar': {
                 width: '8px',
               },
@@ -72,13 +76,15 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
               <Box
                 sx={{
                   background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%)',
-                  borderRadius: '20px',
+                  borderRadius: { xs: '16px', sm: '20px' },
                   border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: { xs: '2rem', sm: '3rem' },
+                  padding: { xs: '1.5rem', sm: '3rem' },
                   position: 'relative',
                   overflow: 'visible',
                   textAlign: 'center',
                   minHeight: 'fit-content',
+                  display: 'flex',
+                  flexDirection: 'column',
                   '&::before': {
                     content: '""',
                     position: 'absolute',
@@ -87,21 +93,21 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                     right: 0,
                     bottom: 0,
                     background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
-                    borderRadius: '20px',
+                    borderRadius: { xs: '16px', sm: '20px' },
                     zIndex: -1,
                   }
                 }}
               >
                 {/* Logo */}
-                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{ mb: { xs: 2, sm: 4 }, display: 'flex', justifyContent: 'center' }}>
                   <Box
                     component="img"
                     src="/PORNRAS.png"
                     alt="PORNRAS Logo"
                     sx={{
-                      height: { xs: '50px', sm: '60px' },
+                      height: { xs: '40px', sm: '60px' },
                       width: 'auto',
-                      maxWidth: '200px',
+                      maxWidth: { xs: '150px', sm: '200px' },
                     }}
                   />
                 </Box>
@@ -113,8 +119,8 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   sx={{
                     color: 'white',
                     fontWeight: 'bold',
-                    mb: 4,
-                    fontSize: { xs: '1.5rem', sm: '2rem' },
+                    mb: { xs: 2, sm: 4 },
+                    fontSize: { xs: '1.25rem', sm: '2rem' },
                     textShadow: '0 0 10px rgba(255, 255, 255, 0.3)'
                   }}
                 >
@@ -128,11 +134,11 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   sx={{
                     borderColor: '#ff6b6b',
                     color: '#ff6b6b',
-                    mb: 4,
-                    px: 3,
-                    py: 1,
+                    mb: { xs: 2, sm: 4 },
+                    px: { xs: 2, sm: 3 },
+                    py: { xs: 0.75, sm: 1 },
                     borderRadius: 2,
-                    fontSize: '1rem',
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
                     '&:hover': {
                       borderColor: '#ff5555',
                       background: 'rgba(255, 107, 107, 0.1)',
@@ -147,8 +153,8 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   variant="body1"
                   sx={{
                     color: 'rgba(255, 255, 255, 0.9)',
-                    mb: 4,
-                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                    mb: { xs: 2, sm: 4 },
+                    fontSize: { xs: '0.8rem', sm: '1rem' },
                     lineHeight: 1.6,
                     maxWidth: '500px',
                     mx: 'auto'
@@ -164,8 +170,8 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   variant="body2"
                   sx={{
                     color: 'rgba(255, 255, 255, 0.7)',
-                    mb: 4,
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    mb: { xs: 2, sm: 4 },
+                    fontSize: { xs: '0.75rem', sm: '0.9rem' },
                     lineHeight: 1.5
                   }}
                 >
@@ -187,20 +193,35 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   </Link>.
                 </Typography>
 
-                {/* Action Buttons */}
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
+                {/* Action Buttons - Sticky at bottom for mobile */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: { xs: 1.5, sm: 2 }, 
+                  justifyContent: 'center', 
+                  mb: { xs: 2, sm: 4 }, 
+                  mt: 'auto',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  position: { xs: 'sticky', sm: 'static' },
+                  bottom: { xs: 0, sm: 'auto' },
+                  backgroundColor: { xs: 'rgba(12, 12, 12, 0.95)', sm: 'transparent' },
+                  paddingTop: { xs: 2, sm: 0 },
+                  paddingBottom: { xs: 2, sm: 0 },
+                  zIndex: 10,
+                }}>
                   <Button
                     onClick={onConfirm}
                     variant="contained"
+                    fullWidth={true}
                     sx={{
                       background: 'linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%)',
                       borderRadius: 2,
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1rem',
+                      px: { xs: 3, sm: 4 },
+                      py: { xs: 1.25, sm: 1.5 },
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
                       fontWeight: 'bold',
                       textTransform: 'none',
                       boxShadow: '0 0 20px rgba(255, 107, 107, 0.3)',
+                      minHeight: { xs: '44px', sm: 'auto' },
                       '&:hover': {
                         background: 'linear-gradient(135deg, #ff5555 0%, #ff7777 100%)',
                         boxShadow: '0 0 30px rgba(255, 107, 107, 0.5)',
@@ -213,15 +234,17 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   <Button
                     onClick={onDeny}
                     variant="outlined"
+                    fullWidth={true}
                     sx={{
                       borderColor: 'rgba(255, 255, 255, 0.3)',
                       color: 'white',
                       borderRadius: 2,
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1rem',
+                      px: { xs: 3, sm: 4 },
+                      py: { xs: 1.25, sm: 1.5 },
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
                       fontWeight: 'bold',
                       textTransform: 'none',
+                      minHeight: { xs: '44px', sm: 'auto' },
                       '&:hover': {
                         borderColor: 'rgba(255, 255, 255, 0.5)',
                         background: 'rgba(255, 255, 255, 0.1)',
@@ -237,8 +260,9 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                   variant="body2"
                   sx={{
                     color: 'rgba(255, 255, 255, 0.6)',
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                    mb: 2
+                    fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                    mb: { xs: 1, sm: 2 },
+                    mt: { xs: 1, sm: 0 },
                   }}
                 >
                   Our{' '}
@@ -259,12 +283,12 @@ const AgeVerificationModal: React.FC<AgeVerificationModalProps> = ({ open, onCon
                 </Typography>
 
                 {/* Footer */}
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: { xs: 1, sm: 3 } }}>
                   <Typography
                     variant="body2"
                     sx={{
                       color: 'rgba(255, 255, 255, 0.5)',
-                      fontSize: '0.8rem'
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' }
                     }}
                   >
                     © PORNRAS.com, 2025
