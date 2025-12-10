@@ -46,19 +46,45 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout, openLoginModal } = useAuth();
+  
+  // Adsterra popunder - Admin ve Upload sayfaları hariç
+  // Not: Adsterra script'i artık HTML dosyalarında direkt olarak yükleniyor
+  // Bu component'te sadece Admin/Upload sayfalarında script'i devre dışı bırakıyoruz
+  useEffect(() => {
+    const isAdminPage = location.pathname === '/admin';
+    const isUploadPage = location.pathname === '/upload';
+    
+    if (isAdminPage || isUploadPage) {
+      // Admin ve Upload sayfalarında Adsterra script'ini kaldır
+      const adsterraScript = document.querySelector('script[src*="skybaggycollecting.com"]');
+      if (adsterraScript) {
+        adsterraScript.remove();
+      }
+    }
+  }, [location.pathname]);
 
   // Load models and channels for navigation
   useEffect(() => {
     const loadModelsAndChannels = async () => {
       try {
+        console.log('🔍 Layout: Loading models and channels...');
         const [modelsData, channelsData] = await Promise.all([
           modelService.getAll(),
           channelService.getAll()
         ]);
+        console.log('✅ Layout: Models loaded:', modelsData.length);
+        console.log('✅ Layout: Channels loaded:', channelsData.length);
         setModels(modelsData);
         setChannels(channelsData);
-      } catch (error) {
-        console.error('Failed to load models and channels:', error);
+      } catch (error: any) {
+        console.error('❌ Layout: Failed to load models and channels:', error);
+        console.error('   Error details:', {
+          message: error.message,
+          code: error.code
+        });
+        // Set empty arrays on error
+        setModels([]);
+        setChannels([]);
       }
     };
     
@@ -69,8 +95,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       if (user?.username) {
-        const adminStatus = await adminUserService.isAdmin(user.username);
-        setIsAdmin(adminStatus);
+        console.log('🔍 Layout: Checking admin status for user:', user.username);
+        console.log('🔍 Layout: Full user object:', JSON.stringify(user, null, 2));
+        try {
+          const adminStatus = await adminUserService.isAdmin(user.username);
+          console.log('🔍 Layout: Admin status result:', adminStatus);
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error('❌ Layout: Admin check failed:', error);
+          setIsAdmin(false);
+        }
         
         // Load notifications
         try {
@@ -80,6 +114,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           console.error('Failed to load notifications:', error);
         }
       } else {
+        console.log('⚠️ Layout: No user.username found, setting isAdmin to false');
+        console.log('   User object:', user);
         setIsAdmin(false);
       }
     };

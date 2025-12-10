@@ -1,0 +1,7 @@
+node_modules/
+yuklenecekler/
+gönderilenler/
+temp/
+*.log
+.DS_Store
+

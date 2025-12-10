@@ -2,18 +2,15 @@
   "version": 2,
   "buildCommand": "cd client && CI=false npm run build",
   "outputDirectory": "client/build",
-  "installCommand": "npm install --legacy-peer-deps && cd client && npm install --legacy-peer-deps",
+  "installCommand": "cd client && npm install --legacy-peer-deps",
   "framework": null,
   "functions": {
-    "api/**/*.js": {
-      "maxDuration": 900
+    "api/ftp/upload.js": {
+      "maxDuration": 300,
+      "memory": 3008
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

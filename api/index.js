@@ -1,28 +1,12 @@
-const { setCorsHeaders, handleOptions } = require('./_helpers/cors');
+// Vercel serverless function wrapper
+// NOT: Bu uygulama sürekli çalışan bir sunucu gerektirir
+// Vercel'de dosya izleme ve otomatik yükleme özellikleri çalışmayacaktır
+const path = require('path');
 
-/**
- * GET /
- * Root endpoint
- */
-module.exports = async function handler(req, res) {
-  const origin = req.headers.origin || req.headers.referer;
-  
-  // Set CORS headers
-  setCorsHeaders(res, origin);
-  
-  // Handle OPTIONS preflight
-  if (req.method === 'OPTIONS') {
-    return handleOptions(req, res);
-  }
-  
-  // Only allow GET
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
-  }
-  
-  return res.json({
-    message: 'AdultTube API Server',
-    status: 'OK',
-  });
-}
+// server.js'i require et
+const serverPath = path.join(__dirname, '..', 'server.js');
+delete require.cache[require.resolve(serverPath)];
+const app = require(serverPath);
+
+module.exports = app;
 

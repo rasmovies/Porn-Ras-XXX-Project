@@ -1,0 +1,83 @@
+# VPS Email Setup - Manuel Komutlar
+# Bu komutları VPS'te sırayla çalıştır
+
+# ============================================
+# 1. Proton Mail Bridge Durumunu Kontrol Et
+# ============================================
+sudo systemctl status proton-bridge
+
+# Eğer çalışmıyorsa:
+sudo systemctl start proton-bridge
+sudo systemctl enable proton-bridge  # Otomatik başlatma için
+
+# ============================================
+# 2. Bridge SMTP Bilgilerini Al
+# ============================================
+# Bridge loglarını kontrol et:
+sudo journalctl -u proton-bridge -n 100 | grep -i smtp
+
+# Bridge config dosyasından bilgileri al:
+cat ~/.config/protonmail/bridge/prefs.json | grep -i -A 5 -B 5 smtp
+
+# ============================================
+# 3. Backend Dizinine Git
+# ============================================
+cd /var/www/adulttube-backend/server
+
+# ============================================
+# 4. .env Dosyasını Oluştur/Düzenle
+# ============================================
+nano .env
+
+# .env içeriği (değerleri kendi bilgilerinle değiştir):
+# PORT=5000
+# NODE_ENV=production
+# PROTON_SMTP_HOST=127.0.0.1
+# PROTON_SMTP_PORT=1025
+# PROTON_SMTP_SECURE=false
+# PROTON_SMTP_USERNAME=sen@proton.me
+# PROTON_SMTP_PASSWORD=bridge-özel-şifresi
+# PROTON_FROM_EMAIL=sen@proton.me
+# PROTON_FROM_NAME=PORNRAS
+
+# ============================================
+# 5. Backend'i Yeniden Başlat
+# ============================================
+pm2 restart adulttube-backend
+
+# Veya ilk kez başlatıyorsan:
+# pm2 start server.js --name adulttube-backend
+# pm2 save
+# pm2 startup
+
+# ============================================
+# 6. Logları Kontrol Et
+# ============================================
+pm2 logs adulttube-backend --lines 50
+
+# ============================================
+# 7. Email Gönderimini Test Et
+# ============================================
+curl -X POST http://localhost:5000/api/email/verification \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "username": "TestUser",
+    "verifyUrl": "https://www.pornras.com/verify?token=test123"
+  }'
+
+# ============================================
+# 8. Bridge Password Nasıl Bulunur?
+# ============================================
+# Yöntem 1: Bridge GUI'den
+#   - Bridge'i masaüstünde aç
+#   - Settings > Advanced > All settings > Bridge
+#   - SMTP password'ü göster
+
+# Yöntem 2: Bridge CLI'den
+#   proton-bridge --cli
+
+# Yöntem 3: Config dosyasından (şifrelenmiş olabilir)
+#   cat ~/.config/protonmail/bridge/prefs.json
+
+

@@ -7,7 +7,7 @@ import {
   Alert,
   TextField,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../components/Auth/AuthProvider';
@@ -17,11 +17,82 @@ import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const [error, setError] = useState('');
+<<<<<<< HEAD
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailOrNickname, setEmailOrNickname] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+=======
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    emailOrUsername: '',
+    password: '',
+  });
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!formData.emailOrUsername || !formData.password) {
+      setError('Lütfen tüm alanları doldurun');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailOrUsername: formData.emailOrUsername,
+          password: formData.password,
+        }),
+      });
+      
+      // Response text olarak al ve JSON parse et
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError, 'Response:', responseText);
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Giriş başarısız');
+      }
+      
+      if (!data.user) {
+        throw new Error('Kullanıcı bilgileri alınamadı');
+      }
+      
+      const userData = {
+        username: data.user.username,
+        email: data.user.email,
+        name: data.user.name,
+        avatar: data.user.avatar,
+        id: data.user.id,
+      };
+      
+      login(userData);
+      toast.success('Hoş geldiniz!');
+      navigate('/');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Geçersiz email/kullanıcı adı veya şifre');
+      toast.error('Giriş başarısız');
+    }
+  };
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -228,7 +299,11 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
+<<<<<<< HEAD
             {!showEmailForm ? (
+=======
+            {!showForm ? (
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Button
                   variant="outlined"
@@ -278,7 +353,11 @@ const Login: React.FC = () => {
                 <Button
                   variant="outlined"
                   fullWidth
+<<<<<<< HEAD
                   onClick={() => setShowEmailForm(true)}
+=======
+                  onClick={() => setShowForm(true)}
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   sx={{
                     py: 1.5,
                     borderRadius: '12px',
@@ -292,6 +371,7 @@ const Login: React.FC = () => {
                     }
                   }}
                 >
+<<<<<<< HEAD
                   Continue with Email or Nickname
                 </Button>
               </Box>
@@ -307,6 +387,22 @@ const Login: React.FC = () => {
                   placeholder="Enter your email or nickname"
                   helperText="You can login with your email address or nickname"
                   disabled={isLoggingIn}
+=======
+                  Email/Username ile Giriş
+                </Button>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <TextField
+                  fullWidth
+                  label="Email veya Kullanıcı Adı"
+                  name="emailOrUsername"
+                  type="text"
+                  value={formData.emailOrUsername}
+                  onChange={handleFormChange}
+                  required
+                  placeholder="email@example.com veya kullaniciadi"
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       color: 'white',
@@ -323,8 +419,36 @@ const Login: React.FC = () => {
                     '& .MuiInputLabel-root': {
                       color: 'rgba(255, 255, 255, 0.7)',
                     },
+<<<<<<< HEAD
                     '& .MuiFormHelperText-root': {
                       color: 'rgba(255, 255, 255, 0.5)',
+=======
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Şifre"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleFormChange}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(0, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#00ffff',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                     },
                   }}
                 />
@@ -332,7 +456,10 @@ const Login: React.FC = () => {
                   type="submit"
                   variant="contained"
                   fullWidth
+<<<<<<< HEAD
                   disabled={isLoggingIn || !emailOrNickname.trim()}
+=======
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   sx={{
                     py: 1.5,
                     borderRadius: '12px',
@@ -342,6 +469,7 @@ const Login: React.FC = () => {
                     fontWeight: 'bold',
                     '&:hover': {
                       bgcolor: '#00cccc',
+<<<<<<< HEAD
                     },
                     '&:disabled': {
                       bgcolor: 'rgba(0, 255, 255, 0.3)',
@@ -350,15 +478,27 @@ const Login: React.FC = () => {
                   }}
                 >
                   {isLoggingIn ? 'Signing in...' : 'Sign In'}
+=======
+                    }
+                  }}
+                >
+                  Giriş Yap
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                 </Button>
                 <Button
                   type="button"
                   variant="outlined"
                   fullWidth
                   onClick={() => {
+<<<<<<< HEAD
                     setShowEmailForm(false);
                     setEmailOrNickname('');
                     setError('');
+=======
+                    setShowForm(false);
+                    setError('');
+                    setFormData({ emailOrUsername: '', password: '' });
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   }}
                   sx={{
                     py: 1.5,
@@ -372,7 +512,11 @@ const Login: React.FC = () => {
                     }
                   }}
                 >
+<<<<<<< HEAD
                   Back
+=======
+                  Geri
+>>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                 </Button>
               </Box>
             )}

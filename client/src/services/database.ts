@@ -4,13 +4,28 @@ import { supabase, Category, Model, Video, Comment, Channel, Profile, BanUser, N
 export const categoryService = {
   // Get all categories
   async getAll(): Promise<Category[]> {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Categories fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Categories table does not exist, returning empty array');
+          return [];
+        }
+        throw error;
+      }
+      console.log('✅ Categories loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Categories service error:', error);
+      return [];
+    }
   },
 
   // Create category
@@ -87,13 +102,50 @@ export const categoryService = {
 export const modelService = {
   // Get all models
   async getAll(): Promise<Model[]> {
-    const { data, error } = await supabase
-      .from('models')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('models')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500); // Timeout önleme için limit
+      
+      if (error) {
+        console.error('❌ Models fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+          return [];
+        }
+        
+        // If table doesn't exist, return empty array instead of throwing
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Models table does not exist, returning empty array');
+          return [];
+        }
+        
+        // Diğer hatalar için de boş array döndür (crash önleme)
+        console.warn('⚠️ Models fetch hatası, boş array döndürülüyor');
+        return [];
+      }
+      console.log('✅ Models loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Models service error:', error);
+      console.error('   Error code:', error?.code);
+      console.error('   Error message:', error?.message);
+      
+      // Timeout hatası kontrolü
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn('⚠️ Supabase timeout hatası (catch), boş array döndürülüyor');
+        return [];
+      }
+      
+      // Return empty array on any error to prevent app crash
+      return [];
+    }
   },
 
   // Create model
@@ -148,17 +200,74 @@ export const modelService = {
 export const videoService = {
   // Get all videos
   async getAll(): Promise<Video[]> {
-    const { data, error } = await supabase
-      .from('videos')
-      .select(`
-        *,
-        categories(name),
-        models(name)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      // Timeout hatasını önlemek için limit ekle ve optimize et
+      const { data, error } = await supabase
+        .from('videos')
+        .select(`
+          *,
+          categories(name),
+          models(name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(1000); // Maksimum 1000 video (timeout önleme)
+      
+      if (error) {
+        console.error('❌ Videos fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        console.error('   Error details:', error.details);
+        console.error('   Error hint:', error.hint);
+        
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+          return [];
+        }
+        
+        // CORS veya network hatası
+        if (error.message?.includes('Load failed') || 
+            error.message?.includes('TypeError') ||
+            error.message?.includes('Failed to fetch') ||
+            error.message?.includes('NetworkError')) {
+          console.warn('⚠️ Network/CORS hatası, boş array döndürülüyor');
+          return [];
+        }
+        
+        // If table doesn't exist, return empty array
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Videos table does not exist, returning empty array');
+          return [];
+        }
+        
+        // Diğer hatalar için de boş array döndür (crash önleme)
+        console.warn('⚠️ Videos fetch hatası, boş array döndürülüyor');
+        return [];
+      }
+      console.log('✅ Videos loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Videos service error:', error);
+      console.error('   Error type:', error?.constructor?.name);
+      console.error('   Error message:', error?.message);
+      
+      // Timeout hatası (57014)
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+        return [];
+      }
+      
+      // Network hataları için boş array döndür
+      if (error?.message?.includes('Load failed') || 
+          error?.message?.includes('TypeError') ||
+          error?.message?.includes('Failed to fetch') ||
+          error?.message?.includes('NetworkError')) {
+        console.warn('⚠️ Network hatası, boş array döndürülüyor');
+        return [];
+      }
+      
+      return [];
+    }
   },
 
   // Get video by slug
@@ -309,13 +418,50 @@ export const commentService = {
 export const channelService = {
   // Get all channels
   async getAll(): Promise<Channel[]> {
-    const { data, error } = await supabase
-      .from('channels')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('channels')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500); // Timeout önleme için limit
+      
+      if (error) {
+        console.error('❌ Channels fetch error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+          return [];
+        }
+        
+        // If table doesn't exist, return empty array instead of throwing
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Channels table does not exist, returning empty array');
+          return [];
+        }
+        
+        // Diğer hatalar için de boş array döndür (crash önleme)
+        console.warn('⚠️ Channels fetch hatası, boş array döndürülüyor');
+        return [];
+      }
+      console.log('✅ Channels loaded:', data?.length || 0);
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Channels service error:', error);
+      console.error('   Error code:', error?.code);
+      console.error('   Error message:', error?.message);
+      
+      // Timeout hatası kontrolü
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn('⚠️ Supabase timeout hatası (catch), boş array döndürülüyor');
+        return [];
+      }
+      
+      // Return empty array on any error to prevent app crash
+      return [];
+    }
   },
 
   // Create channel
@@ -418,16 +564,75 @@ export const profileService = {
 
 // Admin Users
 export const adminUserService = {
-  // Check if user is admin
+  // Check if user is admin (case-insensitive)
   async isAdmin(username: string): Promise<boolean> {
-    const { data, error } = await supabase
-      .from('admin_users')
-      .select('is_admin')
-      .eq('user_name', username)
-      .single();
+    if (!username) {
+      console.warn('⚠️ Admin check: username is empty');
+      return false;
+    }
     
-    if (error) return false;
-    return data?.is_admin === true;
+    // Normalize username for comparison (trim and lowercase)
+    const normalizedUsername = username.trim().toLowerCase();
+    console.log(`🔍 Admin check started for: "${username}" (normalized: "${normalizedUsername}")`);
+    
+    try {
+      // First try exact match
+      const { data: exactMatch, error: exactError } = await supabase
+        .from('admin_users')
+        .select('is_admin, user_name')
+        .eq('user_name', username)
+        .single();
+      
+      if (!exactError && exactMatch) {
+        console.log(`✅ Exact match found: "${exactMatch.user_name}" -> is_admin: ${exactMatch.is_admin}`);
+        if (exactMatch.is_admin === true) {
+          return true;
+        }
+      } else {
+        console.log(`⚠️ Exact match failed:`, exactError?.message || 'No match found');
+      }
+      
+      // If exact match fails, try case-insensitive match by fetching all admins
+      console.log('🔍 Trying case-insensitive match...');
+      const { data: allAdmins, error: fetchError } = await supabase
+        .from('admin_users')
+        .select('is_admin, user_name');
+      
+      if (fetchError) {
+        console.error('❌ Admin check error:', fetchError);
+        console.error('   Error details:', JSON.stringify(fetchError, null, 2));
+        return false;
+      }
+      
+      if (!allAdmins || allAdmins.length === 0) {
+        console.warn('⚠️ Admin_users table is empty!');
+        return false;
+      }
+      
+      console.log(`📋 Found ${allAdmins.length} admin user(s) in database:`);
+      allAdmins.forEach(admin => {
+        console.log(`   - "${admin.user_name}" -> is_admin: ${admin.is_admin}`);
+      });
+      
+      // Check if any admin user matches (case-insensitive)
+      const matchingAdmin = allAdmins.find(
+        admin => admin.user_name?.toLowerCase().trim() === normalizedUsername && admin.is_admin === true
+      );
+      
+      if (matchingAdmin) {
+        console.log(`✅ Admin access granted for: "${username}" (matched with: "${matchingAdmin.user_name}")`);
+        return true;
+      } else {
+        console.log(`❌ Admin access denied for: "${username}"`);
+        console.log(`   Normalized username: "${normalizedUsername}"`);
+        console.log(`   Available admins:`, allAdmins.map(a => `"${a.user_name?.toLowerCase()}"`).join(', '));
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Admin check exception:', error);
+      console.error('   Stack:', error instanceof Error ? error.stack : 'N/A');
+      return false;
+    }
   },
 
   // Get admin user

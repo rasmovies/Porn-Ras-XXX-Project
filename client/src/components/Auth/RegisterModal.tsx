@@ -76,12 +76,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     const code = verificationCode.join('');
     
     if (code.length !== 6) {
-      setError('Please enter the complete 6-digit code');
+      setError('Lütfen 6 haneli doğrulama kodunu girin');
       return;
     }
     
     if (!registeredEmail) {
-      setError('Email not found. Please register again.');
+      setError('Email bulunamadı. Lütfen tekrar kayıt olun.');
       return;
     }
     
@@ -122,7 +122,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
 
   const handleResendCode = async () => {
     if (!registeredEmail || !registeredUsername) {
-      setError('Email or username not found. Please register again.');
+      setError('Email veya kullanıcı adı bulunamadı. Lütfen tekrar kayıt olun.');
       return;
     }
     
@@ -158,38 +158,50 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
     setError('');
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Şifreler eşleşmiyor');
       return;
     }
     
     if (!formData.username || !formData.email || !formData.password) {
-      setError('Please fill in all required fields');
+      setError('Lütfen tüm alanları doldurun');
       return;
     }
     
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Şifre en az 6 karakter olmalıdır');
       return;
     }
     
     try {
       setIsSubmitting(true);
       
-      // TODO: Backend'e kayıt isteği gönder
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
+      // Step 1: Register user via backend API
+      const registerResponse = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
       
-      // Generate and send 6-digit verification code
+      const registerData = await registerResponse.json();
+      
+      if (!registerResponse.ok || !registerData.success) {
+        throw new Error(registerData.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
+      }
+      
+      console.log('✅ User registered:', registerData);
+      
+      // Step 2: Generate and send 6-digit verification code
       try {
         await emailApi.generateVerificationCode({
           email: formData.email,
           username: formData.username,
         });
         console.log('✅ Verification code sent');
-        toast.success('Verification code sent! Please check your email.');
+        toast.success('Kayıt başarılı! Doğrulama kodu email adresinize gönderildi.');
         
         // Store email and username for verification
         setRegisteredEmail(formData.email);
@@ -201,14 +213,18 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
         setShowVerificationModal(true);
       } catch (emailError: any) {
         console.error('⚠️ Verification code gönderilemedi:', emailError);
-        toast.error(emailError.message || 'Verification code could not be sent. Please try again.');
-        setError('Failed to send verification code. Please try again.');
+        // User is registered but email verification failed
+        toast('Kayıt başarılı ancak doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.', {
+          icon: '⚠️',
+          duration: 5000
+        });
+        setError('Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
         setIsSubmitting(false);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      setError('Registration failed. Please try again.');
-      toast.error('Registration failed');
+      setError(error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
+      toast.error('Kayıt başarısız');
     } finally {
       setIsSubmitting(false);
     }

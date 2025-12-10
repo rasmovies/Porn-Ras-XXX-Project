@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTP Dosya Yöneticisi - Streamtape</title>
+    <link rel="stylesheet" href="ftp-manager.css">
+    <!-- Adsterra Popunder Ads -->
+    <script
+      type="text/javascript"
+      src="//skybaggycollecting.com/26/fc/1b/26fc1b5a649c7a1c9f4e9be462e02070.js"
+    ></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 FTP Dosya Yöneticisi</h1>
+            <div class="header-actions">
+                <a href="/" class="btn btn-secondary">← Ana Sayfa</a>
+                <button class="btn btn-icon" id="connectionBtn" title="Bağlantı Bilgileri">🔌 Bağlantı</button>
+                <button class="btn btn-primary" id="refreshBtn">🔄 Yenile</button>
+            </div>
+        </header>
+        
+        <!-- Bağlantı Durumu Göstergesi -->
+        <div class="connection-status" id="connectionStatus">
+            <span class="status-indicator" id="statusIndicator">🟢</span>
+            <span class="status-text" id="statusText">Streamtape FTP'ye bağlı</span>
+        </div>
+
+        <main>
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-item active" data-path="/">Ana Dizin</span>
+            </div>
+
+            <!-- Aktif Yüklemeler Paneli -->
+            <div class="upload-panel" id="uploadPanel" style="display: none;">
+                <div class="upload-panel-header">
+                    <h3>📤 Aktif Yüklemeler</h3>
+                    <button class="btn-icon-small" id="closeUploadPanel">×</button>
+                </div>
+                <div class="upload-panel-content" id="uploadPanelContent">
+                    <div class="empty-upload">Aktif yükleme yok</div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-icon" id="uploadBtn" title="Yükle">📤 Yükle</button>
+                    <button class="btn btn-icon" id="newFolderBtn" title="Yeni Klasör">📁 Yeni Klasör</button>
+                </div>
+                <div class="toolbar-right">
+                    <input type="text" id="searchInput" placeholder="🔍 Ara..." class="search-input">
+                </div>
+            </div>
+
+            <!-- Yuklenecekler Klasörü Özel Bölüm -->
+            <div class="special-folder-section" id="yukleneceklerSection" style="display: none;">
+                <div class="special-folder-header">
+                    <h3>📥 Yüklenecekler Klasörü</h3>
+                    <div class="special-folder-actions">
+                        <input type="file" id="localFileInput" multiple style="display: none;" accept="*/*">
+                        <button class="btn btn-small" id="selectLocalFilesBtn" title="Bilgisayarından Dosya Seç">📁 Dosya Seç</button>
+                        <button class="btn btn-small" id="uploadSelectedFilesBtn" title="Seçilen Dosyaları Yükle" style="display: none;">📤 Yükle</button>
+                        <button class="btn-icon-small" id="toggleYuklenecekler">▼</button>
+                    </div>
+                </div>
+                <div class="special-folder-content" id="yukleneceklerContent">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+                <!-- Seçilen Yerel Dosyalar -->
+                <div class="selected-local-files" id="selectedLocalFiles" style="display: none;">
+                    <div class="selected-files-header">
+                        <h4>📋 Seçilen Dosyalar</h4>
+                        <button class="btn-icon-small" id="clearSelectedFiles">✕</button>
+                    </div>
+                    <div class="selected-files-list" id="selectedFilesList"></div>
+                </div>
+            </div>
+
+            <div class="file-manager">
+                <div class="file-list-header">
+                    <div class="file-header-item">İsim</div>
+                    <div class="file-header-item">Boyut</div>
+                    <div class="file-header-item">Değiştirilme</div>
+                    <div class="file-header-item">İşlemler</div>
+                </div>
+                <div class="file-list" id="fileList">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+            </div>
+        </main>
+
+        <div class="notification-container" id="notifications"></div>
+    </div>
+
+    <!-- Dosya Yükleme Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dosya Yükle</h2>
+                <button class="modal-close" id="closeUploadModal">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="file" id="fileInput" multiple>
+                <div class="upload-progress-container" id="uploadProgressContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelUploadBtn">İptal</button>
+                <button class="btn btn-primary" id="confirmUploadBtn">Yükle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yeni Klasör Modal -->
+    <div class="modal" id="folderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Yeni Klasör</h2>
+                <button class="modal-close" id="closeFolderModal">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="folderNameInput" placeholder="Klasör adı" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelFolderBtn">İptal</button>
+                <button class="btn btn-primary" id="confirmFolderBtn">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Düzenleme Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Dosya Düzenle</h2>
+                <button class="modal-close" id="closeEditModal">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="editContent" class="edit-textarea"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEditBtn">İptal</button>
+                <button class="btn btn-primary" id="saveEditBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bağlantı Ayarları Modal -->
+    <div class="modal" id="connectionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔌 FTP Bağlantı Bilgileri</h2>
+                <button class="modal-close" id="closeConnectionModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="connection-info">
+                    <div class="info-item">
+                        <label>FTP Sunucusu:</label>
+                        <span class="info-value">ftp.streamtape.com</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Kullanıcı Adı:</label>
+                        <span class="info-value">e3eddd5f523e3391352b</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Port:</label>
+                        <span class="info-value">21 (FTP)</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Güvenlik:</label>
+                        <span class="info-value">FTP (FTPS değil)</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Durum:</label>
+                        <span class="info-value" id="connectionStatusValue">Bağlı</span>
+                    </div>
+                </div>
+                <div class="connection-note">
+                    <p><strong>ℹ️ Not:</strong> Bağlantı bilgileri backend'de tanımlıdır. Sayfa açıldığında otomatik olarak Streamtape FTP sunucusuna bağlanır.</p>
+                    <p>Bağlantıyı test etmek için "Bağlantıyı Test Et" butonuna tıklayın.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeConnectionBtn">Kapat</button>
+                <button class="btn btn-primary" id="testConnectionBtn">🔍 Bağlantıyı Test Et</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="ftp-manager.js"></script>
+</body>
+</html>
+

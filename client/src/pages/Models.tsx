@@ -34,17 +34,30 @@ const Models: React.FC = () => {
     const loadModels = async () => {
       try {
         setLoading(true);
+        console.log('🔍 Models Page: Loading models...');
+        console.log('🔍 Models Page: Environment:', process.env.NODE_ENV);
+        console.log('🔍 Models Page: Supabase URL from ENV:', !!process.env.REACT_APP_SUPABASE_URL);
         
         // Load videos to count per model
         let videos: Video[] = [];
         try {
+          console.log('🔍 Models Page: Loading videos...');
           videos = await videoService.getAll();
-        } catch (error) {
-          console.error('Failed to load videos:', error);
+          console.log('✅ Models Page: Videos loaded:', videos.length);
+        } catch (error: any) {
+          console.error('❌ Models Page: Failed to load videos:', error);
+          console.error('   Error details:', {
+            message: error.message,
+            code: error.code
+          });
         }
         
         // First try to load from Supabase
+        console.log('🔍 Models Page: Loading models from Supabase...');
         const modelsData = await modelService.getAll();
+        console.log('✅ Models Page: Models from Supabase:', modelsData.length);
+        console.log('   Models:', modelsData.map(m => m.name));
+        
         const formattedModels: ModelData[] = modelsData.map(model => {
           // Count videos for this model
           const modelVideos = videos.filter(v => v.model_id === model.id);
@@ -58,10 +71,15 @@ const Models: React.FC = () => {
           };
         });
         
+        console.log('✅ Models Page: Formatted models:', formattedModels.length);
+        
         // Then merge with localStorage data
         const savedModels = localStorage.getItem('adminModels');
+        console.log('🔍 Models Page: localStorage check:', savedModels ? 'Has data' : 'Empty');
+        
         if (savedModels) {
           const localModels: ModelData[] = JSON.parse(savedModels);
+          console.log('✅ Models Page: localStorage models:', localModels.length);
           // Merge Supabase and localStorage models, removing duplicates
           const mergedModels = [...localModels];
           formattedModels.forEach(model => {
@@ -69,20 +87,33 @@ const Models: React.FC = () => {
               mergedModels.push(model);
             }
           });
+          console.log('✅ Models Page: Final merged models:', mergedModels.length);
           setModels(mergedModels);
           setFilteredModels(mergedModels);
         } else {
+          console.log('✅ Models Page: Using only Supabase models:', formattedModels.length);
           setModels(formattedModels);
           setFilteredModels(formattedModels);
         }
-      } catch (error) {
-        console.error('Failed to load models:', error);
+      } catch (error: any) {
+        console.error('❌ Models Page: Failed to load models:', error);
+        console.error('   Error details:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
         // Fallback to localStorage if Supabase fails
         const savedModels = localStorage.getItem('adminModels');
         if (savedModels) {
+          console.log('⚠️ Models Page: Using localStorage fallback');
           const modelsData: ModelData[] = JSON.parse(savedModels);
+          console.log('✅ Models Page: localStorage models loaded:', modelsData.length);
           setModels(modelsData);
           setFilteredModels(modelsData);
+        } else {
+          console.log('❌ Models Page: No models found in Supabase or localStorage');
+          setModels([]);
+          setFilteredModels([]);
         }
       } finally {
         setLoading(false);

@@ -1,22 +1,33 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Get Supabase credentials from environment variables
-// Fallback to hardcoded values for development (DO NOT commit these in production)
+// Fallback to hardcoded values (ALWAYS use hardcoded in production until Vercel env vars are set)
+// Production'da Vercel environment variable'ları yüklenmemişse hardcoded key kullanılacak
 const supabaseUrl = 
   process.env.REACT_APP_SUPABASE_URL || 
   'https://xgyjhofakpatrqgvleze.supabase.co';
 
+// IMPORTANT: Always use hardcoded key if env var is missing or empty
+const envKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabaseAnonKey = 
-  process.env.REACT_APP_SUPABASE_ANON_KEY || 
+  (envKey && envKey.trim() !== '') ? envKey : 
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhneWpob2Zha3BhdHJxZ3ZsZXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MjA2NDEsImV4cCI6MjA3Njk5NjY0MX0.RB2QQkjtXaM-GaH0HXP_B14BIDm0Y-MvlvDpOt7V1sQ';
 
-if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_KEY) {
-  console.warn('⚠️ WARNING: Using hardcoded Supabase credentials. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in .env file for production.');
-}
+// Debug logging - ALWAYS log in both development and production
+console.log('🔍 Supabase Configuration (ALWAYS):');
+console.log('  Environment:', process.env.NODE_ENV);
+console.log('  URL:', supabaseUrl);
+console.log('  URL from ENV:', !!process.env.REACT_APP_SUPABASE_URL ? 'YES ✅' : 'NO ❌ (using hardcoded)');
+console.log('  Key from ENV:', !!process.env.REACT_APP_SUPABASE_ANON_KEY ? 'YES ✅' : 'NO ❌ (using hardcoded)');
+console.log('  Key length:', supabaseAnonKey?.length || 0);
+console.log('  Key preview:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 30)}...` : 'MISSING');
 
-if (process.env.NODE_ENV === 'development') {
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase Key:', supabaseAnonKey ? 'Present' : 'Missing');
+if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_KEY) {
+  console.warn('⚠️ WARNING: Using hardcoded Supabase credentials!');
+  console.warn('⚠️ This will cause "Invalid API key" errors in production if the hardcoded key is wrong!');
+  console.warn('⚠️ Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in Vercel environment variables.');
+} else {
+  console.log('✅ Using environment variables from Vercel');
 }
 
 // Supabase client configuration with proper headers
@@ -33,6 +44,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      'apikey': supabaseAnonKey, // Explicitly set apikey header
     },
   },
 });
@@ -93,6 +105,9 @@ export interface Channel {
 export interface Profile {
   id: string;
   user_name: string;
+  email?: string | null;
+  name?: string | null;
+  avatar?: string | null;
   banner_image: string | null;
   avatar_image: string | null;
   subscriber_count: number;

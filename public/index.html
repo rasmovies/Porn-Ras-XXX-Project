@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamtape Değşet Purna Yükle HD 31</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Adsterra Popunder Ads -->
+    <script
+      type="text/javascript"
+      src="//skybaggycollecting.com/26/fc/1b/26fc1b5a649c7a1c9f4e9be462e02070.js"
+    ></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Streamtape Değşet Purna Yükle HD 31</h1>
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Bağlanıyor...</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="info-card">
+                <h2>📁 Klasör Bilgileri</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Yüklenecekler:</span>
+                        <span class="value" id="uploadDir">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Gönderilenler:</span>
+                        <span class="value" id="sentDir">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="pending">Yüklenecekler</button>
+                <button class="tab-btn" data-tab="sent">Gönderilenler</button>
+            </div>
+
+            <div class="tab-content active" id="pending-tab">
+                <div class="file-list" id="pendingFiles">
+                    <div class="empty-state">Yüklenecek dosya yok</div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="sent-tab">
+                <div class="file-list" id="sentFiles">
+                    <div class="empty-state">Gönderilen dosya yok</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- İlerleme Paneli -->
+        <div class="progress-panel" id="progressPanel" style="display: none;">
+            <div class="progress-panel-header">
+                <h3>📊 Aktif Yüklemeler</h3>
+                <button class="progress-panel-close" id="closeProgressPanel">×</button>
+            </div>
+            <div class="progress-panel-content" id="progressPanelContent">
+                <div class="empty-progress">Aktif yükleme yok</div>
+            </div>
+        </div>
+
+        <div class="notification-container" id="notifications"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
