@@ -17,17 +17,6 @@ import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const [error, setError] = useState('');
-<<<<<<< HEAD
-  const [showEmailForm, setShowEmailForm] = useState(false);
-  const [emailOrNickname, setEmailOrNickname] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-=======
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    emailOrUsername: '',
-    password: '',
-  });
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -299,11 +288,6 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
-<<<<<<< HEAD
-            {!showEmailForm ? (
-=======
-            {!showForm ? (
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Button
                   variant="outlined"
@@ -353,11 +337,6 @@ const Login: React.FC = () => {
                 <Button
                   variant="outlined"
                   fullWidth
-<<<<<<< HEAD
-                  onClick={() => setShowEmailForm(true)}
-=======
-                  onClick={() => setShowForm(true)}
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   sx={{
                     py: 1.5,
                     borderRadius: '12px',
@@ -371,38 +350,6 @@ const Login: React.FC = () => {
                     }
                   }}
                 >
-<<<<<<< HEAD
-                  Continue with Email or Nickname
-                </Button>
-              </Box>
-            ) : (
-              <Box component="form" onSubmit={handleEmailLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <TextField
-                  fullWidth
-                  label="Email or Nickname"
-                  type="text"
-                  value={emailOrNickname}
-                  onChange={(e) => setEmailOrNickname(e.target.value)}
-                  required
-                  placeholder="Enter your email or nickname"
-                  helperText="You can login with your email address or nickname"
-                  disabled={isLoggingIn}
-=======
-                  Email/Username ile Giriş
-                </Button>
-              </Box>
-            ) : (
-              <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <TextField
-                  fullWidth
-                  label="Email veya Kullanıcı Adı"
-                  name="emailOrUsername"
-                  type="text"
-                  value={formData.emailOrUsername}
-                  onChange={handleFormChange}
-                  required
-                  placeholder="email@example.com veya kullaniciadi"
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       color: 'white',
@@ -419,36 +366,6 @@ const Login: React.FC = () => {
                     '& .MuiInputLabel-root': {
                       color: 'rgba(255, 255, 255, 0.7)',
                     },
-<<<<<<< HEAD
-                    '& .MuiFormHelperText-root': {
-                      color: 'rgba(255, 255, 255, 0.5)',
-=======
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Şifre"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleFormChange}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(0, 255, 255, 0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#00ffff',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255, 255, 255, 0.7)',
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                     },
                   }}
                 />
@@ -456,10 +373,6 @@ const Login: React.FC = () => {
                   type="submit"
                   variant="contained"
                   fullWidth
-<<<<<<< HEAD
-                  disabled={isLoggingIn || !emailOrNickname.trim()}
-=======
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   sx={{
                     py: 1.5,
                     borderRadius: '12px',
@@ -469,36 +382,12 @@ const Login: React.FC = () => {
                     fontWeight: 'bold',
                     '&:hover': {
                       bgcolor: '#00cccc',
-<<<<<<< HEAD
-                    },
-                    '&:disabled': {
-                      bgcolor: 'rgba(0, 255, 255, 0.3)',
-                      color: 'rgba(255, 255, 255, 0.5)',
-                    }
-                  }}
-                >
-                  {isLoggingIn ? 'Signing in...' : 'Sign In'}
-=======
-                    }
-                  }}
-                >
-                  Giriş Yap
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                 </Button>
                 <Button
                   type="button"
                   variant="outlined"
                   fullWidth
                   onClick={() => {
-<<<<<<< HEAD
-                    setShowEmailForm(false);
-                    setEmailOrNickname('');
-                    setError('');
-=======
-                    setShowForm(false);
-                    setError('');
-                    setFormData({ emailOrUsername: '', password: '' });
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                   }}
                   sx={{
                     py: 1.5,
@@ -512,11 +401,6 @@ const Login: React.FC = () => {
                     }
                   }}
                 >
-<<<<<<< HEAD
-                  Back
-=======
-                  Geri
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
                 </Button>
               </Box>
             )}

@@ -14,11 +14,6 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-<<<<<<< HEAD
-import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
-=======
-import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Folder } from '@mui/icons-material';
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
 import { useNavigate } from 'react-router-dom';
 import { categoryService, modelService, channelService, profileService, banUserService, notificationService } from '../services/database';
 import { emailApi } from '../services/emailApi';
@@ -825,25 +820,6 @@ const Admin: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box>
-<<<<<<< HEAD
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom className="gradient-text">
-            Admin Panel
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Manage categories and models for your video platform
-          </Typography>
-        </Box>
-=======
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1" className="gradient-text">
-            Admin Panel
-          </Typography>
-        </Box>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Manage categories and models for your video platform
-        </Typography>
->>>>>>> 82e70a2c60e81ff44aa79db350e19baf4f548571
       </Box>
 
       <Card>
