@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import LoginModal from './LoginModal';
 import RegisterModal from './RegisterModal';
 
@@ -77,6 +77,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
   };
+
+  // Development mode: Auto-login as admin
+  useEffect(() => {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    if (isDevelopment && !isAuthenticated) {
+      // Auto-login as admin in development
+      const devAdminUser = {
+        username: 'admin',
+        email: 'admin@localhost',
+        id: 'dev-admin-id',
+        isAdmin: true
+      };
+      
+      login(devAdminUser);
+      console.log('🔧 Development mode: Auto-logged in as admin');
+    }
+  }, []); // Only run once on mount
 
   return (
     <AuthContext.Provider value={{ openLoginModal, openRegisterModal, closeModals, isAuthenticated, user, login, logout }}>
