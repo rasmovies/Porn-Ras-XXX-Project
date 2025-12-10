@@ -49,3 +49,5 @@ CREATE POLICY "Anyone can update verification codes for their email"
   TO anon
   USING (true);
 
+
+

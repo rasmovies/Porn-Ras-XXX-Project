@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test - Watch Folder Varsayılan</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test-box { padding: 20px; margin: 10px 0; border: 2px solid #28a745; background: #d4edda; }
+    </style>
+</head>
+<body>
+    <h1>Test Sayfası - Watch Folder Varsayılan</h1>
+    
+    <div class="test-box">
+        <h3>Radio Button Test</h3>
+        <label>
+            <input type="radio" name="test" value="webui"> Web UI
+        </label>
+        <label>
+            <input type="radio" name="test" value="watch-folder" checked> Watch Folder (CHECKED)
+        </label>
+    </div>
+    
+    <div class="test-box" id="watch-config" style="display:block;">
+        <h3>Watch Folder Config (Görünür olmalı)</h3>
+        <p>Eğer bu kutu görünüyorsa, Watch Folder varsayılan çalışıyor!</p>
+    </div>
+    
+    <div class="test-box" id="webui-config" style="display:none;">
+        <h3>Web UI Config (Gizli olmalı)</h3>
+        <p>Bu kutu görünmemeli.</p>
+    </div>
+    
+    <script>
+        console.log('✅ Script çalışıyor!');
+        console.log('Watch Folder checked:', document.querySelector('input[value="watch-folder"]').checked);
+        console.log('Watch Config display:', window.getComputedStyle(document.getElementById('watch-config')).display);
+        console.log('Web UI Config display:', window.getComputedStyle(document.getElementById('webui-config')).display);
+    </script>
+</body>
+</html>

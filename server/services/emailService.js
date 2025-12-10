@@ -1,48 +1,23 @@
 ﻿   const path = require('path');
    const fs = require('fs').promises;
    const mustache = require('mustache');
-   const nodemailer = require('nodemailer');
+   const { Resend } = require('resend');
 
+  // Resend API Configuration
   const {
-    SPACEMAIL_SMTP_HOST = 'mail.spacemail.com',
-    SPACEMAIL_SMTP_PORT = '465',
-    SPACEMAIL_SMTP_SECURE = 'true',
-    SPACEMAIL_SMTP_USERNAME,
-    SPACEMAIL_SMTP_PASSWORD,
-    SPACEMAIL_FROM_EMAIL,
-    SPACEMAIL_FROM_NAME = 'PORNRAS',
+    RESEND_API_KEY,
+    RESEND_FROM_EMAIL = 'info@pornras.com',
+    RESEND_FROM_NAME = 'PORNRAS',
   } = process.env;
 
-   if (!SPACEMAIL_FROM_EMAIL && !SPACEMAIL_SMTP_USERNAME) {
-     console.warn('⚠️ Spacemail gönderici adresi (SPACEMAIL_FROM_EMAIL veya SPACEMAIL_SMTP_USERNAME) tanımlı değil. E-posta gönderimleri başarısız olabilir.');
-   }
+  // Initialize Resend client
+  const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
-  const fromEmail = SPACEMAIL_FROM_EMAIL || SPACEMAIL_SMTP_USERNAME;
+  if (!RESEND_API_KEY) {
+    console.warn('⚠️ RESEND_API_KEY tanımlı değil. E-posta gönderimleri başarısız olacak.');
+  }
 
-  const transporter = nodemailer.createTransport({
-    host: SPACEMAIL_SMTP_HOST,
-    port: Number(SPACEMAIL_SMTP_PORT),
-    secure: SPACEMAIL_SMTP_SECURE === 'true',
-    auth: SPACEMAIL_SMTP_USERNAME && SPACEMAIL_SMTP_PASSWORD
-      ? { 
-          user: SPACEMAIL_SMTP_USERNAME.trim(), // Boşlukları temizle
-          pass: SPACEMAIL_SMTP_PASSWORD.trim(), // Boşlukları temizle
-        }
-      : undefined,
-    tls: {
-      rejectUnauthorized: true, // Standart SSL sertifika
-    },
-    // Spacemail için ek ayarlar
-    connectionTimeout: 30000, // 30 saniye timeout
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
-    debug: process.env.NODE_ENV === 'development', // Debug modu
-    logger: process.env.NODE_ENV === 'development', // Logger
-  });
-
-   transporter.verify().catch((error) => {
-     console.warn('⚠️ Spacemail SMTP bağlantısı doğrulanamadı:', error.message);
-   });
+  const fromEmail = RESEND_FROM_EMAIL;
 
    /**
     * Resolve template file path reliably in Vercel serverless env.
@@ -87,47 +62,51 @@
    }
 
   async function dispatchEmail({ recipients, subject, html }) {
-    if (!fromEmail) {
-      const cfgErr = new Error('Spacemail yapılandırması eksik (SPACEMAIL_FROM_EMAIL veya SPACEMAIL_SMTP_USERNAME).');
+    if (!resend) {
+      const cfgErr = new Error('Resend API yapılandırması eksik (RESEND_API_KEY).');
       cfgErr.status = 500;
       cfgErr.code = 'EMAIL_CONFIG_MISSING';
       throw cfgErr;
     }
-    
-    if (!SPACEMAIL_SMTP_USERNAME || !SPACEMAIL_SMTP_PASSWORD) {
-      const authErr = new Error('Spacemail SMTP kimlik bilgileri eksik (SPACEMAIL_SMTP_USERNAME veya SPACEMAIL_SMTP_PASSWORD).');
-      authErr.status = 500;
-      authErr.code = 'EMAIL_AUTH_MISSING';
-      throw authErr;
+
+    if (!fromEmail) {
+      const cfgErr = new Error('Gönderici e-posta adresi tanımlı değil (RESEND_FROM_EMAIL).');
+      cfgErr.status = 500;
+      cfgErr.code = 'EMAIL_FROM_MISSING';
+      throw cfgErr;
     }
 
-    const normalizedRecipients = recipients.map((recipient) => {
+    // Normalize recipients to array format
+    const normalizedRecipients = Array.isArray(recipients) ? recipients : [recipients];
+    const toEmails = normalizedRecipients.map((recipient) => {
       if (typeof recipient === 'string') {
-        return { email: recipient, name: recipient.split('@')[0] };
+        return recipient;
       }
-      return {
-        email: recipient.email,
-        name: recipient.name || recipient.email.split('@')[0],
-      };
+      return recipient.email;
     });
 
-    const toAddresses = normalizedRecipients
-      .map((recipient) => (recipient.name ? `"${recipient.name}" <${recipient.email}>` : recipient.email))
-      .join(', ');
-
     try {
-      return await transporter.sendMail({
-        from: `"${SPACEMAIL_FROM_NAME}" <${fromEmail}>`,
-        to: toAddresses,
+      const result = await resend.emails.send({
+        from: `"${RESEND_FROM_NAME}" <${fromEmail}>`,
+        to: toEmails,
         subject,
         html,
         text: htmlToText(html),
       });
+
+      if (result.error) {
+        const apiError = new Error(`Resend API error: ${result.error.message || 'Unknown error'}`);
+        apiError.status = 502;
+        apiError.code = 'RESEND_API_ERROR';
+        throw apiError;
+      }
+
+      return result;
     } catch (err) {
-      const smtpError = new Error(`SMTP send failed: ${err && err.message ? err.message : 'Unknown error'}`);
-      smtpError.status = 502; // Bad gateway to indicate upstream mail failure
-      smtpError.cause = err;
-      throw smtpError;
+      const apiError = new Error(`Email send failed: ${err && err.message ? err.message : 'Unknown error'}`);
+      apiError.status = 502; // Bad gateway to indicate upstream mail failure
+      apiError.cause = err;
+      throw apiError;
     }
   }
 

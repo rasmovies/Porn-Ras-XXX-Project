@@ -78,6 +78,26 @@ const Upload: React.FC = () => {
   const [editCategoryIds, setEditCategoryIds] = useState<string[]>([]);
   const [editModelIds, setEditModelIds] = useState<string[]>([]);
   const [editChannelIds, setEditChannelIds] = useState<string[]>([]);
+  const [uploadedStreamtapeUrl, setUploadedStreamtapeUrl] = useState<string>('');
+
+  // Upload Queue System (FileZilla-like)
+  interface UploadItem {
+    id: string;
+    file: File;
+    status: 'pending' | 'uploading' | 'completed' | 'failed' | 'retrying';
+    progress: number;
+    streamtapeUrl?: string;
+    error?: string;
+    retryCount: number;
+    speed?: number; // MB/s
+    uploadedMB?: number;
+    totalMB?: number;
+  }
+
+  const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+  const [maxConcurrentUploads] = useState(3); // FileZilla-like: concurrent uploads
+  const [maxRetries] = useState(3); // Max retry attempts
 
   // Load categories, models, and all videos from Supabase
   useEffect(() => {
@@ -184,46 +204,61 @@ const Upload: React.FC = () => {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate video file
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Support both single and multiple file selection
+    const fileArray = Array.from(files);
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    fileArray.forEach((file) => {
       const validation = validateVideoFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error || 'Geçersiz video dosyası');
-        setValidationErrors((prev) => ({ ...prev, videoFile: validation.error || '' }));
-        event.target.value = ''; // Reset input
-        return;
+      if (validation.valid) {
+        validFiles.push(file);
+      } else {
+        errors.push(`${file.name}: ${validation.error || 'Geçersiz video dosyası'}`);
       }
+    });
 
-      setValidationErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.videoFile;
-        return newErrors;
-      });
-
-      setSelectedFile(file);
-      setUploadComplete(false);
-      
-      // Create video preview URL
-      const videoUrl = URL.createObjectURL(file);
-      setVideoPreview(videoUrl);
-      
-      setIsUploading(true);
-      setUploadProgress(0);
-      
-      // Simulate upload progress
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsUploading(false);
-            setUploadComplete(true);
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 200);
+    if (errors.length > 0) {
+      errors.forEach(error => toast.error(error));
     }
+
+    if (validFiles.length === 0) {
+      event.target.value = '';
+      return;
+    }
+
+    // Clear previous errors
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.videoFile;
+      return newErrors;
+    });
+
+    // If single file, use old behavior for preview
+    if (validFiles.length === 1) {
+      setSelectedFile(validFiles[0]);
+      setUploadComplete(false);
+      setUploadedStreamtapeUrl('');
+      const videoUrl = URL.createObjectURL(validFiles[0]);
+      setVideoPreview(videoUrl);
+    } else {
+      // Multiple files: add to queue
+      const newItems: UploadItem[] = validFiles.map(file => ({
+        id: `${Date.now()}-${Math.random()}`,
+        file,
+        status: 'pending',
+        progress: 0,
+        retryCount: 0
+      }));
+
+      setUploadQueue(prev => [...prev, ...newItems]);
+      toast.success(`${validFiles.length} dosya yükleme kuyruğuna eklendi`);
+    }
+
+    event.target.value = '';
   };
 
   const handleRemoveVideo = () => {
@@ -349,6 +384,234 @@ const Upload: React.FC = () => {
     return url;
   };
 
+  // Upload single file with retry mechanism (FileZilla-like)
+  const uploadFileToStreamtape = async (
+    file: File,
+    uploadItemId: string,
+    retryCount: number = 0
+  ): Promise<string> => {
+    const ST_KEYS = {
+      method: 'streamtape_auth_method',
+      login: 'streamtape_login',
+      key: 'streamtape_key',
+      cookies: 'streamtape_cookies'
+    };
+
+    const streamtapeAuthMethod = localStorage.getItem(ST_KEYS.method) || 'apikey';
+    const streamtapeLogin = localStorage.getItem(ST_KEYS.login) || '';
+    const streamtapeKey = localStorage.getItem(ST_KEYS.key) || '';
+    const streamtapeCookies = localStorage.getItem(ST_KEYS.cookies) || '';
+
+    if (!streamtapeLogin && !streamtapeKey && !streamtapeCookies) {
+      throw new Error('Streamtape credentials bulunamadı. Lütfen Torrent Manager\'dan Streamtape ayarlarını yapın.');
+    }
+
+    // Update status to uploading/retrying
+    setUploadQueue(prev => prev.map(item => 
+      item.id === uploadItemId 
+        ? { ...item, status: retryCount > 0 ? 'retrying' : 'uploading', error: undefined }
+        : item
+    ));
+
+    try {
+      // Get upload URL
+      const urlResponse = await fetch('/api/upload/get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          streamtapeLogin,
+          streamtapeKey,
+          streamtapeCookies,
+          streamtapeAuthMethod
+        })
+      });
+
+      if (!urlResponse.ok) {
+        const errorData = await urlResponse.json().catch(() => ({ message: 'Upload URL alınamadı' }));
+        throw new Error(errorData.message || 'Upload URL alınamadı');
+      }
+
+      const urlData = await urlResponse.json();
+      if (!urlData.success || !urlData.uploadUrl) {
+        throw new Error('Upload URL alınamadı');
+      }
+
+      const uploadUrl = urlData.uploadUrl;
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadHeaders: HeadersInit = {};
+      if (streamtapeAuthMethod === 'cookie' && streamtapeCookies) {
+        const cleanCookies = streamtapeCookies
+          .replace(/\r\n/g, ' ')
+          .replace(/\n/g, ' ')
+          .replace(/\r/g, ' ')
+          .replace(/\t/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        uploadHeaders['Cookie'] = cleanCookies;
+      }
+
+      // Upload with progress tracking
+      return new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const startTime = Date.now();
+        let lastLoaded = 0;
+
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded * 100) / e.total);
+            const uploadedMB = e.loaded / (1024 * 1024);
+            const totalMB = e.total / (1024 * 1024);
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = elapsed > 0 ? (e.loaded - lastLoaded) / elapsed / (1024 * 1024) : 0;
+            lastLoaded = e.loaded;
+
+            setUploadQueue(prev => prev.map(item => 
+              item.id === uploadItemId 
+                ? { 
+                    ...item, 
+                    progress: percent,
+                    uploadedMB,
+                    totalMB,
+                    speed
+                  }
+                : item
+            ));
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const responseText = xhr.responseText;
+              let result;
+              try {
+                result = JSON.parse(responseText);
+              } catch (e) {
+                result = { raw: responseText };
+              }
+
+              // Extract file ID (same logic as before)
+              let fileId = null;
+              if (result.result) {
+                fileId = result.result.id || result.result.fileid || result.result.file_id;
+                if (!fileId && result.result.url) {
+                  const match = result.result.url.match(/[\/v|e|d]+\/([a-zA-Z0-9]+)/);
+                  if (match) fileId = match[1];
+                }
+              }
+              if (!fileId) {
+                fileId = result.id || result.fileid || result.file_id;
+              }
+              if (!fileId && result.raw) {
+                const match = result.raw.match(/streamtape\.com\/[ve]+\/([a-zA-Z0-9]+)/i);
+                if (match) fileId = match[1];
+              }
+
+              if (fileId) {
+                const embedUrl = `https://streamtape.com/e/${fileId}/`;
+                setUploadQueue(prev => prev.map(item => 
+                  item.id === uploadItemId 
+                    ? { ...item, status: 'completed', streamtapeUrl: embedUrl, progress: 100 }
+                    : item
+                ));
+                resolve(embedUrl);
+              } else {
+                throw new Error('File ID alınamadı');
+              }
+            } catch (parseError: any) {
+              reject(new Error(`Response parse error: ${parseError.message}`));
+            }
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Network error')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+        xhr.open('POST', uploadUrl);
+        Object.entries(uploadHeaders).forEach(([key, value]) => {
+          xhr.setRequestHeader(key, value);
+        });
+        xhr.send(formData);
+      });
+    } catch (error: any) {
+      // Retry logic
+      if (retryCount < maxRetries) {
+        console.log(`🔄 Retrying upload (${retryCount + 1}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
+        return uploadFileToStreamtape(file, uploadItemId, retryCount + 1);
+      } else {
+        setUploadQueue(prev => prev.map(item => 
+          item.id === uploadItemId 
+            ? { ...item, status: 'failed', error: error.message, retryCount: retryCount + 1 }
+            : item
+        ));
+        throw error;
+      }
+    }
+  };
+
+  // Process upload queue (FileZilla-like concurrent uploads)
+  const processUploadQueue = async () => {
+    if (isProcessingQueue) return;
+    setIsProcessingQueue(true);
+
+    const processLoop = async () => {
+      while (true) {
+        // Get fresh state using functional update
+        let shouldContinue = false;
+        setUploadQueue(currentQueue => {
+          const pendingItems = currentQueue.filter(item => item.status === 'pending');
+          const uploadingItems = currentQueue.filter(item => 
+            item.status === 'uploading' || item.status === 'retrying'
+          );
+
+          // Start new uploads if we have capacity
+          const availableSlots = maxConcurrentUploads - uploadingItems.length;
+          const itemsToStart = pendingItems.slice(0, availableSlots);
+
+          if (itemsToStart.length === 0 && uploadingItems.length === 0) {
+            // Queue is empty or all completed
+            shouldContinue = false;
+            return currentQueue;
+          }
+
+          shouldContinue = true;
+
+          // Start uploads for available slots
+          itemsToStart.forEach(item => {
+            uploadFileToStreamtape(item.file, item.id, 0).catch(err => {
+              console.error('Upload failed:', err);
+            });
+          });
+
+          return currentQueue;
+        });
+
+        if (!shouldContinue) {
+          setIsProcessingQueue(false);
+          break;
+        }
+
+        // Wait a bit before checking again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    };
+
+    processLoop();
+  };
+
+  // Auto-start queue processing when items are added
+  useEffect(() => {
+    if (uploadQueue.length > 0 && !isProcessingQueue) {
+      processUploadQueue();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadQueue.length, isProcessingQueue]);
+
   const handlePublishVideo = async () => {
     // Clear previous errors
     setValidationErrors({});
@@ -393,36 +656,256 @@ const Upload: React.FC = () => {
       }
     }
 
-            setIsPublishing(true);
+    setIsPublishing(true);
   
-      try {
-        // Sanitize inputs
-        const sanitizedTitle = sanitizeInput(videoTitle);
-        const sanitizedDescription = sanitizeInput(videoDescription);
-  
-        const videoSlug = sanitizedTitle
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .trim();
-
-        // Use URL if available, otherwise use file preview
-        const thumbnailToUse = embedMode === 'streamtape' 
-          ? (streamtapeThumbnailUrl.trim() || streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail')
-          : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail');
+    try {
+      // If file mode, upload file to Streamtape first
+      let finalStreamtapeUrl = streamtapeUrl;
+      
+      if (embedMode === 'file' && selectedFile) {
+        setIsUploading(true);
+        setUploadProgress(0);
         
-        // Create video data for Supabase
-        const videoData = {
-          title: sanitizedTitle,
-          description: sanitizedDescription,
-          thumbnail: thumbnailToUse,
-          streamtape_url: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : null,
-          duration: videoDuration || '0:00',
-          category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
-          model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
-          channel_id: selectedChannelIds.length > 0 ? selectedChannelIds[0] : null,
-          slug: videoSlug
-        };
+        try {
+          // Get Streamtape credentials from localStorage (same keys as torrent-manager)
+          const ST_KEYS = {
+            method: 'streamtape_auth_method',
+            login: 'streamtape_login',
+            key: 'streamtape_key',
+            cookies: 'streamtape_cookies'
+          };
+          
+          const streamtapeAuthMethod = localStorage.getItem(ST_KEYS.method) || 'apikey';
+          const streamtapeLogin = localStorage.getItem(ST_KEYS.login) || '';
+          const streamtapeKey = localStorage.getItem(ST_KEYS.key) || '';
+          const streamtapeCookies = localStorage.getItem(ST_KEYS.cookies) || '';
+          
+          if (!streamtapeLogin && !streamtapeKey && !streamtapeCookies) {
+            throw new Error('Streamtape credentials bulunamadı. Lütfen Torrent Manager\'dan Streamtape ayarlarını yapın.');
+          }
+          
+          // Step 1: Get upload URL from our API (FileZilla-like approach)
+          const urlResponse = await fetch('/api/upload/get-upload-url', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              streamtapeLogin,
+              streamtapeKey,
+              streamtapeCookies,
+              streamtapeAuthMethod
+            })
+          });
+          
+          if (!urlResponse.ok) {
+            const errorData = await urlResponse.json().catch(() => ({ message: 'Upload URL alınamadı' }));
+            throw new Error(errorData.message || 'Upload URL alınamadı');
+          }
+          
+          const urlData = await urlResponse.json();
+          if (!urlData.success || !urlData.uploadUrl) {
+            throw new Error('Upload URL alınamadı');
+          }
+          
+          const uploadUrl = urlData.uploadUrl;
+          console.log('✅ Upload URL alındı:', uploadUrl);
+          
+          // Step 2: Upload file directly to Streamtape from browser (FileZilla-like)
+          // This is much more efficient - no base64 encoding, no server in between
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          
+          // Prepare headers with cookies if using cookie auth
+          const uploadHeaders: HeadersInit = {};
+          if (streamtapeAuthMethod === 'cookie' && streamtapeCookies) {
+            // Clean cookies (remove newlines, etc.)
+            const cleanCookies = streamtapeCookies
+              .replace(/\r\n/g, ' ')
+              .replace(/\n/g, ' ')
+              .replace(/\r/g, ' ')
+              .replace(/\t/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            uploadHeaders['Cookie'] = cleanCookies;
+          }
+          
+          // Upload directly to Streamtape with progress tracking
+          const xhr = new XMLHttpRequest();
+          
+          // Track upload progress
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded * 100) / e.total);
+              setUploadProgress(percent);
+              console.log(`📊 Upload progress: ${percent}% (${(e.loaded / 1024 / 1024).toFixed(2)} MB / ${(e.total / 1024 / 1024).toFixed(2)} MB)`);
+            }
+          });
+          
+          // Wait for upload to complete
+          await new Promise<void>((resolve, reject) => {
+            xhr.addEventListener('load', () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const responseText = xhr.responseText;
+                  console.log('📥 Streamtape response:', responseText);
+                  
+                  // Parse response (same logic as streamtape.js)
+                  let result;
+                  if (typeof responseText === 'string') {
+                    try {
+                      result = JSON.parse(responseText);
+                    } catch (e) {
+                      // Not JSON, might be HTML or other format
+                      result = { raw: responseText };
+                    }
+                  } else {
+                    result = responseText;
+                  }
+                  
+                  // Extract file ID using same logic as streamtape.js
+                  let fileId = null;
+                  let fileUrl = null;
+                  let embedUrl = null;
+                  
+                  // Try result object first
+                  if (result.result) {
+                    fileId = result.result.id || result.result.fileid || result.result.file_id || 
+                             result.result.fid || result.result.vid || result.result.video_id;
+                    fileUrl = result.result.url || result.result.file_url || result.result.download_url || 
+                              result.result.link || result.result.video_url;
+                    embedUrl = result.result.embed_url || result.result.embedUrl || result.result.embed || 
+                               result.result.player_url || result.result.player;
+                    
+                    // Extract ID from URL if needed
+                    if (!fileId && fileUrl) {
+                      const urlMatch = fileUrl.match(/[\/v|e|d]+\/([a-zA-Z0-9]+)/);
+                      if (urlMatch && urlMatch[1]) {
+                        fileId = urlMatch[1];
+                      }
+                    }
+                  }
+                  
+                  // Try root level fields
+                  if (!fileId) {
+                    fileId = result.id || result.fileid || result.file_id || result.fid || 
+                             result.vid || result.video_id;
+                    fileUrl = result.url || result.file_url || result.download_url || 
+                              result.link || result.video_url;
+                    embedUrl = result.embed_url || result.embedUrl || result.embed || 
+                               result.player_url || result.player;
+                  }
+                  
+                  // Try to extract from msg field
+                  if (!fileId && result.msg && typeof result.msg === 'string') {
+                    const urlMatch = result.msg.match(/https?:\/\/[^\s]+/);
+                    if (urlMatch && urlMatch[0]) {
+                      fileUrl = urlMatch[0];
+                      const idMatch = fileUrl.match(/[\/v|e|d]+\/([a-zA-Z0-9]+)/);
+                      if (idMatch && idMatch[1]) {
+                        fileId = idMatch[1];
+                      }
+                    }
+                  }
+                  
+                  // Try regex patterns on raw response if still no ID
+                  if (!fileId && result.raw) {
+                    const patterns = [
+                      /fileid["\s:=]+([a-zA-Z0-9]+)/i,
+                      /["']id["']:\s*["']([a-zA-Z0-9]+)["']/i,
+                      /streamtape\.com\/[ve]+\/([a-zA-Z0-9]+)/i
+                    ];
+                    
+                    for (const pattern of patterns) {
+                      const match = result.raw.match(pattern);
+                      if (match && match[1]) {
+                        fileId = match[1];
+                        break;
+                      }
+                    }
+                  }
+                  
+                  // Construct URLs if we have fileId
+                  if (fileId) {
+                    if (!embedUrl) {
+                      embedUrl = `https://streamtape.com/e/${fileId}/`;
+                    }
+                    finalStreamtapeUrl = embedUrl;
+                    setUploadedStreamtapeUrl(finalStreamtapeUrl);
+                    console.log('✅ File uploaded! Streamtape URL:', finalStreamtapeUrl);
+                    toast.success('Video Streamtape\'e başarıyla yüklendi!');
+                    resolve();
+                  } else {
+                    console.error('❌ Could not extract file ID from response:', result);
+                    reject(new Error('Upload tamamlandı ancak dosya ID alınamadı. Lütfen Streamtape hesabınızdan kontrol edin.'));
+                  }
+                } catch (parseError: any) {
+                  console.error('❌ Response parse error:', parseError);
+                  reject(new Error(`Response parse error: ${parseError.message}`));
+                }
+              } else {
+                reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
+              }
+            });
+            
+            xhr.addEventListener('error', () => {
+              reject(new Error('Upload network error'));
+            });
+            
+            xhr.addEventListener('abort', () => {
+              reject(new Error('Upload aborted'));
+            });
+            
+            // Start upload
+            xhr.open('POST', uploadUrl);
+            
+            // Set headers
+            Object.entries(uploadHeaders).forEach(([key, value]) => {
+              xhr.setRequestHeader(key, value);
+            });
+            
+            xhr.send(formData);
+          });
+          
+        } catch (uploadError: any) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Dosya yüklenemedi: ${uploadError.message || 'Bilinmeyen hata'}`);
+          setIsPublishing(false);
+          setIsUploading(false);
+          setUploadProgress(0);
+          return;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      // Sanitize inputs
+      const sanitizedTitle = sanitizeInput(videoTitle);
+      const sanitizedDescription = sanitizeInput(videoDescription);
+  
+      const videoSlug = sanitizedTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .trim();
+
+      // Use URL if available, otherwise use file preview
+      const thumbnailToUse = embedMode === 'streamtape' 
+        ? (streamtapeThumbnailUrl.trim() || streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail')
+        : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail');
+      
+      // Create video data for Supabase
+      const videoData = {
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        thumbnail: thumbnailToUse,
+        streamtape_url: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : (finalStreamtapeUrl ? getStreamtapeEmbedUrl(finalStreamtapeUrl) : null),
+        duration: videoDuration || '0:00',
+        category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
+        model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
+        channel_id: selectedChannelIds.length > 0 ? selectedChannelIds[0] : null,
+        slug: videoSlug
+      };
 
       // Save to Supabase
       const savedVideo = await videoService.create(videoData);
@@ -432,12 +915,36 @@ const Upload: React.FC = () => {
         console.error('Failed to send notifications:', err);
       });
 
+      // Get model and category names for Bluesky hashtags
+      let modelName = null;
+      let categoryName = null;
+      
+      if (selectedModelIds.length > 0) {
+        try {
+          const model = await modelService.getById(selectedModelIds[0]);
+          if (model) modelName = model.name;
+        } catch (err) {
+          console.warn('Failed to get model name:', err);
+        }
+      }
+      
+      if (selectedCategoryIds.length > 0) {
+        try {
+          const category = await categoryService.getById(selectedCategoryIds[0]);
+          if (category) categoryName = category.name;
+        } catch (err) {
+          console.warn('Failed to get category name:', err);
+        }
+      }
+
       // Share to Bluesky (non-blocking)
       console.log('📤 Bluesky paylaşımı başlatılıyor...', {
         title: sanitizedTitle,
         description: sanitizedDescription,
         thumbnail: thumbnailToUse,
         slug: videoSlug,
+        modelName,
+        categoryName,
       });
       
       blueskyApi.shareVideo({
@@ -445,9 +952,15 @@ const Upload: React.FC = () => {
         description: sanitizedDescription,
         thumbnail: thumbnailToUse,
         slug: videoSlug,
+        modelName: modelName || undefined,
+        categoryName: categoryName || undefined,
       })
       .then(result => {
         console.log('✅ Bluesky paylaşımı başarılı:', result);
+        toast.success('✅ Video Bluesky\'de paylaşıldı!', {
+          duration: 4000,
+          icon: '📱',
+        });
       })
       .catch(err => {
         console.error('❌ Failed to share to Bluesky:', err);
@@ -455,7 +968,10 @@ const Upload: React.FC = () => {
           message: err?.message,
           stack: err?.stack,
         });
-        // Don't show error to user as this is a background task
+        // Show warning toast (not error, as video was saved successfully)
+        toast.error('⚠️ Video kaydedildi ancak Bluesky paylaşımı başarısız oldu. Lütfen manuel olarak paylaşın.', {
+          duration: 5000,
+        });
       });
 
       setIsPublishing(false);
@@ -576,6 +1092,159 @@ const Upload: React.FC = () => {
             </Button>
           </Box>
         </Box>
+
+        {/* Upload Queue (FileZilla-like) */}
+        {uploadQueue.length > 0 && (
+          <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
+                  📤 Upload Queue ({uploadQueue.length})
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => {
+                      setUploadQueue([]);
+                      toast.success('Upload queue temizlendi');
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                  {!isProcessingQueue && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => processUploadQueue()}
+                    >
+                      Start Queue
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: '400px', overflowY: 'auto' }}>
+                {uploadQueue.map((item) => (
+                  <Card
+                    key={item.id}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: item.status === 'completed' ? 'success.main' :
+                                   item.status === 'failed' ? 'error.main' :
+                                   item.status === 'uploading' || item.status === 'retrying' ? 'primary.main' :
+                                   'divider',
+                      bgcolor: item.status === 'completed' ? 'success.light' :
+                              item.status === 'failed' ? 'error.light' :
+                              item.status === 'uploading' || item.status === 'retrying' ? 'primary.light' :
+                              'background.default'
+                    }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.file.name}
+                        </Typography>
+                        <Chip
+                          label={
+                            item.status === 'pending' ? '⏳ Pending' :
+                            item.status === 'uploading' ? '📤 Uploading' :
+                            item.status === 'retrying' ? `🔄 Retrying (${item.retryCount}/${maxRetries})` :
+                            item.status === 'completed' ? '✅ Completed' :
+                            '❌ Failed'
+                          }
+                          size="small"
+                          color={
+                            item.status === 'completed' ? 'success' :
+                            item.status === 'failed' ? 'error' :
+                            item.status === 'uploading' || item.status === 'retrying' ? 'primary' :
+                            'default'
+                          }
+                          sx={{ ml: 1 }}
+                        />
+                      </Box>
+
+                      {/* Progress Bar */}
+                      {(item.status === 'uploading' || item.status === 'retrying') && (
+                        <Box sx={{ mb: 1 }}>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={item.progress} 
+                            sx={{ height: 8, borderRadius: 1 }}
+                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              {item.progress}% - {item.uploadedMB?.toFixed(2) || '0'} MB / {item.totalMB?.toFixed(2) || '0'} MB
+                            </Typography>
+                            {item.speed && item.speed > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                {item.speed.toFixed(2)} MB/s
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Error Message */}
+                      {item.status === 'failed' && item.error && (
+                        <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
+                          <Typography variant="caption">{item.error}</Typography>
+                          {item.retryCount < maxRetries && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              sx={{ mt: 0.5 }}
+                              onClick={() => {
+                                setUploadQueue(prev => prev.map(i => 
+                                  i.id === item.id ? { ...i, status: 'pending', error: undefined } : i
+                                ));
+                                processUploadQueue();
+                              }}
+                            >
+                              Retry
+                            </Button>
+                          )}
+                        </Alert>
+                      )}
+
+                      {/* Success Message */}
+                      {item.status === 'completed' && item.streamtapeUrl && (
+                        <Alert severity="success" sx={{ mt: 1, py: 0.5 }}>
+                          <Typography variant="caption">
+                            ✅ Uploaded: <a href={item.streamtapeUrl} target="_blank" rel="noopener noreferrer">{item.streamtapeUrl}</a>
+                          </Typography>
+                        </Alert>
+                      )}
+
+                      {/* File Size */}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        Size: {(item.file.size / (1024 * 1024)).toFixed(2)} MB
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+
+              {/* Queue Statistics */}
+              <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Pending: {uploadQueue.filter(i => i.status === 'pending').length}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Uploading: {uploadQueue.filter(i => i.status === 'uploading' || i.status === 'retrying').length}
+                </Typography>
+                <Typography variant="caption" color="success.main">
+                  Completed: {uploadQueue.filter(i => i.status === 'completed').length}
+                </Typography>
+                <Typography variant="caption" color="error.main">
+                  Failed: {uploadQueue.filter(i => i.status === 'failed').length}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
 
       <Card sx={{ mb: 3 }}>
@@ -633,6 +1302,7 @@ const Upload: React.FC = () => {
                   type="file"
                   accept="video/*"
                   onChange={handleFileUpload}
+                  multiple
                   style={{ display: 'none' }}
                   id="video-upload"
                 />

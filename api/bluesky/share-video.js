@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ success: false, errors: validation.errors });
     }
     
-    const { title, description, thumbnail, slug } = req.body;
+    const { title, description, thumbnail, slug, modelName, categoryName } = req.body;
     
     // Share to Bluesky
     const result = await shareVideoToBluesky({
@@ -44,6 +44,8 @@ module.exports = async function handler(req, res) {
       description,
       thumbnail,
       slug,
+      modelName,
+      categoryName,
     });
     
     return res.json({

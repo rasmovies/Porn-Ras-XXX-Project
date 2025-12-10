@@ -61,33 +61,46 @@ async function postToBluesky(text, imageUrl = null, linkUrl = null) {
     // Görsel varsa ekle (Bluesky görsel upload gerektirir)
     if (imageUrl) {
       try {
+        console.log('📸 Thumbnail yükleniyor:', imageUrl);
+        
         // Görseli indir ve upload et
         const imageResponse = await fetch(imageUrl);
         if (imageResponse.ok) {
           const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
           const imageMimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
           
+          console.log('📸 Görsel indirildi, MIME type:', imageMimeType, 'Size:', imageBuffer.length, 'bytes');
+          
           // Bluesky görsel upload (Node.js için Buffer kullan)
+          // @atproto/api'de uploadBlob için doğru parametre mimeType
           const uploadResponse = await agent.uploadBlob(imageBuffer, {
-            encoding: imageMimeType,
+            mimeType: imageMimeType,
           });
 
-          if (uploadResponse.data) {
+          if (uploadResponse.data && uploadResponse.data.blob) {
+            console.log('✅ Thumbnail Bluesky\'e yüklendi');
             postData.embed = {
               $type: 'app.bsky.embed.images',
               images: [
                 {
                   image: uploadResponse.data.blob,
-                  alt: text.substring(0, 200), // Alt text
+                  alt: text.substring(0, 200), // Alt text (Bluesky için max 1000 karakter)
                 },
               ],
             };
+          } else {
+            console.warn('⚠️ Upload response\'da blob bulunamadı:', uploadResponse);
           }
+        } else {
+          console.warn('⚠️ Görsel indirilemedi, status:', imageResponse.status);
         }
       } catch (imageError) {
-        console.warn('⚠️ Görsel yüklenemedi, sadece metin gönderiliyor:', imageError.message);
-        // Görsel yüklenemezse sadece metin gönder
+        console.error('❌ Görsel yükleme hatası:', imageError.message);
+        console.error('❌ Error stack:', imageError.stack);
+        // Görsel yüklenemezse sadece metin gönder (post devam eder)
       }
+    } else {
+      console.log('ℹ️ Thumbnail URL yok, sadece metin gönderiliyor');
     }
 
     // Post'u yayınla
@@ -115,13 +128,44 @@ async function postToBluesky(text, imageUrl = null, linkUrl = null) {
  * @returns {Promise<Object>} Post sonucu
  */
 async function shareVideoToBluesky(videoData) {
-  const { title, description, thumbnail, slug } = videoData;
+  const { title, description, thumbnail, slug, modelName, categoryName } = videoData;
 
-  // Video URL'si oluştur
-  const videoUrl = `https://www.pornras.com/video/${slug}`;
+  // Video URL'si oluştur (environment variable'dan al veya production URL kullan)
+  const baseUrl = process.env.SITE_BASE_URL || process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : (process.env.NODE_ENV === 'production' 
+      ? 'https://www.pornras.com' 
+      : 'http://localhost:3000');
+  const videoUrl = `${baseUrl}/video/${slug}`;
 
-  // Post metni oluştur
-  const postText = `🎬 Yeni Video: ${title}\n\n${description ? description.substring(0, 200) : ''}\n\n${videoUrl}`;
+  // Post metni oluştur (Bluesky 300 karakter limiti var, bu yüzden kısalt)
+  const maxDescriptionLength = 120; // Link, başlık ve hashtag'ler için yer bırak
+  const truncatedDescription = description 
+    ? description.substring(0, maxDescriptionLength) + (description.length > maxDescriptionLength ? '...' : '')
+    : '';
+  
+  // Hashtag'leri oluştur (model ve kategori isimlerini hashtag formatına çevir)
+  const hashtags = [];
+  if (modelName) {
+    // Model ismini hashtag formatına çevir (boşlukları kaldır, küçük harfe çevir)
+    const modelHashtag = `#${modelName.replace(/\s+/g, '').toLowerCase()}`;
+    hashtags.push(modelHashtag);
+  }
+  if (categoryName) {
+    // Kategori ismini hashtag formatına çevir
+    const categoryHashtag = `#${categoryName.replace(/\s+/g, '').toLowerCase()}`;
+    hashtags.push(categoryHashtag);
+  }
+  
+  // Post metnini oluştur
+  let postText = `🎬 Yeni Video: ${title}`;
+  if (truncatedDescription) {
+    postText += `\n\n${truncatedDescription}`;
+  }
+  if (hashtags.length > 0) {
+    postText += `\n\n${hashtags.join(' ')}`;
+  }
+  postText += `\n\n🔗 ${videoUrl}`;
 
   // Bluesky'de paylaş
   return await postToBluesky(postText, thumbnail, videoUrl);

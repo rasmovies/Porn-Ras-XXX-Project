@@ -4,23 +4,14 @@ const reactBase = process.env.REACT_APP_API_BASE_URL;
 // Production'da backend URL'ini belirleme
 // VPS kullanılmıyor - Backend Vercel serverless functions olarak aynı domain'de çalışıyor
 const getApiBaseUrl = (): string => {
-  // Production environment'da HER ZAMAN aynı domain'den API kullan (Vercel serverless functions)
-  // www.pornras.com/api/* endpoint'leri otomatik olarak api/ klasöründeki functions'a yönlenir
-  if (typeof window !== 'undefined' && window.location.hostname.includes('pornras.com')) {
-    const apiUrl = window.location.origin; // www.pornras.com
-    console.log('🔍 Production mode - using same domain for API (Vercel serverless):', apiUrl);
+  // Hem production hem local development'da aynı domain/port kullan (Vercel serverless functions)
+  // - Production: www.pornras.com/api/* endpoint'leri otomatik olarak api/ klasöründeki functions'a yönlenir
+  // - Local: localhost:3000/api/* endpoint'leri vercel dev tarafından api/ klasöründeki functions'a yönlenir
+  if (typeof window !== 'undefined') {
+    const apiUrl = window.location.origin; // www.pornras.com veya http://localhost:3000
+    console.log('🔍 Using same domain/port for API (Vercel serverless):', apiUrl);
     console.log('⚠️ Ignoring REACT_APP_API_BASE_URL environment variable for same-domain routing');
     return apiUrl;
-  }
-
-  // Local development - environment variable varsa kullan, yoksa localhost:5000
-  if (reactBase && typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return reactBase;
-  }
-
-  // Local development fallback
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return `${window.location.protocol}//${window.location.hostname}:5000`;
   }
 
   return '';
@@ -49,48 +40,45 @@ const buildUrl = (path: string) => {
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' 
   });
   
-  // Production'da API_BASE_URL yoksa fallback kullan
-  if (!API_BASE_URL) {
-    const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
-    if (isProduction) {
-      // Production'da aynı domain'den API kullan (Vercel serverless functions)
-      const fallbackUrl = window.location.origin; // www.pornras.com
-      console.warn('⚠️ buildUrl: API_BASE_URL bulunamadı, same domain fallback kullanılıyor:', fallbackUrl);
-      const fullUrl = `${fallbackUrl.replace(/\/$/, '')}${normalizedPath}`;
-      console.log('✅ buildUrl result (fallback):', fullUrl);
-      return fullUrl;
-    }
-    // Local development'da localhost:5000 kullan
-    console.log('⚠️ API_BASE_URL yok, local development için localhost kullanılıyor');
+  // API_BASE_URL varsa onu kullan, yoksa window.location.origin kullan (fallback)
+  const baseUrl = API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  
+  if (!baseUrl) {
+    console.error('⚠️ buildUrl: API_BASE_URL ve window.location.origin bulunamadı!');
     return normalizedPath;
   }
   
-  const fullUrl = `${API_BASE_URL.replace(/\/$/, '')}${normalizedPath}`;
+  const fullUrl = `${baseUrl.replace(/\/$/, '')}${normalizedPath}`;
   console.log('✅ buildUrl result:', fullUrl);
   return fullUrl;
 };
 
-async function postJson<TInput extends object, TResponse>(path: string, body: TInput): Promise<TResponse> {
+export async function postJson<TInput extends object, TResponse>(path: string, body: TInput): Promise<TResponse> {
   let url = '';
   
   try {
-    // Production'da HER ZAMAN aynı domain'den API kullan (Vercel serverless functions)
-    const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('pornras.com');
-    
-    if (isProduction) {
-      // Production'da aynı domain'den API kullan - environment variable'ı KESİNLİKLE ignore et
-      const sameDomainUrl = window.location.origin; // www.pornras.com
+    // Hem production hem local development'da HER ZAMAN aynı domain/port'tan API kullan (Vercel serverless functions)
+    // - Production: www.pornras.com/api/*
+    // - Local: http://localhost:3000/api/* (vercel dev ile çalışır)
+    if (typeof window !== 'undefined' && API_BASE_URL) {
       const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-      url = `${sameDomainUrl.replace(/\/$/, '')}${normalizedPath}`;
-      console.log('✅ Production mode - FORCED same domain for API (ignoring REACT_APP_API_BASE_URL):', url);
+      url = `${API_BASE_URL.replace(/\/$/, '')}${normalizedPath}`;
+      const isProduction = window.location.hostname.includes('pornras.com');
+      console.log(`✅ ${isProduction ? 'Production' : 'Local dev'} mode - Using same domain/port for API:`, url);
       console.log('⚠️ REACT_APP_API_BASE_URL environment variable is being ignored for same-domain routing');
     } else if (!API_BASE_URL) {
-      // Local development - API_BASE_URL yoksa hata ver
-      const errorMsg = 'Backend URL is not configured. Please set REACT_APP_API_BASE_URL for local development.';
-      console.error('❌', errorMsg);
-      throw new Error(errorMsg);
+      // Fallback: window.location.origin kullan
+      if (typeof window !== 'undefined') {
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        url = `${window.location.origin}${normalizedPath}`;
+        console.log('✅ Fallback - Using window.location.origin for API:', url);
+      } else {
+        const errorMsg = 'Backend URL is not configured. Window is not available.';
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
+      }
     } else {
-      // Local development - API_BASE_URL kullan
+      // API_BASE_URL varsa onu kullan
       url = buildUrl(path);
     }
     console.log('📤 POST request:', { url, path, body });
@@ -157,7 +145,7 @@ async function postJson<TInput extends object, TResponse>(path: string, body: TI
 1. REACT_APP_API_BASE_URL is set correctly in Vercel Dashboard
 2. Backend is deployed and accessible
 3. CORS is configured correctly on backend`
-          : `Network error: Cannot connect to backend at ${url}. Make sure backend is running on localhost:5000.`;
+          : `Network error: Cannot connect to backend at ${url}. Make sure Vercel dev is running (npx vercel dev).`;
         
         const networkError = new Error(errorMessage);
         console.error('❌ Network error:', networkError);
@@ -215,6 +203,8 @@ export interface BlueskyShareVideoPayload {
   description?: string;
   thumbnail?: string;
   slug: string;
+  modelName?: string;
+  categoryName?: string;
 }
 
 export interface BlueskyPostPayload {

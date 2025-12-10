@@ -48,6 +48,18 @@ export const categoryService = {
     if (error) throw error;
   },
 
+  // Get category by ID
+  async getById(id: string): Promise<Category | null> {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
+    return data;
+  },
+
   // Increment click count
   async incrementClickCount(id: string): Promise<void> {
     // First get current click_count
@@ -106,6 +118,18 @@ export const modelService = {
       .single();
     
     if (error) throw error;
+    return data;
+  },
+
+  // Get model by ID
+  async getById(id: string): Promise<Model | null> {
+    const { data, error } = await supabase
+      .from('models')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
     return data;
   },
 

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from './AuthProvider';
 import { emailApi } from '../../services/emailApi';
+import { authApi } from '../../services/authApi';
 import toast from 'react-hot-toast';
 
 interface LoginModalProps {
@@ -29,8 +30,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    emailOrNickname: '',
   });
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,28 +44,29 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
     e.preventDefault();
     setError('');
     
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all fields');
+    if (!formData.emailOrNickname) {
+      setError('Please enter your email or nickname');
       return;
     }
     
     try {
-      // TODO: Backend'e giriş isteği gönder
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
+      // Login with email or nickname
+      const userData = await authApi.loginWithEmailOrNickname(formData.emailOrNickname.trim());
       
-      // Şimdilik simüle ediyoruz
-      const userData = {
-        username: formData.email.split('@')[0],
-        email: formData.email,
-        name: formData.email.split('@')[0],
+      if (!userData) {
+        throw new Error('Login failed - user data not returned');
+      }
+      
+      // Create user object for AuthProvider
+      const user = {
+        username: userData.username,
+        email: userData.email || null,
+        name: userData.username,
+        id: userData.id,
       };
       
-      login(userData);
-      toast.success('Welcome back!');
+      login(user);
+      toast.success(`Welcome back, ${userData.username}!`);
       onClose();
       
       if (onLoginSuccess) {
@@ -73,8 +74,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      setError('Invalid email or password');
-      toast.error('Login failed');
+      const errorMessage = error.message || 'Invalid email or nickname. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -330,38 +332,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                   <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <TextField
                       fullWidth
-                      label="Email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
+                      label="Email or Nickname"
+                      name="emailOrNickname"
+                      type="text"
+                      value={formData.emailOrNickname}
                       onChange={handleFormChange}
                       required
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          color: 'white',
-                          '& fieldset': {
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: 'rgba(0, 255, 255, 0.5)',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#00ffff',
-                          },
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: 'rgba(255, 255, 255, 0.7)',
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleFormChange}
-                      required
+                      placeholder="Enter your email or nickname"
+                      helperText="You can login with your email address or nickname"
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           color: 'white',
@@ -405,7 +383,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose, onSwitchToRegist
                       onClick={() => {
                         setShowForm(false);
                         setError('');
-                        setFormData({ email: '', password: '' });
+                        setFormData({ emailOrNickname: '' });
                       }}
                       sx={{
                         py: 1.5,

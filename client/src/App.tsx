@@ -105,9 +105,13 @@ function App() {
                     <Route
                       path="/upload"
                       element={
-                        <ProtectedRoute requireAuth requireAdmin>
+                        process.env.NODE_ENV === 'development' ? (
                           <Upload />
-                        </ProtectedRoute>
+                        ) : (
+                          <ProtectedRoute requireAuth requireAdmin>
+                            <Upload />
+                          </ProtectedRoute>
+                        )
                       }
                     />
                     <Route
@@ -121,9 +125,13 @@ function App() {
                     <Route
                       path="/admin"
                       element={
-                        <ProtectedRoute requireAuth requireAdmin>
+                        process.env.NODE_ENV === 'development' ? (
                           <Admin />
-                        </ProtectedRoute>
+                        ) : (
+                          <ProtectedRoute requireAuth requireAdmin>
+                            <Admin />
+                          </ProtectedRoute>
+                        )
                       }
                     />
                     <Route path="/models" element={<Models />} />

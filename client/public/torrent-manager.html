@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Last-Modified" content="0">
+    <title>Torrent Manager - qBittorrent & Streamtape (v2.13 - ULTRA Cookie Fix)</title>
+    <meta name="version" content="2.13">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            min-height: 150px;
+        }
+        
+        .version-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .version-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: white;
+            transform: translateX(-5px);
+        }
+
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #dee2e6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .torrent-list {
+            margin-top: 20px;
+        }
+
+        .torrent-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .torrent-info h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .torrent-info p {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .torrent-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-downloading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-seeding {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-paused {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .config-section {
+            background: #f8f9fa;
+    </style>
+    
+    <!-- Streamtape Toggle Functions - Defined EARLY in HEAD -->
+    <script>
+        // Define functions in HEAD so they're available when HTML loads
+        console.log('🔧 Loading Streamtape toggle functions...');
+        
+        window.showCookieFields = function() {
+            console.log('🍪 showCookieFields() called');
+            try {
+                const apiKeyFields = document.getElementById('streamtape-apikey-fields');
+                const cookieFields = document.getElementById('streamtape-cookie-fields');
+                
+                console.log('🔍 API Key fields:', apiKeyFields);
+                console.log('🔍 Cookie fields:', cookieFields);
+                
+                if (!cookieFields) {
+                    console.error('❌ Cookie fields element NOT FOUND!');
+                    alert('Hata: Cookie alanları bulunamadı! Sayfayı yenileyin.');
+                    return;
+                }
+                
+                // Hide API Key fields
+                if (apiKeyFields) {
+                    apiKeyFields.style.display = 'none';
+                    apiKeyFields.style.setProperty('display', 'none', 'important');
+                    apiKeyFields.classList.add('hide-api-fields');
+                    console.log('✅ Hidden API Key fields');
+                }
+                
+                // Show Cookie fields - ULTRA AGGRESSIVE
+                cookieFields.removeAttribute('style');
+                cookieFields.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+                cookieFields.style.setProperty('display', 'block', 'important');
+                cookieFields.style.setProperty('visibility', 'visible', 'important');
+                cookieFields.classList.add('show-cookie-fields');
+                cookieFields.classList.remove('hide-cookie-fields');
+                
+                // Force reflow
+                cookieFields.offsetHeight;
+                
+                console.log('✅ Shown Cookie fields (ULTRA FORCE)');
+                console.log('🔍 Cookie fields display:', window.getComputedStyle(cookieFields).display);
+                console.log('🔍 Cookie fields visibility:', window.getComputedStyle(cookieFields).visibility);
+            } catch(e) {
+                console.error('❌ Error in showCookieFields:', e);
+                alert('Hata: ' + e.message);
+            }
+        };
+        
+        window.showApiKeyFields = function() {
+            console.log('🔑 showApiKeyFields() called');
+            try {
+                const apiKeyFields = document.getElementById('streamtape-apikey-fields');
+                const cookieFields = document.getElementById('streamtape-cookie-fields');
+                
+                if (apiKeyFields) {
+                    apiKeyFields.style.display = 'block';
+                    apiKeyFields.style.setProperty('display', 'block', 'important');
+                    console.log('✅ Shown API Key fields');
+                }
+                if (cookieFields) {
+                    cookieFields.style.display = 'none';
+                    cookieFields.style.setProperty('display', 'none', 'important');
+                    cookieFields.classList.remove('show');
+                    console.log('✅ Hidden Cookie fields');
+                }
+            } catch(e) {
+                console.error('❌ Error in showApiKeyFields:', e);
+            }
+        };
+        
+        console.log('✅ Streamtape toggle functions defined and ready!');
+    </script>
+    
+    <style>
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        /* Radio buttons visibility - FORCE VISIBLE */
+        input[type="radio"][name="streamtape-auth-method"] {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: auto !important;
+            height: auto !important;
+            margin-right: 8px !important;
+        }
+        
+        label[for="streamtape-method-apikey"],
+        label[for="streamtape-method-cookie"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Cookie fields visibility */
+        #streamtape-cookie-fields {
+            display: none !important;
+        }
+        
+        #streamtape-cookie-fields.show-cookie-fields,
+        .streamtape-cookie-section.show-cookie-fields {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+        
+        #streamtape-apikey-fields.hide-api-fields {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <a href="/admin" class="back-button">← Admin Panel'e Dön</a>
+    
+    <div class="container">
+        <div class="header">
+            <div class="version-badge">v2.18 - Test Butonu Görünürlük Fix</div>
+            <h1>🎬 Torrent Manager</h1>
+            <p>qBittorrent (PC masaüstü uygulaması) ile otomatik torrent indirme ve Streamtape'e yükleme</p>
+            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;">🔗 Yeni: Watch Folder Yöntemi - Web UI ayarlarına gerek yok!</p>
+        </div>
+
+        <div class="content">
+            <!-- Upload Button (VERY VISIBLE) -->
+            <div style="text-align: center; margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 15px; box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);">
+                <h2 style="color: white; margin-bottom: 15px; font-size: 24px;">📤 Video Yükle</h2>
+                <a href="/upload" style="display: inline-block; padding: 18px 40px; background: white; color: #28a745; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); transition: all 0.3s;">
+                    🎬 Upload Video Sayfasına Git
+                </a>
+                <p style="color: white; margin-top: 15px; opacity: 0.9; font-size: 14px;">Video dosyalarınızı yüklemek için tıklayın</p>
+            </div>
+            
+            <!-- Configuration Section -->
+            <div class="section">
+                <h2 class="section-title">⚙️ Yapılandırma</h2>
+                
+                <!-- Watch Folder Configuration -->
+                <div class="config-section" style="background: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #28a745; margin-bottom: 20px;">
+                    <h3 style="color: #28a745; margin-bottom: 15px;">📁 Watch Folder Yöntemi</h3>
+                    <div class="alert alert-success" style="margin-top: 15px; background: #d4edda; border-color: #28a745; color: #155724;">
+                        <strong>💡 Watch Folder Yöntemi - Avantajlar:</strong>
+                        <ul style="margin-top: 10px; padding-left: 20px; font-size: 0.95em;">
+                            <li>✅ Web UI ayarlarına gerek yok</li>
+                            <li>✅ Kimlik doğrulama gerekmez</li>
+                            <li>✅ IP yasağı sorunu yok</li>
+                            <li>✅ Basit ve güvenilir</li>
+                            <li>✅ qBittorrent otomatik torrent'leri ekler</li>
+                        </ul>
+                        <p style="margin-top: 10px; font-weight: 600;">
+                            📝 Kurulum: qBittorrent → Tools → Options → Downloads → "Automatically add torrents from:" klasörü ayarlayın<br>
+                            Örnek klasör: <code style="background: #fff; padding: 2px 6px; border-radius: 4px;">~/Downloads/qBittorrent-watch</code>
+                        </p>
+                    </div>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="watch-folder-path">Watch Folder Yolu</label>
+                        <input type="text" id="watch-folder-path" placeholder="~/Downloads/qBittorrent-watch" value="~/Downloads/qBittorrent-watch">
+                        <small style="color: #6c757d; display: block; margin-top: 5px;">
+                            qBittorrent'te ayarladığınız watch folder yolu (örn: ~/Downloads/qBittorrent-watch)
+                        </small>
+                    </div>
+                    <div class="alert alert-warning" style="margin-top: 15px;">
+                        <strong>⚠️ Önemli:</strong> Watch folder'ın qBittorrent'te ayarlanmış olduğundan emin olun!
+                        <br>qBittorrent → Tools → Options → Downloads → "Automatically add torrents from:"
+                    </div>
+                </div>
+                
+                <!-- ⚠️ STREAMTAPE AYARLARI BÖLÜMÜ - BU BÖLÜMÜ BULUN! ⚠️ -->
+                <div class="config-section" style="margin-top: 20px; display: block !important; visibility: visible !important; opacity: 1 !important; background: #f8f9fa !important; padding: 20px !important; border: 3px solid #667eea !important; border-radius: 8px !important;">
+                    <h3 style="display: block !important; visibility: visible !important; color: #667eea !important; font-size: 22px !important; margin-bottom: 20px !important; font-weight: bold !important;">📦 Streamtape Ayarları (Otomatik Yükleme için)</h3>
+                    
+                    <!-- Authentication Method Selection -->
+                    <div class="form-group" style="display: block !important; visibility: visible !important; margin-top: 15px !important;">
+                        <label style="font-weight: 700; margin-bottom: 15px; display: block !important; visibility: visible !important; font-size: 18px !important; color: #333 !important;">🔐 Giriş Yöntemi:</label>
+                        <div style="display: block !important; visibility: visible !important; margin-left: 10px;">
+                            <label style="display: flex !important; align-items: center; margin-bottom: 15px; cursor: pointer; visibility: visible !important; padding: 15px; background: #fff !important; border-radius: 8px !important; border: 2px solid #28a745 !important; transition: all 0.3s;">
+                                <input type="radio" name="streamtape-auth-method" value="apikey" id="streamtape-method-apikey" checked onclick="showApiKeyFields();" style="margin-right: 12px !important; visibility: visible !important; width: 22px !important; height: 22px !important; cursor: pointer; flex-shrink: 0;">
+                                <span style="visibility: visible !important; font-size: 16px !important; color: #333 !important; font-weight: 500;">🔑 API Key (Login + Key)</span>
+                            </label>
+                            <label style="display: flex !important; align-items: center; margin-bottom: 15px; cursor: pointer; visibility: visible !important; padding: 15px; background: #fff !important; border-radius: 8px !important; border: 2px solid #ffc107 !important; transition: all 0.3s;">
+                                <input type="radio" name="streamtape-auth-method" value="cookie" id="streamtape-method-cookie" onclick="showCookieFields();" style="margin-right: 12px !important; visibility: visible !important; width: 22px !important; height: 22px !important; cursor: pointer; flex-shrink: 0;">
+                                <span style="visibility: visible !important; font-size: 16px !important; color: #333 !important; font-weight: 500;">🍪 Cookie (Browser'dan Cookie)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- API Key Method Fields -->
+                    <div id="streamtape-apikey-fields">
+                        <div class="form-group">
+                            <label for="streamtape-login">Streamtape Login</label>
+                            <input type="text" id="streamtape-login" placeholder="Streamtape API Login">
+                        </div>
+                        <div class="form-group">
+                            <label for="streamtape-key">Streamtape API Key</label>
+                            <input type="password" id="streamtape-key" placeholder="Streamtape API Key">
+                        </div>
+                        <div class="alert alert-info" style="margin-top: 10px;">
+                            💡 Streamtape API bilgilerinizi <a href="https://streamtape.com" target="_blank">streamtape.com</a> adresinden alabilirsiniz.
+                        </div>
+                    </div>
+                    
+                    <!-- Cookie Method Fields -->
+                    <div id="streamtape-cookie-fields" class="streamtape-cookie-section" style="display: none !important;">
+                        <div class="form-group">
+                            <label for="streamtape-cookies">Streamtape Cookie'leri</label>
+                            <textarea id="streamtape-cookies" rows="4" placeholder='Örnek: PHPSESSID=abc123; login=user123; token=xyz789...' style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;"></textarea>
+                            <small style="color: #6c757d; display: block; margin-top: 5px; line-height: 1.6;">
+                                <strong>📋 Streamtape Cookie'lerini Alma Adımları:</strong><br>
+                                1. <strong>Yeni bir tab açın</strong> ve <a href="https://streamtape.com" target="_blank" style="color: #667eea; text-decoration: underline;">https://streamtape.com</a> adresine gidin<br>
+                                2. Streamtape.com'da <strong>giriş yapın</strong> (email/şifre ile)<br>
+                                3. Giriş yaptıktan sonra <strong>F12</strong> tuşuna basın (Developer Tools)<br>
+                                4. <strong>Application</strong> sekmesine gidin (veya Storage)<br>
+                                5. Sol menüden <strong>Cookies</strong> → <strong>https://streamtape.com</strong> seçin<br>
+                                6. Sağ tarafta görünen <strong>TÜM cookie'leri</strong> kopyalayın<br>
+                                7. Örnek format: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">PHPSESSID=abc123def456; login=yourlogin; token=xyz789</code><br>
+                                <br>
+                                <strong>⚠️ ÖNEMLİ:</strong> Localhost cookie'leri DEĞİL, streamtape.com cookie'leri gerekli!<br>
+                                <strong>⚠️ ÖNEMLİ:</strong> Tüm cookie'leri tek satırda, noktalı virgül (;) ile ayırarak yapıştırın
+                            </small>
+                        </div>
+                        <div class="alert alert-warning" style="margin-top: 10px;">
+                            <strong>⚠️ Önemli Notlar:</strong><br>
+                            • Cookie'ler zamanla expire olabilir. Süresi dolduğunda yeniden almanız gerekebilir.<br>
+                            • <strong>Localhost cookie'leri DEĞİL</strong>, <strong>streamtape.com cookie'leri</strong> gerekli!<br>
+                            • Google Analytics cookie'leri (`_ga`, `_ga_*`) kullanmayın - bunlar Streamtape için değil!
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="form-group">
+                        <button class="btn btn-primary" id="save-streamtape-btn" style="margin-right: 10px;" type="button">
+                            💾 Ayarları Kaydet
+                        </button>
+                        <button class="btn btn-secondary" id="load-streamtape-btn" type="button">
+                            🔄 Ayarları Yükle
+                        </button>
+                        <span id="streamtape-save-status" style="margin-left: 10px; color: green; font-weight: bold;"></span>
+                    </div>
+                    <div class="alert alert-success" style="margin-top: 10px;">
+                        ✅ Ayarlar otomatik olarak kaydedilir ve tarayıcı kapatıldığında bile korunur.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Torrent Section -->
+            <div class="section">
+                <h2 class="section-title">📥 Torrent Ekle</h2>
+                <div class="card">
+                    <div class="form-group">
+                        <label for="torrent-url">Torrent URL veya Magnet Link</label>
+                        <input type="url" id="torrent-url" placeholder="magnet:?xt=urn:btih:... veya https://xxxclub.to/torrents/...">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="auto-upload-streamtape" checked>
+                            İndirme tamamlandığında otomatik olarak Streamtape'e yükle
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" onclick="addTorrent()">
+                        Torrent Ekle <span id="add-loading" style="display:none;" class="loading"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- xxxclub.to Scraper Section -->
+            <div class="section">
+                <h2 class="section-title">🔍 xxxclub.to'dan Torrent Çek</h2>
+                <div class="card">
+                    <div class="form-group">
+                        <label for="xxxclub-url">xxxclub.to URL</label>
+                        <input type="url" id="xxxclub-url" placeholder="https://xxxclub.to/torrents/browse/2/">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="auto-upload-streamtape-scrape" checked>
+                            İndirme tamamlandığında otomatik olarak Streamtape'e yükle
+                        </label>
+                    </div>
+                    <button class="btn btn-success" onclick="scrapeAndAddTorrent()">
+                        Torrent Çek ve Ekle <span id="scrape-loading" style="display:none;" class="loading"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Streamtape Upload Test Section -->
+            <div class="section" style="display: block !important; visibility: visible !important;">
+                <h2 class="section-title" style="display: block !important; visibility: visible !important; font-size: 22px !important; color: #667eea !important; font-weight: bold !important;">🧪 Streamtape Yükleme Testi</h2>
+                <div class="card" style="display: block !important; visibility: visible !important; padding: 20px !important; background: #fff !important; border: 2px solid #28a745 !important; border-radius: 8px !important;">
+                    <div class="alert alert-info">
+                        <strong>📋 Nasıl Çalışır:</strong>
+                        <p style="margin-top: 10px;">
+                            1. qBittorrent'te bir torrent indirin (tamamlanmış olmalı)<br>
+                            2. Streamtape ayarlarınızı yapın (yukarıdaki "Streamtape Ayarları" bölümünden)<br>
+                            3. Aşağıdaki butona tıklayın
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label for="qbittorrent-url-test">qBittorrent Web UI URL</label>
+                        <input type="text" id="qbittorrent-url-test" placeholder="http://localhost:8080" value="http://localhost:8080">
+                    </div>
+                    <div class="form-group">
+                        <label for="qbittorrent-username-test">qBittorrent Kullanıcı Adı (opsiyonel)</label>
+                        <input type="text" id="qbittorrent-username-test" placeholder="admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="qbittorrent-password-test">qBittorrent Şifre (opsiyonel)</label>
+                        <input type="password" id="qbittorrent-password-test" placeholder="adminadmin">
+                    </div>
+                    <button class="btn btn-success" onclick="testStreamtapeUpload()" style="width: 100%; margin-top: 15px; padding: 15px; font-size: 16px; font-weight: bold; display: block !important; visibility: visible !important; background: #28a745 !important; border: 2px solid #1e7e34 !important; cursor: pointer;">
+                        🚀 Tamamlanan Torrent'leri Streamtape'e Yükle
+                        <span id="upload-test-loading" style="display:none;" class="loading"></span>
+                    </button>
+                    <div id="upload-test-result" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="section">
+                <h2 class="section-title">ℹ️ Bilgi</h2>
+                <div class="card">
+                    <div class="alert alert-info">
+                        <strong>📋 Torrent Listesi:</strong>
+                        <p style="margin-top: 10px;">
+                            Watch Folder yönteminde torrent listesi bu sayfada gösterilmez. Torrent'leri qBittorrent programında görüntüleyebilirsiniz.
+                        </p>
+                        <p style="margin-top: 10px;">
+                            Torrent dosyaları watch folder'a eklendiğinde, qBittorrent otomatik olarak torrent'leri ekler ve indirmeye başlar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messages"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Streamtape Settings Manager (GLOBAL SCOPE - DEFINED FIRST)
+        // ==========================================
+        // CRITICAL: Functions MUST be defined in global scope before anything else
+        console.log("🔧 Defining Streamtape functions in GLOBAL SCOPE...");
+        
+        const ST_KEYS = {
+            login: 'streamtape_login',
+            key: 'streamtape_key',
+            cookies: 'streamtape_cookies',
+            method: 'streamtape_auth_method' // 'apikey' or 'cookie'
+        };
+        
+        // Note: showCookieFields() and showApiKeyFields() are now defined in <head>
+        // to ensure they're available when radio buttons are clicked
+
+        // Safe localStorage getter
+        function safeGet(key) {
+            try {
+                return localStorage.getItem(key) || "";
+            } catch (e) {
+                console.warn("LocalStorage read error:", e);
+                return "";
+            }
+        }
+
+        // Safe localStorage setter
+        function safeSet(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                console.warn("LocalStorage write error:", e);
+            }
+        }
+
+        // Parse tab-separated cookie format to standard cookie format
+        function parseTabSeparatedCookies(cookieString) {
+            const lines = cookieString.split(/\r?\n/).filter(line => line.trim());
+            const cookies = [];
+            
+            for (const line of lines) {
+                const parts = line.split(/\t/);
+                if (parts.length >= 2) {
+                    const name = parts[0].trim();
+                    const value = parts[1].trim();
+                    if (name && value) {
+                        cookies.push(`${name}=${value}`);
+                    }
+                }
+            }
+            
+            return cookies.join('; ');
+        }
+
+        // Sanitize cookie string to remove invalid characters
+        function sanitizeCookies(cookieString) {
+            if (!cookieString || typeof cookieString !== 'string') {
+                return '';
+            }
+            
+            // Check if cookie string is tab-separated format (from browser cookie export)
+            const isTabSeparated = cookieString.includes('\t') && cookieString.includes('\n');
+            if (isTabSeparated) {
+                console.log('📋 Detected tab-separated cookie format, converting to standard format...');
+                cookieString = parseTabSeparatedCookies(cookieString);
+            }
+            
+            let cleaned = cookieString
+                .trim()
+                .replace(/\r\n/g, ' ')  // Replace Windows line endings
+                .replace(/\n/g, ' ')    // Replace Unix line endings
+                .replace(/\r/g, ' ')    // Replace carriage returns
+                .replace(/\t/g, ' ')    // Replace tabs with space
+                .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')  // Remove control characters
+                .replace(/\s+/g, ' ')   // Replace multiple spaces
+                .trim();
+            
+            // Remove leading/trailing semicolons, commas
+            cleaned = cleaned.replace(/^[;,\s]+|[;,\s]+$/g, '');
+            
+            // Check if cookie contains at least one = sign
+            if (!cleaned.includes('=')) {
+                console.warn('⚠️ Cookie string does not contain "=" - may be invalid format');
+                return '';
+            }
+            
+            return cleaned;
+        }
+
+        // Load settings into form - Define DIRECTLY on window FIRST, then create function reference
+        window.loadStreamtapeSettings = function loadStreamtapeSettings() {
+            try {
+                const method = safeGet(ST_KEYS.method) || 'apikey';
+                const login = safeGet(ST_KEYS.login);
+                const key = safeGet(ST_KEYS.key);
+                const cookies = safeGet(ST_KEYS.cookies);
+
+                // Set authentication method
+                const apiKeyRadio = document.getElementById('streamtape-method-apikey');
+                const cookieRadio = document.getElementById('streamtape-method-cookie');
+                if (apiKeyRadio && cookieRadio) {
+                    if (method === 'cookie') {
+                        cookieRadio.checked = true;
+                        apiKeyRadio.checked = false;
+                    } else {
+                        apiKeyRadio.checked = true;
+                        cookieRadio.checked = false;
+                    }
+                    // Trigger method change to show/hide fields
+                    toggleStreamtapeAuthMethod();
+                }
+
+                // Load API Key fields
+                const loginEl = document.getElementById('streamtape-login');
+                const keyEl = document.getElementById('streamtape-key');
+                if (loginEl) loginEl.value = login;
+                if (keyEl) keyEl.value = key;
+
+                // Load Cookie field
+                const cookiesEl = document.getElementById('streamtape-cookies');
+                if (cookiesEl) cookiesEl.value = cookies;
+
+                console.log("📥 Streamtape settings loaded (method: " + method + ").");
+            } catch (e) {
+                console.error('❌ Error in loadStreamtapeSettings:', e);
+            }
+        };
+        // Create global function reference for compatibility
+        var loadStreamtapeSettings = window.loadStreamtapeSettings;
+        
+        // Toggle between API Key and Cookie method fields
+        function toggleStreamtapeAuthMethod() {
+            try {
+                const method = document.querySelector('input[name="streamtape-auth-method"]:checked')?.value || 'apikey';
+                const apiKeyFields = document.getElementById('streamtape-apikey-fields');
+                const cookieFields = document.getElementById('streamtape-cookie-fields');
+                
+                console.log('🔄 Toggling Streamtape auth method:', method);
+                console.log('🔍 API Key fields element:', apiKeyFields);
+                console.log('🔍 Cookie fields element:', cookieFields);
+                
+                if (method === 'cookie') {
+                    if (apiKeyFields) {
+                        apiKeyFields.style.display = 'none';
+                        console.log('✅ Hidden API Key fields');
+                    }
+                    if (cookieFields) {
+                        // Multiple methods to ensure it shows - override any !important
+                        cookieFields.style.setProperty('display', 'block', 'important');
+                        cookieFields.removeAttribute('style');
+                        cookieFields.setAttribute('style', 'display: block !important;');
+                        console.log('✅ Shown Cookie fields (force override)');
+                    } else {
+                        console.error('❌ Cookie fields element not found!');
+                    }
+                } else {
+                    if (apiKeyFields) {
+                        apiKeyFields.style.display = 'block';
+                        apiKeyFields.style.setProperty('display', 'block', 'important');
+                        console.log('✅ Shown API Key fields');
+                    }
+                    if (cookieFields) {
+                        cookieFields.style.display = 'none';
+                        cookieFields.style.setProperty('display', 'none', 'important');
+                        console.log('✅ Hidden Cookie fields');
+                    }
+                }
+            } catch (e) {
+                console.error('❌ Error in toggleStreamtapeAuthMethod:', e);
+            }
+        }
+        window.toggleStreamtapeAuthMethod = toggleStreamtapeAuthMethod;
+
+        // Save settings from form - Define DIRECTLY on window FIRST, then create function reference
+        window.saveStreamtapeSettings = function saveStreamtapeSettings() {
+            try {
+                const method = document.querySelector('input[name="streamtape-auth-method"]:checked')?.value || 'apikey';
+                
+                if (method === 'cookie') {
+                    // Save cookie method
+                    const cookiesEl = document.getElementById('streamtape-cookies');
+                    if (!cookiesEl) {
+                        console.error('❌ Cookie field not found!');
+                        return;
+                    }
+                    
+                    const cookies = sanitizeCookies(cookiesEl.value);
+                    if (!cookies) {
+                        if (typeof window.showMessage === 'function') {
+                            window.showMessage('❌ Lütfen Streamtape Cookie\'lerini girin!', 'error');
+                        } else {
+                            alert('❌ Lütfen Streamtape Cookie\'lerini girin!');
+                        }
+                        return;
+                    }
+                    
+                    safeSet(ST_KEYS.method, 'cookie');
+                    safeSet(ST_KEYS.cookies, cookies);
+                    
+                    // Clear API key fields (optional)
+                    safeSet(ST_KEYS.login, '');
+                    safeSet(ST_KEYS.key, '');
+                } else {
+                    // Save API key method
+                    const loginEl = document.getElementById('streamtape-login');
+                    const keyEl = document.getElementById('streamtape-key');
+                    
+                    if (!loginEl || !keyEl) {
+                        console.error('❌ Streamtape form elements not found!');
+                        return;
+                    }
+                    
+                    const login = loginEl.value.trim();
+                    const key = keyEl.value.trim();
+                    
+                    if (!login || !key) {
+                        if (typeof window.showMessage === 'function') {
+                            window.showMessage('❌ Lütfen Streamtape Login ve API Key alanlarını doldurun!', 'error');
+                        } else {
+                            alert('❌ Lütfen Streamtape Login ve API Key alanlarını doldurun!');
+                        }
+                        return;
+                    }
+                    
+                    safeSet(ST_KEYS.method, 'apikey');
+                    safeSet(ST_KEYS.login, login);
+                    safeSet(ST_KEYS.key, key);
+                    
+                    // Clear cookie field (optional)
+                    safeSet(ST_KEYS.cookies, '');
+                }
+
+                const status = document.getElementById('streamtape-save-status');
+                if (status) {
+                    status.textContent = "✓ Kaydedildi";
+                    status.style.color = 'green';
+                    setTimeout(() => (status.textContent = ""), 1500);
+                }
+
+                if (typeof window.showMessage === 'function') {
+                    window.showMessage('✅ Streamtape ayarları başarıyla kaydedildi!', 'success');
+                }
+                console.log("💾 Streamtape settings saved (method: " + method + ").");
+            } catch (e) {
+                console.error('❌ Error in saveStreamtapeSettings:', e);
+            }
+        };
+        // Create global function reference for compatibility
+        var saveStreamtapeSettings = window.saveStreamtapeSettings;
+        
+        console.log("✅ Streamtape functions defined: loadStreamtapeSettings and saveStreamtapeSettings are now available globally");
+
+        // Debounced auto-save
+        let autoSaveTimer;
+        function autoSaveStreamtapeSettings() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(function() {
+                const loginEl = document.getElementById('streamtape-login');
+                const keyEl = document.getElementById('streamtape-key');
+                
+                if (!loginEl || !keyEl) return;
+                
+                const login = loginEl.value.trim();
+                const key = keyEl.value.trim();
+                
+                if (login && key) {
+                    safeSet(ST_KEYS.login, login);
+                    safeSet(ST_KEYS.key, key);
+                    console.log("💾 Streamtape settings auto-saved.");
+                }
+            }, 300);
+        }
+        // Also assign to window for compatibility
+        window.autoSaveStreamtapeSettings = autoSaveStreamtapeSettings;
+
+        // ==========================================
+        // Other Functions
+        // ==========================================
+        
+        // Get API base URL (handles file:// protocol)
+        function getApiBaseUrl() {
+            // If opened via file:// protocol, use localhost
+            if (window.location.protocol === 'file:') {
+                return 'http://localhost:3000';
+            }
+            // Otherwise use current origin (localhost:3000 or production)
+            return window.location.origin;
+        }
+
+        // Show message
+        window.showMessage = function showMessage(message, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-info';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert ${alertClass}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        };
+
+        // Get Streamtape config (from form or localStorage)
+        function getStreamtapeConfig() {
+            function safeGet(key) {
+                try { 
+                    return localStorage.getItem(key) || ""; 
+                } catch (e) { 
+                    return ""; 
+                }
+            }
+            
+            const method = safeGet(ST_KEYS.method) || 'apikey';
+            
+            if (method === 'cookie') {
+                const cookiesEl = document.getElementById('streamtape-cookies');
+                const rawCookies = cookiesEl ? cookiesEl.value : safeGet(ST_KEYS.cookies);
+                const cookies = sanitizeCookies(rawCookies);
+                return {
+                    method: 'cookie',
+                    cookies: cookies || '',
+                    login: '',
+                    key: ''
+                };
+            } else {
+                const loginEl = document.getElementById('streamtape-login');
+                const keyEl = document.getElementById('streamtape-key');
+                let login = loginEl ? loginEl.value.trim() : '';
+                let key = keyEl ? keyEl.value.trim() : '';
+                
+                // If form is empty, try to load from localStorage
+                if (!login || !key) {
+                    login = login || safeGet(ST_KEYS.login);
+                    key = key || safeGet(ST_KEYS.key);
+                    
+                    // Update form fields if loaded from localStorage
+                    if (loginEl && login && !loginEl.value) {
+                        loginEl.value = login;
+                    }
+                    if (keyEl && key && !keyEl.value) {
+                        keyEl.value = key;
+                    }
+                }
+                
+                return {
+                    method: 'apikey',
+                    login: login || '',
+                    key: key || '',
+                    cookies: ''
+                };
+            }
+        }
+        window.getStreamtapeConfig = getStreamtapeConfig;
+
+        // Add torrent using Watch Folder method
+        async function addTorrent() {
+            const torrentUrl = document.getElementById('torrent-url').value.trim();
+            if (!torrentUrl) {
+                showMessage('Lütfen torrent URL veya magnet link girin!', 'error');
+                return;
+            }
+
+            const loading = document.getElementById('add-loading');
+            loading.style.display = 'inline-block';
+
+            try {
+                const watchFolder = document.getElementById('watch-folder-path').value.trim() || '~/Downloads/qBittorrent-watch';
+                
+                // Debug: Log what we're sending
+                console.log('📤 Sending request:', {
+                    torrentUrl: torrentUrl.substring(0, 50) + '...',
+                    watchFolder: watchFolder
+                });
+                
+                const requestBody = {
+                    torrentUrl: torrentUrl.trim(),
+                    watchFolder: watchFolder
+                };
+                
+                const response = await fetch(`${getApiBaseUrl()}/api/torrent/add-watch-folder`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                let data;
+                try {
+                    const responseText = await response.text();
+                    console.log('📥 Response status:', response.status);
+                    console.log('📥 Response text:', responseText);
+                    
+                    if (responseText) {
+                        data = JSON.parse(responseText);
+                    } else {
+                        data = { success: false, message: 'Empty response' };
+                    }
+                } catch (e) {
+                    console.error('❌ Failed to parse response:', e);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}. Failed to parse response: ${e.message}`);
+                }
+
+                loading.style.display = 'none';
+
+                if (!response.ok) {
+                    console.error('❌ API error:', data);
+                    const errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`;
+                    const errorDetails = data.received ? `\n\nAlınan parametreler: ${JSON.stringify(data.received, null, 2)}` : '';
+                    throw new Error(errorMessage + errorDetails);
+                }
+
+                if (data.success) {
+                    showMessage('✅ Torrent dosyası watch folder\'a eklendi! qBittorrent otomatik olarak ekleyecektir.', 'success');
+                    document.getElementById('torrent-url').value = '';
+                } else {
+                    showMessage('❌ Torrent eklenemedi: ' + (data.message || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                showMessage('❌ Hata: ' + error.message, 'error');
+            }
+        }
+
+        // Scrape and add torrent from xxxclub.to using Watch Folder method
+        async function scrapeAndAddTorrent() {
+            const xxxclubUrl = document.getElementById('xxxclub-url').value.trim();
+            if (!xxxclubUrl) {
+                showMessage('Lütfen xxxclub.to URL\'si girin!', 'error');
+                return;
+            }
+            
+            // Check if user accidentally pasted a magnet link
+            if (xxxclubUrl.startsWith('magnet:')) {
+                showMessage('❌ Hata: Magnet link tespit edildi!\n\n💡 Magnet linki doğrudan eklemek için:\n1. Magnet linkini "Torrent URL veya Magnet Link" alanına yapıştırın\n2. "Torrent Ekle" butonuna tıklayın\n\nBu alan sadece xxxclub.to sayfa URL\'leri için kullanılır (ör: https://xxxclub.to/torrents/...)', 'error');
+                return;
+            }
+
+            const loading = document.getElementById('scrape-loading');
+            loading.style.display = 'inline-block';
+
+            try {
+                // First, scrape the torrent URL
+                const scrapeResponse = await fetch(`${getApiBaseUrl()}/api/torrent/scrape-xxxclub`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        xxxclubUrl,
+                        method: 'watch-folder'
+                    })
+                });
+
+                // Handle response status before parsing JSON
+                if (!scrapeResponse.ok) {
+                    let errorMessage;
+                    
+                    if (scrapeResponse.status === 403) {
+                        errorMessage = '❌ Erişim engellendi (403). xxxclub.to anti-bot koruması kullanıyor. Otomatik scraping engelleniyor. Lütfen sayfayı tarayıcıda açın, magnet linkini kopyalayın ve yukarıdaki "Torrent URL" alanına yapıştırın.';
+                    } else if (scrapeResponse.status === 500) {
+                        errorMessage = '❌ Sunucu hatası (500). Lütfen daha sonra tekrar deneyin veya magnet linkini manuel olarak ekleyin.';
+                    } else {
+                        errorMessage = `HTTP ${scrapeResponse.status}: ${scrapeResponse.statusText}`;
+                    }
+                    
+                    // Try to get error message from response
+                    try {
+                        const errorData = await scrapeResponse.json();
+                        if (errorData && errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (e) {
+                        // Ignore JSON parse error
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
+                
+                let scrapeData;
+                try {
+                    scrapeData = await scrapeResponse.json();
+                } catch (e) {
+                    throw new Error('Yanıt çözümlenemedi. Lütfen magnet linkini manuel olarak ekleyin.');
+                }
+
+                if (!scrapeData.success || !scrapeData.torrentUrl) {
+                    throw new Error(scrapeData.message || 'Torrent URL\'si bulunamadı. Lütfen magnet linkini tarayıcıdan manuel olarak kopyalayın.');
+                }
+
+                // Add torrent via watch-folder endpoint
+                const watchFolder = document.getElementById('watch-folder-path').value.trim() || '~/Downloads/qBittorrent-watch';
+                
+                const addResponse = await fetch(`${getApiBaseUrl()}/api/torrent/add-watch-folder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        torrentUrl: scrapeData.torrentUrl,
+                        watchFolder
+                    })
+                });
+
+                let data;
+                try {
+                    data = await addResponse.json();
+                } catch (e) {
+                    const text = await addResponse.text();
+                    throw new Error(`HTTP ${addResponse.status}: ${addResponse.statusText}. Response: ${text}`);
+                }
+
+                loading.style.display = 'none';
+
+                if (!addResponse.ok) {
+                    const errorMsg = data.message || data.error || `${addResponse.status}: ${addResponse.statusText}`;
+                    throw new Error(errorMsg);
+                }
+
+                if (data.success) {
+                    showMessage('✅ Torrent başarıyla çekildi ve watch folder\'a eklendi! qBittorrent otomatik olarak ekleyecektir.', 'success');
+                    document.getElementById('xxxclub-url').value = '';
+                } else {
+                    showMessage('❌ Torrent çekilemedi: ' + (data.message || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                let errorMessage = error.message || 'Bilinmeyen hata';
+                
+                // Show helpful message for 403 errors
+                if (errorMessage.includes('403') || errorMessage.includes('erişim engellendi') || errorMessage.includes('Access forbidden')) {
+                    const helpMessage = errorMessage + '\n\n💡 Alternatif Yöntem:\n1. xxxclub.to sayfasını tarayıcıda açın\n2. Magnet linkini kopyalayın\n3. Yukarıdaki "Torrent URL" alanına yapıştırın\n4. "Torrent Ekle" butonuna tıklayın';
+                    showMessage(helpMessage, 'error');
+                } else if (errorMessage.includes('500') || errorMessage.includes('sunucu hatası')) {
+                    showMessage('❌ ' + errorMessage + '\n\n💡 Lütfen daha sonra tekrar deneyin veya magnet linkini manuel olarak ekleyin.', 'error');
+                } else {
+                    showMessage('❌ Hata: ' + errorMessage, 'error');
+                }
+            }
+        }
+
+        // Web UI API tamamen kaldırıldı - Sadece Watch Folder yöntemi kullanılıyor
+        // Torrent'leri qBittorrent programında görüntüleyebilirsiniz
+        console.log('✅ Torrent Manager - Watch Folder Yöntemi');
+
+        // Test Streamtape Upload - Upload completed torrents to Streamtape
+        async function testStreamtapeUpload() {
+            const loading = document.getElementById('upload-test-loading');
+            const resultDiv = document.getElementById('upload-test-result');
+            loading.style.display = 'inline-block';
+            resultDiv.innerHTML = '<div class="alert alert-info" style="margin-top: 15px;"><strong>⏳ İşlem başlatıldı...</strong><br>Torrent\'ler kontrol ediliyor ve Streamtape\'e yükleniyor. Bu işlem uzun sürebilir (büyük dosyalar için 10-20 dakika).<br>Lütfen bekleyin...</div>';
+
+            try {
+                // Get qBittorrent config
+                const qbUrl = document.getElementById('qbittorrent-url-test').value.trim() || 'http://localhost:8080';
+                const qbUsername = document.getElementById('qbittorrent-username-test').value.trim() || '';
+                const qbPassword = document.getElementById('qbittorrent-password-test').value.trim() || '';
+
+                // Get Streamtape config
+                const streamtapeMethod = document.querySelector('input[name="streamtape-auth-method"]:checked')?.value || 'apikey';
+                const streamtapeLogin = document.getElementById('streamtape-login')?.value.trim() || '';
+                const streamtapeKey = document.getElementById('streamtape-key')?.value.trim() || '';
+                const rawStreamtapeCookies = document.getElementById('streamtape-cookies')?.value || '';
+                const streamtapeCookies = sanitizeCookies(rawStreamtapeCookies);
+
+                // Validate Streamtape credentials
+                const useCookies = streamtapeMethod === 'cookie' && streamtapeCookies;
+                const useApiKey = streamtapeMethod !== 'cookie' && streamtapeLogin && streamtapeKey;
+
+                if (!useCookies && !useApiKey) {
+                    throw new Error('Streamtape ayarları eksik! Lütfen Streamtape ayarlarını yapın (yukarıdaki "Streamtape Ayarları" bölümünden).');
+                }
+
+                // Validate qBittorrent URL
+                if (!qbUrl) {
+                    throw new Error('qBittorrent Web UI URL gerekli!');
+                }
+
+                // Call upload-completed endpoint with longer timeout for large files
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                }, 3600000); // 1 hour timeout for large file uploads
+                
+                resultDiv.innerHTML = '<div class="alert alert-info" style="margin-top: 15px;"><strong>📤 Streamtape\'e yükleme başlatıldı...</strong><br>Büyük dosyalar için bu işlem uzun sürebilir (100MB: 1-2 dk, 1GB: 10-20 dk).<br>Lütfen sayfayı kapatmayın ve bekleyin...<br><br><strong>💡 Terminal loglarını kontrol edin - yükleme ilerlemesi orada görünecek!</strong></div>';
+                
+                const apiUrl = `${getApiBaseUrl()}/api/torrent/upload-completed`;
+                console.log('📤 Making request to:', apiUrl);
+                console.log('⏱️ Request start time:', new Date().toISOString());
+                
+                // Add request tracking
+                const requestStartTime = Date.now();
+                let requestStatus = 'pending';
+                
+                // Periodic status logging
+                const statusInterval = setInterval(() => {
+                    const elapsed = Math.round((Date.now() - requestStartTime) / 1000);
+                    console.log(`⏱️ Request still pending... (${elapsed}s elapsed)`);
+                    requestStatus = `pending-${elapsed}s`;
+                }, 5000); // Log every 5 seconds
+                
+                let response;
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Connection': 'keep-alive' // Keep connection alive for long uploads
+                        },
+                        body: JSON.stringify({
+                            qbittorrentUrl: qbUrl,
+                            qbittorrentUsername: qbUsername,
+                            qbittorrentPassword: qbPassword,
+                            streamtapeLogin: useApiKey ? streamtapeLogin : null,
+                            streamtapeKey: useApiKey ? streamtapeKey : null,
+                            streamtapeCookies: useCookies ? streamtapeCookies : null,
+                            streamtapeAuthMethod: streamtapeMethod
+                        }),
+                        signal: controller.signal
+                    });
+                } catch (fetchError) {
+                    // Network error - fetch failed
+                    clearTimeout(timeoutId);
+                    loading.style.display = 'none';
+                    
+                    const errorMsg = fetchError.message || 'Unknown error';
+                    console.error('❌ Fetch error:', fetchError);
+                    console.error('❌ Error name:', fetchError.name);
+                    console.error('❌ API URL:', apiUrl);
+                    console.error('❌ getApiBaseUrl():', getApiBaseUrl());
+                    
+                    let userFriendlyError = '❌ Bağlantı hatası oluştu!\n\n';
+                    
+                    if (fetchError.name === 'AbortError' || errorMsg.includes('aborted')) {
+                        userFriendlyError += 'İstek iptal edildi veya zaman aşımına uğradı.';
+                    } else if (errorMsg.includes('Load failed') || errorMsg.includes('Failed to fetch')) {
+                        userFriendlyError += 'Sunucuya bağlanılamıyor!\n\n';
+                        userFriendlyError += 'Olası nedenler:\n';
+                        userFriendlyError += '1. Vercel dev server çalışmıyor olabilir\n';
+                        userFriendlyError += '   → Terminal\'de şu komutu çalıştırın: npx vercel dev\n';
+                        userFriendlyError += '2. API endpoint bulunamıyor (404)\n';
+                        userFriendlyError += '3. CORS hatası olabilir\n\n';
+                        userFriendlyError += `API URL: ${apiUrl}`;
+                    } else {
+                        userFriendlyError += `Hata: ${errorMsg}`;
+                    }
+                    
+                    resultDiv.innerHTML = `<div class="alert alert-error" style="margin-top: 15px;">
+                        <strong>❌ Bağlantı Hatası</strong><br>
+                        <pre style="white-space: pre-wrap; margin-top: 10px;">${userFriendlyError}</pre>
+                    </div>`;
+                    showMessage('❌ Bağlantı hatası: ' + errorMsg, 'error');
+                    return;
+                }
+                
+                clearTimeout(timeoutId);
+
+                let data;
+                try {
+                    const responseText = await response.text();
+                    console.log('📥 Response status:', response.status);
+                    console.log('📥 Response text length:', responseText.length);
+                    console.log('📥 Response text preview:', responseText.substring(0, 500)); // Log first 500 chars
+                    
+                    if (!responseText || responseText.trim() === '') {
+                        throw new Error('Empty response from server');
+                    }
+                    
+                    // Check if response is HTML error page
+                    if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || responseText.includes('Error:')) {
+                        console.error('❌ Server returned HTML error page');
+                        
+                        // Try to extract error message from HTML
+                        const errorMatch = responseText.match(/<title>(.*?)<\/title>/i) || responseText.match(/Error:\s*(.*?)(?:\n|<)/i);
+                        const errorTitle = errorMatch ? errorMatch[1] : 'Server Error';
+                        
+                        // Check for specific error codes in HTML
+                        if (responseText.includes('FUNCTION_INVOCATION_FAILED')) {
+                            throw new Error('Serverless function failed to start. This might be due to a syntax error or missing dependency. Check terminal logs.');
+                        } else if (responseText.includes('TIMEOUT')) {
+                            throw new Error('Request timed out. The file upload is taking too long. Try with smaller files or check your network connection.');
+                        } else if (responseText.includes('NOT_FOUND') || responseText.includes('404')) {
+                            throw new Error('API endpoint not found (404). Make sure the endpoint exists and you are using the correct URL. Try restarting the development server.');
+                        } else if (responseText.includes('500') || responseText.includes('Internal Server Error')) {
+                            throw new Error('Internal server error (500). Check terminal logs for detailed error information.');
+                        } else {
+                            throw new Error(`Server returned HTML error page. ${errorTitle}. Check terminal logs for details. Response preview: ${responseText.substring(0, 200)}`);
+                        }
+                    }
+                    
+                    // Try to parse as JSON
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseError) {
+                        console.error('❌ JSON parse error:', parseError);
+                        throw new Error(`Failed to parse response as JSON: ${parseError.message}. Response preview: ${responseText.substring(0, 200)}`);
+                    }
+                } catch (e) {
+                    console.error('❌ Response parsing error:', e);
+                    console.error('❌ Response status:', response.status);
+                    console.error('❌ Response headers:', [...response.headers.entries()]);
+                    
+                    // If it's already our custom error, throw as is
+                    if (e.message.includes('Server returned HTML') || e.message.includes('Serverless function failed')) {
+                        throw e;
+                    }
+                    
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}. ${e.message}`);
+                }
+
+                loading.style.display = 'none';
+
+                if (!response.ok) {
+                    // Show detailed error message
+                    let errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`;
+                    
+                    // Add details if available
+                    if (data.details && process.env.NODE_ENV === 'development') {
+                        errorMessage += '\n\nDetaylar:\n' + JSON.stringify(data.details, null, 2);
+                    }
+                    
+                    console.error('❌ API Error:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        data: data,
+                        message: errorMessage
+                    });
+                    
+                    throw new Error(errorMessage);
+                }
+
+                if (data.success) {
+                    let resultHtml = '<div class="alert alert-success" style="margin-top: 15px;">';
+                    resultHtml += '<strong>✅ Başarılı!</strong><br>';
+                    resultHtml += `<p style="margin-top: 10px;">${data.message || 'İşlem tamamlandı'}</p>`;
+
+                    if (data.uploadResults && data.uploadResults.length > 0) {
+                        resultHtml += '<h4 style="margin-top: 15px; margin-bottom: 10px;">Yüklenen Dosyalar:</h4>';
+                        resultHtml += '<ul style="margin-left: 20px;">';
+
+                        data.uploadResults.forEach((result, index) => {
+                            if (result.success) {
+                                resultHtml += `<li style="margin-bottom: 10px;">`;
+                                resultHtml += `<strong>${result.torrentName || result.fileName || `Torrent ${index + 1}`}</strong><br>`;
+                                if (result.streamtapeUrl) {
+                                    resultHtml += `🔗 <a href="${result.streamtapeUrl}" target="_blank" style="color: #667eea;">Streamtape Link</a><br>`;
+                                }
+                                if (result.fileId) {
+                                    resultHtml += `📁 File ID: ${result.fileId}`;
+                                }
+                                resultHtml += `</li>`;
+                            } else {
+                                resultHtml += `<li style="margin-bottom: 10px; color: #dc3545;">`;
+                                resultHtml += `<strong>${result.torrentName || result.fileName || `Torrent ${index + 1}`}</strong><br>`;
+                                resultHtml += `❌ Hata: ${result.error || 'Bilinmeyen hata'}`;
+                                resultHtml += `</li>`;
+                            }
+                        });
+
+                        resultHtml += '</ul>';
+                    } else {
+                        resultHtml += '<p style="margin-top: 10px; color: #6c757d;">Tamamlanan torrent bulunamadı veya yüklenecek dosya yok.</p>';
+                    }
+
+                    resultHtml += '</div>';
+                    resultDiv.innerHTML = resultHtml;
+                } else {
+                    throw new Error(data.message || 'Bilinmeyen hata');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                
+                const errorMsg = error.message || 'Bilinmeyen hata';
+                console.error('❌ Streamtape upload test error:', error);
+                console.error('❌ Error name:', error.name);
+                console.error('❌ Error stack:', error.stack);
+                
+                // Check if it's a network error
+                if (error.message && (error.message.includes('Load failed') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+                    resultDiv.innerHTML = `<div class="alert alert-error" style="margin-top: 15px;">
+                        <strong>❌ Bağlantı Hatası</strong><br>
+                        <p style="margin-top: 10px;">
+                            Sunucuya bağlanılamıyor. Lütfen şunları kontrol edin:<br><br>
+                            1. <strong>Vercel dev server çalışıyor mu?</strong><br>
+                               → Terminal'de: <code>npx vercel dev</code><br><br>
+                            2. <strong>API endpoint doğru mu?</strong><br>
+                               → ${getApiBaseUrl()}/api/torrent/upload-completed<br><br>
+                            3. <strong>Browser console'da daha fazla detay var mı?</strong> (F12)
+                        </p>
+                    </div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error" style="margin-top: 15px;">
+                        <strong>❌ Hata:</strong><br>
+                        <p style="margin-top: 10px;">${errorMsg}</p>
+                    </div>`;
+                }
+                
+                showMessage('❌ Hata: ' + errorMsg, 'error');
+            }
+        }
+        
+        // Make function globally accessible
+        window.testStreamtapeUpload = testStreamtapeUpload;
+        
+        // Initialize Streamtape settings on page load
+        let streamtapeInitDone = false;
+        
+        function initStreamtapeSettings() {
+            // Prevent multiple initializations
+            if (streamtapeInitDone) {
+                return;
+            }
+            
+            try {
+                console.log('📥 Loading saved settings...');
+                
+                // Wait a bit for functions to be available
+                setTimeout(function() {
+                    // Load saved settings
+                    if (typeof window.loadStreamtapeSettings === 'function') {
+                        try {
+                            window.loadStreamtapeSettings();
+                        } catch (e) {
+                            console.error('❌ Error loading settings:', e);
+                        }
+                    } else {
+                        console.warn('⚠️ loadStreamtapeSettings not available yet');
+                    }
+
+                    // Add button event listeners
+                    const saveBtn = document.getElementById('save-streamtape-btn');
+                    const loadBtn = document.getElementById('load-streamtape-btn');
+                    
+                    if (saveBtn) {
+                        saveBtn.onclick = function(e) {
+                            e.preventDefault();
+                            if (typeof window.saveStreamtapeSettings === 'function') {
+                                window.saveStreamtapeSettings();
+                            } else {
+                                console.error('❌ saveStreamtapeSettings not found!');
+                                alert('Hata: Fonksiyon bulunamadı!');
+                            }
+                        };
+                        console.log('✅ Save button listener added');
+                    }
+                    
+                    if (loadBtn) {
+                        loadBtn.onclick = function(e) {
+                            e.preventDefault();
+                            if (typeof window.loadStreamtapeSettings === 'function') {
+                                window.loadStreamtapeSettings();
+                                if (typeof window.showMessage === 'function') {
+                                    window.showMessage('✅ Ayarlar yüklendi!', 'success');
+                                }
+                            } else {
+                                console.error('❌ loadStreamtapeSettings not found!');
+                            }
+                        };
+                        console.log('✅ Load button listener added');
+                    }
+
+                    // Auto-save when inputs change
+                    const loginInput = document.getElementById('streamtape-login');
+                    const keyInput = document.getElementById('streamtape-key');
+                    const cookiesInput = document.getElementById('streamtape-cookies');
+
+                    if (loginInput && typeof window.autoSaveStreamtapeSettings === 'function') {
+                        loginInput.addEventListener('input', window.autoSaveStreamtapeSettings);
+                    }
+                    if (keyInput && typeof window.autoSaveStreamtapeSettings === 'function') {
+                        keyInput.addEventListener('input', window.autoSaveStreamtapeSettings);
+                    }
+                    if (cookiesInput && typeof window.autoSaveStreamtapeSettings === 'function') {
+                        cookiesInput.addEventListener('input', window.autoSaveStreamtapeSettings);
+                    }
+                    
+                    // Listen for authentication method changes
+                    const methodRadios = document.querySelectorAll('input[name="streamtape-auth-method"]');
+                    if (methodRadios.length > 0) {
+                        methodRadios.forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                console.log('🔄 Auth method changed to:', this.value);
+                                if (typeof window.toggleStreamtapeAuthMethod === 'function') {
+                                    window.toggleStreamtapeAuthMethod();
+                                } else {
+                                    console.error('❌ toggleStreamtapeAuthMethod function not found!');
+                                }
+                                // Save method preference
+                                safeSet(ST_KEYS.method, this.value);
+                            });
+                            console.log('✅ Added event listener to radio button:', radio.value);
+                        });
+                    } else {
+                        console.warn('⚠️ No radio buttons found for streamtape-auth-method');
+                    }
+                    
+                    // Initial toggle to set correct display state on page load
+                    setTimeout(() => {
+                        if (typeof window.toggleStreamtapeAuthMethod === 'function') {
+                            window.toggleStreamtapeAuthMethod();
+                            console.log('✅ Initial toggle executed');
+                        } else if (typeof toggleStreamtapeAuthMethod === 'function') {
+                            toggleStreamtapeAuthMethod();
+                            console.log('✅ Initial toggle executed (local function)');
+                        } else {
+                            console.error('❌ toggleStreamtapeAuthMethod not available for initial toggle!');
+                            // Force toggle manually
+                            const method = document.querySelector('input[name="streamtape-auth-method"]:checked')?.value || 'apikey';
+                            const apiKeyFields = document.getElementById('streamtape-apikey-fields');
+                            const cookieFields = document.getElementById('streamtape-cookie-fields');
+                            if (method === 'cookie' && cookieFields) {
+                                cookieFields.style.display = 'block';
+                            } else if (apiKeyFields) {
+                                apiKeyFields.style.display = 'block';
+                            }
+                        }
+                    }, 200);
+
+                    streamtapeInitDone = true;
+                    console.log("⚙️ Streamtape settings initialized.");
+                }, 200);
+                
+            } catch (error) {
+                console.error('❌ Error initializing Streamtape settings:', error);
+            }
+        }
+
+        // Initialize when DOM is ready - Use window.onload for maximum compatibility
+        function initializeStreamtapeOnLoad() {
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                // DOM is ready, initialize immediately
+                setTimeout(initStreamtapeSettings, 100);
+            } else {
+                // Wait for DOM to be ready
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(initStreamtapeSettings, 100);
+                });
+                // Also try window.onload as fallback
+                window.addEventListener('load', function() {
+                    setTimeout(initStreamtapeSettings, 100);
+                });
+            }
+        }
+        
+        // Start initialization
+        initializeStreamtapeOnLoad();
+    </script>
+</body>
+</html>

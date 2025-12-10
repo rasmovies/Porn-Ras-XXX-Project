@@ -14,12 +14,13 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { categoryService, modelService, channelService, profileService, banUserService, notificationService } from '../services/database';
 import { emailApi } from '../services/emailApi';
+import { metadataApi, ModelMetadata } from '../services/metadataApi';
 import { Category, Model, Channel, Profile, BanUser } from '../lib/supabase';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, CircularProgress } from '@mui/material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
 
@@ -96,6 +97,10 @@ const Admin: React.FC = () => {
   const [marketingCtaLabel, setMarketingCtaLabel] = useState('');
   const [marketingUnsubscribeUrl, setMarketingUnsubscribeUrl] = useState('');
   const [marketingSending, setMarketingSending] = useState(false);
+  // Metadata scraping states
+  const [metadataModalOpen, setMetadataModalOpen] = useState(false);
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const [scrapedMetadata, setScrapedMetadata] = useState<ModelMetadata | null>(null);
 
   // Load data from localStorage and Supabase on component mount
   useEffect(() => {
@@ -122,8 +127,14 @@ const Admin: React.FC = () => {
       try {
         const supabaseUsers = await profileService.getAll();
         setUsers(supabaseUsers);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load users from Supabase:', error);
+        // 500 hatası normal olabilir (tablo boş veya RLS sorunu) - sadece logla
+        if (error?.message) {
+          console.warn('Profiles endpoint error (may be normal):', error.message);
+        }
+        // Users listesini boş bırak
+        setUsers([]);
       }
 
       // Load bans from Supabase
@@ -359,6 +370,59 @@ const Admin: React.FC = () => {
   const handleRemoveModelImage = () => {
     setModelImagePreview(null);
     setModelImageUrl('');
+  };
+
+  const handleFetchMetadata = async () => {
+    if (!newModel.trim()) {
+      showSnackbar('Please enter a model name first', 'error');
+      return;
+    }
+
+    setMetadataLoading(true);
+    setMetadataModalOpen(true);
+    setScrapedMetadata(null);
+
+    try {
+      const metadata = await metadataApi.scrapeModelMetadata(newModel.trim());
+      setScrapedMetadata(metadata);
+      showSnackbar('Metadata fetched successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to fetch metadata:', error);
+      showSnackbar(
+        error instanceof Error ? error.message : 'Failed to fetch metadata',
+        'error'
+      );
+    } finally {
+      setMetadataLoading(false);
+    }
+  };
+
+  const handleUseMetadata = () => {
+    if (!scrapedMetadata) return;
+
+    // Auto-fill form with metadata
+    if (scrapedMetadata.image) {
+      setModelImageUrl(scrapedMetadata.image);
+      setModelImagePreview(scrapedMetadata.image);
+    }
+
+    // Update model name
+    if (scrapedMetadata.name) {
+      setNewModel(scrapedMetadata.name);
+    }
+
+    // Switch to Models tab if not already there
+    if (tabValue !== 1) {
+      setTabValue(1);
+    }
+
+    setMetadataModalOpen(false);
+    showSnackbar('Metadata applied to form! You can now add the model.', 'success');
+  };
+
+  const handleCloseMetadataModal = () => {
+    setMetadataModalOpen(false);
+    setScrapedMetadata(null);
   };
 
   const handleAddModel = async () => {
@@ -757,12 +821,14 @@ const Admin: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box>
-        <Typography variant="h4" component="h1" gutterBottom className="gradient-text">
-          Admin Panel
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Manage categories and models for your video platform
-        </Typography>
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom className="gradient-text">
+            Admin Panel
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Manage categories and models for your video platform
+          </Typography>
+        </Box>
       </Box>
 
       <Card>
@@ -1086,6 +1152,15 @@ const Admin: React.FC = () => {
                     variant="outlined"
                     onKeyPress={(e) => e.key === 'Enter' && handleAddModel()}
                   />
+                  <Button
+                    variant="outlined"
+                    startIcon={<Search />}
+                    onClick={handleFetchMetadata}
+                    disabled={!newModel.trim() || metadataLoading}
+                    sx={{ minWidth: 150 }}
+                  >
+                    {metadataLoading ? <CircularProgress size={20} /> : 'Fetch Metadata'}
+                  </Button>
                   <Button
                     variant="contained"
                     startIcon={<Add />}
@@ -1838,6 +1913,117 @@ const Admin: React.FC = () => {
           </Box>
         </TabPanel>
       </Card>
+
+      {/* Metadata Preview Modal */}
+      <Dialog
+        open={metadataModalOpen}
+        onClose={handleCloseMetadataModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Model Metadata Preview</Typography>
+            <IconButton onClick={handleCloseMetadataModal} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {metadataLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <CircularProgress size={60} />
+                <Typography variant="body1" sx={{ mt: 2 }}>
+                  Fetching metadata...
+                </Typography>
+              </Box>
+            </Box>
+          ) : scrapedMetadata ? (
+            <Box>
+              <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
+                {scrapedMetadata.image && (
+                  <Box>
+                    <img
+                      src={scrapedMetadata.image}
+                      alt={scrapedMetadata.name}
+                      style={{
+                        width: '200px',
+                        height: '300px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        border: '2px solid #e0e0e0',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </Box>
+                )}
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h5" gutterBottom>
+                    {scrapedMetadata.name}
+                  </Typography>
+                  {scrapedMetadata.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {scrapedMetadata.description}
+                    </Typography>
+                  )}
+                  {scrapedMetadata.images && scrapedMetadata.images.length > 1 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Additional Images ({scrapedMetadata.images.length})
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {scrapedMetadata.images.slice(1, 4).map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`${scrapedMetadata.name} ${idx + 2}`}
+                            style={{
+                              width: '80px',
+                              height: '120px',
+                              objectFit: 'cover',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => {
+                              setModelImageUrl(img);
+                              setModelImagePreview(img);
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Click "Use Metadata" to automatically fill the form with this information.
+              </Alert>
+            </Box>
+          ) : (
+            <Box sx={{ textAlign: 'center', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography variant="body1" color="text.secondary">
+                No metadata found. Please try a different model name.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseMetadataModal}>Cancel</Button>
+          <Button
+            onClick={handleUseMetadata}
+            variant="contained"
+            disabled={!scrapedMetadata}
+          >
+            Use Metadata
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

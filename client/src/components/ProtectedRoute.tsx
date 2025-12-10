@@ -20,8 +20,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Development mode'da authentication bypass (local test için)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
   useEffect(() => {
     const checkAdmin = async () => {
+      // Development mode'da bypass
+      if (isDevelopment) {
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
+      
       if (requireAdmin && user?.username) {
         try {
           const adminStatus = await adminUserService.isAdmin(user.username);
@@ -37,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     };
 
     checkAdmin();
-  }, [requireAdmin, user?.username]);
+  }, [requireAdmin, user?.username, isDevelopment]);
 
   // Loading state
   if (loading) {
@@ -58,6 +68,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         </Typography>
       </Box>
     );
+  }
+
+  // Development mode'da bypass - direkt erişim izni ver
+  if (isDevelopment) {
+    return <>{children}</>;
   }
 
   // Require authentication

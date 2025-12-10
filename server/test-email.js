@@ -1,8 +1,8 @@
 /**
- * Spacemail Email Test Script
+ * Resend Email API Test Script
  * 
  * Kullanım:
- * 1. .env dosyasında Spacemail ayarlarını yapın
+ * 1. .env dosyasında Resend API ayarlarını yapın
  * 2. node server/test-email.js
  */
 
@@ -10,15 +10,12 @@ require('dotenv').config();
 const { sendWelcomeMail } = require('./services/emailService');
 
 async function testEmail() {
-  console.log('🧪 Spacemail Email Test Başlatılıyor...\n');
+  console.log('🧪 Resend Email API Test Başlatılıyor...\n');
 
   // Environment değişkenlerini kontrol et
   const requiredVars = [
-    'SPACEMAIL_SMTP_HOST',
-    'SPACEMAIL_SMTP_PORT',
-    'SPACEMAIL_SMTP_USERNAME',
-    'SPACEMAIL_SMTP_PASSWORD',
-    'SPACEMAIL_FROM_EMAIL',
+    'RESEND_API_KEY',
+    'RESEND_FROM_EMAIL',
   ];
 
   console.log('📋 Environment Değişkenleri:');
@@ -26,9 +23,9 @@ async function testEmail() {
   requiredVars.forEach(varName => {
     const value = process.env[varName];
     if (value) {
-      // Şifreleri gizle
-      const displayValue = varName.includes('PASSWORD') 
-        ? '***' 
+      // API key'i gizle
+      const displayValue = varName.includes('API_KEY') 
+        ? `${value.substring(0, 10)}...` 
         : value;
       console.log(`  ✅ ${varName}: ${displayValue}`);
     } else {
@@ -40,6 +37,7 @@ async function testEmail() {
   if (missingVars.length > 0) {
     console.error('\n❌ Eksik environment değişkenleri:', missingVars.join(', '));
     console.error('Lütfen .env dosyasını kontrol edin.\n');
+    console.error('💡 Resend API Key almak için: https://resend.com/api-keys');
     process.exit(1);
   }
 
@@ -47,7 +45,7 @@ async function testEmail() {
 
   try {
     // Test e-postası gönder
-    const testEmail = process.env.SPACEMAIL_SMTP_USERNAME || process.env.SPACEMAIL_FROM_EMAIL;
+    const testEmail = process.env.RESEND_FROM_EMAIL;
     
     if (!testEmail) {
       throw new Error('Test e-postası için alıcı adresi bulunamadı');
@@ -74,27 +72,22 @@ async function testEmail() {
     }
 
     // Yaygın hatalar için öneriler
-    if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
-      console.error('\n💡 Öneriler:');
-      console.error('1. SMTP sunucu adresini kontrol edin (mail.spacemail.com)');
-      console.error('2. Port numarasını kontrol edin (465 veya 587)');
-      console.error('3. İnternet bağlantınızı kontrol edin');
-      console.error('4. Firewall ayarlarını kontrol edin');
-    } else if (error.message.includes('EAUTH') || error.message.includes('authentication') || error.message.includes('535')) {
-      console.error('\n💡 Kimlik Doğrulama Hatası - Öneriler:');
-      console.error('1. Kullanıcı adını kontrol edin (tam e-posta adresi: info@pornras.com)');
-      console.error('2. Şifreyi kontrol edin (boşluk olmamalı)');
-      console.error('3. Spacemail hesabınızın aktif olduğundan emin olun');
-      console.error('4. Port 587 (STARTTLS) deneyin:');
-      console.error('   SPACEMAIL_SMTP_PORT=587');
-      console.error('   SPACEMAIL_SMTP_SECURE=false');
-      console.error('5. Spacemail kontrol panelinde SMTP ayarlarını kontrol edin');
-      console.error('6. Bazı e-posta servisleri "Uygulama Şifresi" gerektirir');
-      console.error('7. 2FA aktifse, uygulama şifresi kullanmanız gerekebilir');
-    } else if (error.message.includes('certificate') || error.message.includes('TLS')) {
-      console.error('\n💡 Öneriler:');
-      console.error('1. SPACEMAIL_SMTP_SECURE=true olduğundan emin olun (port 465 için)');
-      console.error('2. Port 587 kullanıyorsanız secure=false olmalı');
+    if (error.message.includes('RESEND_API_KEY') || error.message.includes('API')) {
+      console.error('\n💡 Resend API Hatası - Öneriler:');
+      console.error('1. Resend.com\'da hesap oluşturun: https://resend.com');
+      console.error('2. API Key oluşturun: https://resend.com/api-keys');
+      console.error('3. Domain\'i doğrulayın (info@pornras.com için pornras.com domain\'i)');
+      console.error('4. API Key\'i .env dosyasına ekleyin: RESEND_API_KEY=re_...');
+      console.error('5. Vercel\'de environment variable olarak ekleyin');
+    } else if (error.message.includes('domain') || error.message.includes('Domain')) {
+      console.error('\n💡 Domain Doğrulama Hatası - Öneriler:');
+      console.error('1. Resend dashboard\'da domain\'i ekleyin ve doğrulayın');
+      console.error('2. DNS kayıtlarını (SPF, DKIM, DMARC) ekleyin');
+      console.error('3. Domain doğrulaması tamamlanana kadar test domain kullanabilirsiniz');
+    } else if (error.message.includes('rate limit') || error.message.includes('limit')) {
+      console.error('\n💡 Rate Limit Hatası:');
+      console.error('1. Resend free plan\'da günlük limit var');
+      console.error('2. Planınızı kontrol edin veya bekleyin');
     }
 
     console.error('\n');
