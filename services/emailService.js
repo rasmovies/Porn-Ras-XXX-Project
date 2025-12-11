@@ -151,11 +151,13 @@
        // Otherwise use URL-based template (backward compatibility)
        if (verificationCode) {
          // #region agent log
-         fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:125',message:'Before template render - verification code',data:{username,hasCode:!!verificationCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+         fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:152',message:'Before template render - verification code',data:{username,verificationCode,hasCode:!!verificationCode,codeType:typeof verificationCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
          // #endregion
-         const html = await renderTemplate('verification', { username, verificationCode });
+         const templateData = { username, verificationCode: String(verificationCode) };
+         console.log('📧 Sending verification email with code:', { email, username, codeLength: verificationCode.length });
+         const html = await renderTemplate('verification', templateData);
          // #region agent log
-         fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:127',message:'Template rendered successfully',data:{htmlLength:html?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+         fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:157',message:'Template rendered successfully',data:{htmlLength:html?.length||0,containsCode:html?.includes(verificationCode)||false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
          // #endregion
          return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html });
        } else {
@@ -165,21 +167,41 @@
      } catch (templateError) {
        console.error('❌ Template rendering error:', templateError);
        // #region agent log
-       fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:135',message:'Template rendering error - using fallback',data:{error:templateError.message,code:templateError.code,stack:templateError.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+       fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:135',message:'Template rendering error - using fallback',data:{error:templateError.message,code:templateError.code,stack:templateError.stack,verificationCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
        // #endregion
-       // If template fails, send a simple text email
+       // If template fails, send a simple text email with the code
        const simpleHtml = `
          <html>
+           <head>
+             <meta charset="UTF-8">
+             <style>
+               body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+               .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+               .code-box { background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
+               .code { font-size: 36px; font-weight: bold; color: #ffffff; letter-spacing: 8px; font-family: 'Courier New', monospace; }
+               h2 { color: #ff6b6b; }
+             </style>
+           </head>
            <body>
-             <h2>PORNRAS - Doğrulama Kodu</h2>
-             <p>Merhaba ${username},</p>
-             <p>Doğrulama kodunuz: <strong>${verificationCode || 'N/A'}</strong></p>
-             <p>Bu kod 15 dakika geçerlidir.</p>
+             <div class="container">
+               <h2>PORNRAS - Doğrulama Kodu</h2>
+               <p>Merhaba ${username},</p>
+               <p>PORNRAS hesabınızı oluşturduğunuz için teşekkürler. Kaydınızı tamamlamak için aşağıdaki doğrulama kodunu kullanın:</p>
+               <div class="code-box">
+                 <div class="code">${verificationCode || 'N/A'}</div>
+               </div>
+               <p style="text-align: center; color: #666; font-size: 14px;">
+                 Bu kodu doğrulama sayfasına girerek kaydınızı tamamlayın.
+               </p>
+               <p style="color: #856404; background: #fff3cd; padding: 12px; border-left: 4px solid #ffc107; border-radius: 4px;">
+                 <strong>Önemli:</strong> Bu doğrulama kodu 15 dakika içinde geçerliliğini yitirecektir.
+               </p>
+             </div>
            </body>
          </html>
        `;
        // #region agent log
-       fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:147',message:'Using fallback HTML email',data:{simpleHtmlLength:simpleHtml.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+       fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.js:160',message:'Using fallback HTML email',data:{simpleHtmlLength:simpleHtml.length,hasCode:!!verificationCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
        // #endregion
        return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html: simpleHtml });
      }
