@@ -111,14 +111,38 @@
   }
 
    async function sendVerificationMail({ email, username, verifyUrl, verificationCode }) {
-     // If verificationCode is provided, use code-based template
-     // Otherwise use URL-based template (backward compatibility)
-     if (verificationCode) {
-       const html = await renderTemplate('verification', { username, verificationCode });
-       return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html });
-     } else {
-       const html = await renderTemplate('verification', { username, verifyUrl });
-       return dispatchEmail({ recipients: [email], subject: 'Hesabını Doğrula', html });
+     // Check if RESEND_API_KEY is configured
+     if (!RESEND_API_KEY) {
+       const error = new Error('RESEND_API_KEY is not configured. Email cannot be sent.');
+       error.status = 500;
+       error.code = 'EMAIL_CONFIG_MISSING';
+       throw error;
+     }
+     
+     try {
+       // If verificationCode is provided, use code-based template
+       // Otherwise use URL-based template (backward compatibility)
+       if (verificationCode) {
+         const html = await renderTemplate('verification', { username, verificationCode });
+         return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html });
+       } else {
+         const html = await renderTemplate('verification', { username, verifyUrl });
+         return dispatchEmail({ recipients: [email], subject: 'Hesabını Doğrula', html });
+       }
+     } catch (templateError) {
+       console.error('❌ Template rendering error:', templateError);
+       // If template fails, send a simple text email
+       const simpleHtml = `
+         <html>
+           <body>
+             <h2>PORNRAS - Doğrulama Kodu</h2>
+             <p>Merhaba ${username},</p>
+             <p>Doğrulama kodunuz: <strong>${verificationCode || 'N/A'}</strong></p>
+             <p>Bu kod 15 dakika geçerlidir.</p>
+           </body>
+         </html>
+       `;
+       return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html: simpleHtml });
      }
    }
 

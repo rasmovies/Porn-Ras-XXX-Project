@@ -109,6 +109,13 @@ module.exports = async function handler(req, res) {
         .gt('expires_at', new Date().toISOString())
         .maybeSingle();
       
+      if (findError) {
+        // Table might not exist or RLS issue
+        console.warn('⚠️ Error finding existing code:', findError.message);
+        console.warn('   Error code:', findError.code);
+        console.warn('   Error details:', findError.details);
+      }
+      
       if (existingCode && !findError) {
         // Update existing code
         const { data, error } = await supabase
@@ -122,8 +129,14 @@ module.exports = async function handler(req, res) {
           .select()
           .single();
         
-        if (error) throw error;
-        codeData = data;
+        if (error) {
+          console.warn('⚠️ Error updating code:', error.message);
+          // Continue without storing in DB
+          codeData = { code: verificationCode, email, username, expires_at: expiresAt };
+        } else {
+          codeData = data;
+          console.log('✅ Updated existing verification code');
+        }
       } else {
         // Create new code
         const { data, error } = await supabase
@@ -139,40 +152,85 @@ module.exports = async function handler(req, res) {
           .single();
         
         if (error) {
-          // If table doesn't exist, log warning but continue
-          console.warn('⚠️ verification_codes table not found. Code will be sent but not stored. Please create the table in Supabase.');
-          console.warn('Table structure needed: verification_codes (id, email, username, code, expires_at, is_used, created_at)');
+          // If table doesn't exist or RLS issue, log warning but continue
+          console.warn('⚠️ verification_codes table error. Code will be sent but not stored.');
+          console.warn('   Error code:', error.code);
+          console.warn('   Error message:', error.message);
+          console.warn('   Error details:', error.details);
+          console.warn('   Table structure needed: verification_codes (id, email, username, code, expires_at, is_used, created_at)');
           codeData = { code: verificationCode, email, username, expires_at: expiresAt };
         } else {
           codeData = data;
+          console.log('✅ Created new verification code in database');
         }
       }
     } catch (dbError) {
       // If database operation fails, still send email
       console.warn('⚠️ Database error, but continuing with email send:', dbError.message);
+      console.warn('   Error stack:', dbError.stack);
       codeData = { code: verificationCode, email, username, expires_at: expiresAt };
     }
     
     // Send verification email with code
+    let emailSent = false;
     try {
       await sendVerificationMail({ 
         email, 
         username, 
         verificationCode: verificationCode 
       });
+      emailSent = true;
+      console.log('✅ Verification email sent successfully to:', email);
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      // Don't fail the request if email fails, but log it
+      console.error('❌ Failed to send verification email:', emailError);
+      console.error('   Error message:', emailError.message);
+      console.error('   Error code:', emailError.code);
+      console.error('   Error status:', emailError.status);
+      
+      // If email fails but we have the code, still return success
+      // The user can manually enter the code if needed
+      // But log the error for debugging
+      if (!codeData || !codeData.code) {
+        // If we don't have the code stored, we can't proceed
+        return res.status(500).json({
+          success: false,
+          message: 'Doğrulama kodu oluşturuldu ancak email gönderilemedi. Lütfen tekrar deneyin.',
+          error: process.env.NODE_ENV === 'development' ? {
+            message: emailError.message,
+            code: emailError.code,
+            status: emailError.status
+          } : undefined
+        });
+      }
     }
     
     return res.json({ 
       success: true, 
-      message: 'Verification code sent successfully',
+      message: emailSent 
+        ? 'Verification code sent successfully' 
+        : 'Verification code generated (email may not have been sent)',
       // Don't send code to client for security
     });
   } catch (error) {
-    console.error('Generate code error:', error);
-    return handleError(res, error, 'Failed to generate verification code.');
+    console.error('❌ Generate code error:', error);
+    console.error('   Error message:', error.message);
+    console.error('   Error stack:', error.stack);
+    
+    // Provide more detailed error information
+    const errorResponse = {
+      success: false,
+      message: 'Doğrulama kodu oluşturulamadı. Lütfen tekrar deneyin.'
+    };
+    
+    if (process.env.NODE_ENV === 'development') {
+      errorResponse.error = {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      };
+    }
+    
+    return handleError(res, error, errorResponse.message);
   }
 };
 
