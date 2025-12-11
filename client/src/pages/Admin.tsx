@@ -85,7 +85,7 @@ const Admin: React.FC = () => {
   const [channelThumbnail, setChannelThumbnail] = useState<File | null>(null);
   const [channelThumbnailPreview, setChannelThumbnailPreview] = useState<string | null>(null);
   const [channelThumbnailUrl, setChannelThumbnailUrl] = useState<string>('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' });
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
@@ -174,7 +174,7 @@ const Admin: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
 
