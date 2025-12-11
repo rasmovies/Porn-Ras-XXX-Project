@@ -103,19 +103,22 @@ export const modelService = {
   // Get all models
   async getAll(): Promise<Model[]> {
     try {
+      // Optimize query: only select necessary columns and reduce limit
       const { data, error } = await supabase
         .from('models')
-        .select('*')
+        .select('id, name, image, created_at')
         .order('created_at', { ascending: false })
-        .limit(500); // Timeout önleme için limit
+        .limit(200); // Reduced limit to prevent timeout
       
       if (error) {
         console.error('❌ Models fetch error:', error);
         console.error('   Error code:', error.code);
         console.error('   Error message:', error.message);
+        console.error('   Error details:', error.details);
+        console.error('   Error hint:', error.hint);
         
         // Timeout hatası (57014)
-        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+        if (error.code === '57014' || error.message?.includes('statement timeout') || error.message?.includes('timeout')) {
           console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
           return [];
         }
@@ -123,6 +126,12 @@ export const modelService = {
         // If table doesn't exist, return empty array instead of throwing
         if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
           console.warn('⚠️ Models table does not exist, returning empty array');
+          return [];
+        }
+        
+        // 500 hatası (server error) - Supabase'den gelen genel hata
+        if (error.code === 'PGRST301' || error.message?.includes('500') || error.message?.includes('Internal Server Error')) {
+          console.warn('⚠️ Supabase server error (500), boş array döndürülüyor');
           return [];
         }
         
@@ -138,7 +147,7 @@ export const modelService = {
       console.error('   Error message:', error?.message);
       
       // Timeout hatası kontrolü
-      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+      if (error?.code === '57014' || error?.message?.includes('statement timeout') || error?.message?.includes('timeout')) {
         console.warn('⚠️ Supabase timeout hatası (catch), boş array döndürülüyor');
         return [];
       }

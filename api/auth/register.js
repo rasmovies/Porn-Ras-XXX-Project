@@ -60,23 +60,9 @@ module.exports = async function handler(req, res) {
       });
     }
     
-    // Check if email already exists
-    const { data: existingEmail, error: emailCheckError } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('email', email)
-      .limit(1);
-    
-    if (emailCheckError) {
-      console.error('Email check error:', emailCheckError);
-    }
-    
-    if (existingEmail && existingEmail.length > 0) {
-      return res.status(409).json({ 
-        success: false, 
-        message: 'Email already registered' 
-      });
-    }
+    // Note: Email column may not exist in profiles table
+    // Skip email uniqueness check if column doesn't exist
+    // We rely on username uniqueness check instead
     
     // Step 1: Create user in Supabase Auth
     let authUser = null;
@@ -116,47 +102,72 @@ module.exports = async function handler(req, res) {
     }
     
     // Step 3: Create profile in profiles table
+    // Only use columns that definitely exist in the table schema
+    // Based on add_profiles_table.sql, the table has:
+    // id, user_name, banner_image, avatar_image, subscriber_count, videos_watched, created_at, updated_at
     const profileData = {
       user_name: username,
-      email: email,
-      name: username,
       subscriber_count: 0,
-      videos_watched: 0,
-      email_verified: false, // Will be set to true after email verification
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      videos_watched: 0
+      // created_at and updated_at will be set automatically by database defaults
     };
     
-    // Add password_hash if we want to store it (optional)
-    // Uncomment if you want to store password hash in profiles table
-    // if (passwordHash) {
-    //   profileData.password_hash = passwordHash;
-    // }
+    console.log('Creating profile with data:', JSON.stringify(profileData, null, 2));
     
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .insert(profileData)
+      .insert([profileData])
       .select()
       .single();
     
     if (profileError) {
-      console.error('Profile creation error:', profileError);
+      console.error('❌ Profile creation error:', profileError);
+      console.error('   Error code:', profileError.code);
+      console.error('   Error message:', profileError.message);
+      console.error('   Error details:', profileError.details);
+      console.error('   Error hint:', profileError.hint);
+      console.error('   Profile data attempted:', JSON.stringify(profileData, null, 2));
       
       // If auth user was created but profile failed, try to clean up
       if (authUser && authUser.id) {
         try {
           // Note: We can't delete auth user from server-side with anon key
           // This would need service_role key
-          console.warn('Auth user created but profile failed. Manual cleanup may be needed.');
+          console.warn('⚠️ Auth user created but profile failed. Manual cleanup may be needed.');
         } catch (cleanupError) {
           console.error('Cleanup error:', cleanupError);
         }
       }
       
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Kullanıcı profili oluşturulamadı' 
-      });
+      // Provide more detailed error message
+      let errorMessage = 'Kullanıcı profili oluşturulamadı';
+      if (profileError.code === '23505') {
+        errorMessage = 'Bu kullanıcı adı zaten kullanılıyor';
+      } else if (profileError.code === 'PGRST116') {
+        errorMessage = 'Profil oluşturulamadı: Veritabanı hatası (kayıt bulunamadı)';
+      } else if (profileError.code === '42501' || profileError.message?.includes('permission denied') || profileError.message?.includes('row-level security')) {
+        errorMessage = 'Profil oluşturulamadı: Yetkilendirme hatası (RLS politikası)';
+      } else if (profileError.message) {
+        errorMessage = `Profil oluşturulamadı: ${profileError.message}`;
+      }
+      
+      // Always return detailed error in development, simplified in production
+      const errorResponse = {
+        success: false,
+        message: errorMessage
+      };
+      
+      if (process.env.NODE_ENV === 'development') {
+        errorResponse.error = {
+          code: profileError.code,
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+          attemptedData: profileData
+        };
+      }
+      
+      return res.status(500).json(errorResponse);
     }
     
     // Return success

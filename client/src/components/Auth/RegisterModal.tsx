@@ -189,7 +189,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       const registerData = await registerResponse.json();
       
       if (!registerResponse.ok || !registerData.success) {
-        throw new Error(registerData.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
+        // Show detailed error in development mode
+        let errorMessage = registerData.message || 'Kayıt başarısız. Lütfen tekrar deneyin.';
+        if (process.env.NODE_ENV === 'development' && registerData.error) {
+          console.error('Registration error details:', registerData.error);
+          // Append error details in development
+          if (registerData.error.message) {
+            errorMessage += ` (${registerData.error.message})`;
+          }
+        }
+        throw new Error(errorMessage);
       }
       
       console.log('✅ User registered:', registerData);
@@ -223,8 +232,14 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      setError(error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
-      toast.error('Kayıt başarısız');
+      const errorMessage = error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Log full error details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Full error object:', error);
+      }
     } finally {
       setIsSubmitting(false);
     }
