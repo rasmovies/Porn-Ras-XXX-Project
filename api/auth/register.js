@@ -43,30 +43,17 @@ module.exports = async function handler(req, res) {
     }
     
     // Check if username already exists
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'register.js:46',message:'Username check - before query',data:{username,email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
       .select('user_name')
       .eq('user_name', username)
       .limit(1);
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'register.js:52',message:'Username check - after query',data:{existingProfile:existingProfile?.length||0,checkError:checkError?.message||null,checkErrorCode:checkError?.code||null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     if (checkError) {
       console.error('Profile check error:', checkError);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'register.js:55',message:'Username check - error occurred',data:{error:checkError.message,code:checkError.code,details:checkError.details},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
     }
     
     if (existingProfile && existingProfile.length > 0) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'register.js:59',message:'Username already exists - returning 409',data:{username,existingProfileCount:existingProfile.length,existingUsernames:existingProfile.map(p=>p.user_name)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       return res.status(409).json({ 
         success: false, 
         message: 'Username already exists' 

@@ -159,9 +159,6 @@ module.exports = async function handler(req, res) {
     
     // Send verification email with code
     let emailSent = false;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'generate-code.js:175',message:'Before email send',data:{email,username,hasResendKey:!!process.env.RESEND_API_KEY,codeLength:verificationCode.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     try {
       await sendVerificationMail({ 
         email, 
@@ -170,17 +167,11 @@ module.exports = async function handler(req, res) {
       });
       emailSent = true;
       console.log('✅ Verification email sent successfully to:', email);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'generate-code.js:183',message:'Email sent successfully',data:{email,username},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
     } catch (emailError) {
       console.error('❌ Failed to send verification email:', emailError);
       console.error('   Error message:', emailError.message);
       console.error('   Error code:', emailError.code);
       console.error('   Error status:', emailError.status);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/77de285f-aa7f-4dd5-85ce-8cdd4fbaf322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'generate-code.js:189',message:'Email send failed',data:{error:emailError.message,code:emailError.code,status:emailError.status,stack:emailError.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       
       // Email gönderimi başarısız olsa bile success döndür
       // Kullanıcı kod ile devam edebilir (email gönderimi optional)
