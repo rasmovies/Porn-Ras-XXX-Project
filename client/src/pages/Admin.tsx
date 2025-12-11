@@ -1281,7 +1281,7 @@ const Admin: React.FC = () => {
                                 display: 'block'
                               }}
                               onError={(e) => {
-                                console.error('Preview image load error:', e);
+                                // Silently handle image load error
                                 const target = e.currentTarget;
                                 target.style.display = 'none';
                                 // Show error message
