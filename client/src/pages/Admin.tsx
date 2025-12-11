@@ -1254,42 +1254,59 @@ const Admin: React.FC = () => {
                             mb: 2,
                             p: 2,
                             border: '2px solid',
-                            borderColor: modelImagePreview ? 'success.main' : 'warning.main',
+                            borderColor: 'primary.main',
                             borderRadius: 2,
                             backgroundColor: 'rgba(0, 0, 0, 0.05)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
-                            gap: 1
+                            gap: 1,
+                            minHeight: '200px',
+                            justifyContent: 'center'
                           }}>
-                            {modelImagePreview ? (
-                              <>
-                                <Typography variant="caption" color="success.main" sx={{ fontWeight: 'bold' }}>
-                                  ✓ Image Preview
-                                </Typography>
-                                <img
-                                  src={modelImagePreview}
-                                  alt="Preview"
-                                  style={{ 
-                                    maxWidth: '100%', 
-                                    maxHeight: '300px', 
-                                    width: 'auto',
-                                    height: 'auto',
-                                    borderRadius: '8px',
-                                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
-                                  }}
-                                  onError={(e) => {
-                                    console.error('Preview image load error:', e);
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              </>
-                            ) : (
-                              <Typography variant="caption" color="warning.main">
-                                Loading preview...
-                              </Typography>
-                            )}
+                            <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              Image Preview
+                            </Typography>
+                            <img
+                              src={modelImageUrl.trim()}
+                              alt="Preview"
+                              style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: '300px', 
+                                width: 'auto',
+                                height: 'auto',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(0, 0, 0, 0.1)',
+                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                                display: 'block'
+                              }}
+                              onError={(e) => {
+                                console.error('Preview image load error:', e);
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                // Show error message
+                                const errorBox = target.parentElement?.querySelector('.preview-error');
+                                if (errorBox) {
+                                  (errorBox as HTMLElement).style.display = 'block';
+                                }
+                              }}
+                              onLoad={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'block';
+                                const errorBox = target.parentElement?.querySelector('.preview-error');
+                                if (errorBox) {
+                                  (errorBox as HTMLElement).style.display = 'none';
+                                }
+                              }}
+                            />
+                            <Typography 
+                              variant="caption" 
+                              color="error.main" 
+                              className="preview-error"
+                              sx={{ display: 'none', mt: 1 }}
+                            >
+                              Failed to load image. Please check the URL.
+                            </Typography>
                           </Box>
                         )}
                         <input
