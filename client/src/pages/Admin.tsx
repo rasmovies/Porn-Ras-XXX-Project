@@ -80,6 +80,7 @@ const Admin: React.FC = () => {
   const [editChannelThumbnailUrl, setEditChannelThumbnailUrl] = useState<string>('');
   const [categoryThumbnail, setCategoryThumbnail] = useState<File | null>(null);
   const [categoryThumbnailPreview, setCategoryThumbnailPreview] = useState<string | null>(null);
+  const [categoryThumbnailUrl, setCategoryThumbnailUrl] = useState<string>('');
   const [modelImagePreview, setModelImagePreview] = useState<string | null>(null);
   const [modelImageUrl, setModelImageUrl] = useState<string>('');
   const [channelThumbnail, setChannelThumbnail] = useState<File | null>(null);
@@ -277,6 +278,7 @@ const Admin: React.FC = () => {
       }
 
       setCategoryThumbnail(file);
+      setCategoryThumbnailUrl(''); // Clear URL when file is selected
       const reader = new FileReader();
       reader.onload = (e) => {
         setCategoryThumbnailPreview(e.target?.result as string);
@@ -285,27 +287,44 @@ const Admin: React.FC = () => {
     }
   };
 
+  const handleCategoryThumbnailUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    setCategoryThumbnailUrl(url);
+    if (url.trim()) {
+      setCategoryThumbnailPreview(url.trim());
+      setCategoryThumbnail(null); // Clear file when URL is entered
+    } else {
+      setCategoryThumbnailPreview(null);
+    }
+  };
+
   const handleRemoveCategoryThumbnail = () => {
     setCategoryThumbnail(null);
     setCategoryThumbnailPreview(null);
+    setCategoryThumbnailUrl('');
   };
 
   const handleAddCategory = async () => {
     if (newCategory.trim() && !categories.some(cat => cat.name === newCategory.trim())) {
       try {
+        // Use URL if available, otherwise use file preview
+        const thumbnailToUse = categoryThumbnailUrl.trim() || categoryThumbnailPreview || null;
+        
         const newCategoryData = await categoryService.create({
           name: newCategory.trim(),
-          thumbnail: categoryThumbnailPreview,
+          thumbnail: thumbnailToUse,
         });
         
         setCategories([...categories, newCategoryData]);
         setNewCategory('');
         setCategoryThumbnail(null);
         setCategoryThumbnailPreview(null);
+        setCategoryThumbnailUrl('');
         showSnackbar('Category added successfully!');
-      } catch (error) {
-        console.error('Failed to add category:', error);
-        showSnackbar('Failed to add category!', 'error');
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Unknown error';
+        const errorCode = error?.code || 'N/A';
+        showSnackbar(`Failed to add category (${errorCode}): ${errorMessage}`, 'error');
       }
     } else if (categories.some(cat => cat.name === newCategory.trim())) {
       showSnackbar('Category already exists!', 'error');
@@ -950,8 +969,79 @@ const Admin: React.FC = () => {
                     ) : (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Click to upload category thumbnail
+                          Click to upload category thumbnail or enter a URL
                         </Typography>
+                        <TextField
+                          fullWidth
+                          label="Thumbnail URL (Optional)"
+                          placeholder="Enter thumbnail URL"
+                          value={categoryThumbnailUrl}
+                          onChange={handleCategoryThumbnailUrlChange}
+                          variant="outlined"
+                          size="small"
+                          sx={{ mb: 1 }}
+                        />
+                        {categoryThumbnailUrl.trim() && (
+                          <Box sx={{ 
+                            mt: 2, 
+                            mb: 2,
+                            p: 2,
+                            border: '2px solid',
+                            borderColor: 'primary.main',
+                            borderRadius: 2,
+                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 1,
+                            minHeight: '150px',
+                            justifyContent: 'center'
+                          }}>
+                            <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              Thumbnail Preview
+                            </Typography>
+                            <img
+                              src={categoryThumbnailUrl.trim()}
+                              alt="Preview"
+                              style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: '200px', 
+                                width: 'auto',
+                                height: 'auto',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(0, 0, 0, 0.1)',
+                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                                display: 'block'
+                              }}
+                              onError={(e) => {
+                                // Silently handle image load error
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                // Show error message
+                                const errorBox = target.parentElement?.querySelector('.preview-error');
+                                if (errorBox) {
+                                  (errorBox as HTMLElement).style.display = 'block';
+                                }
+                              }}
+                              onLoad={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'block';
+                                const errorBox = target.parentElement?.querySelector('.preview-error');
+                                if (errorBox) {
+                                  (errorBox as HTMLElement).style.display = 'none';
+                                }
+                              }}
+                            />
+                            <Typography 
+                              variant="caption" 
+                              color="error.main" 
+                              className="preview-error"
+                              sx={{ display: 'none', mt: 1 }}
+                            >
+                              Failed to load image. Please check the URL.
+                            </Typography>
+                          </Box>
+                        )}
                         <input
                           type="file"
                           accept="image/*"
@@ -963,7 +1053,8 @@ const Admin: React.FC = () => {
                           <Button 
                             variant="outlined" 
                             component="span" 
-                            startIcon={<Add />}
+                            startIcon={<CloudUpload />}
+                            size="small"
                           >
                             Choose Thumbnail
                           </Button>
