@@ -109,9 +109,15 @@ const Admin: React.FC = () => {
       try {
         const supabaseModels = await modelService.getAll();
         setModels(supabaseModels);
-      } catch (error) {
-        console.error('Failed to load models from Supabase:', error);
+        if (supabaseModels.length > 0) {
+          console.log(`✅ Loaded ${supabaseModels.length} models from Supabase`);
+        }
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Unknown error';
+        const errorCode = error?.code || 'N/A';
+        console.warn(`⚠️ Failed to load models from Supabase (${errorCode}): ${errorMessage}`);
         // Models are only stored in Supabase, no localStorage fallback
+        setModels([]);
       }
 
       // Load channels from Supabase
@@ -449,30 +455,27 @@ const Admin: React.FC = () => {
     if (newModel.trim() && !models.some(m => m.name === newModel.trim())) {
       try {
         // Use only URL for image
-        const imageToUse = modelImageUrl.trim();
+        const imageToUse = modelImageUrl.trim() || null;
         
         // First try to save to Supabase
-        await modelService.create({
+        const createdModel = await modelService.create({
           name: newModel.trim(),
           image: imageToUse
         });
         
-        // Then update local state
-        const newModelData: Model = {
-          id: Date.now().toString(),
-          name: newModel.trim(),
-          image: imageToUse,
-          created_at: new Date().toISOString()
-        };
-        setModels([...models, newModelData]);
+        // Then update local state with Supabase response
+        setModels([...models, createdModel]);
         setNewModel('');
         setModelImagePreview(null);
         setModelImageUrl('');
-        showSnackbar('Model added successfully!');
-      } catch (error) {
-        console.error('Failed to save model to Supabase:', error);
+        showSnackbar('Model added successfully to Supabase!');
+      } catch (error: any) {
+        // Log error details for debugging
+        const errorMessage = error?.message || 'Unknown error';
+        const errorCode = error?.code || 'N/A';
+        
         // Fallback to local state only
-        const imageToUse = modelImageUrl.trim();
+        const imageToUse = modelImageUrl.trim() || null;
         const newModelData: Model = {
           id: Date.now().toString(),
           name: newModel.trim(),
@@ -483,7 +486,7 @@ const Admin: React.FC = () => {
         setNewModel('');
         setModelImagePreview(null);
         setModelImageUrl('');
-        showSnackbar('Model added successfully (local only)!');
+        showSnackbar(`Model added locally (Supabase error: ${errorCode})`, 'warning');
       }
     } else if (models.some(m => m.name === newModel.trim())) {
       showSnackbar('Model already exists!', 'error');
@@ -514,19 +517,19 @@ const Admin: React.FC = () => {
     const model = models.find(m => m.name === editingModel);
     if (!model) return;
 
-    const imageToUse = editModelImageUrl.trim() || model.image;
+    const imageToUse = editModelImageUrl.trim() || model.image || null;
 
     try {
       // Update in Supabase
-      await modelService.update(model.id, {
+      const updatedModel = await modelService.update(model.id, {
         name: editModelValue.trim(),
         image: imageToUse
       });
 
-      // Update local state
+      // Update local state with Supabase response
       const updatedModels = models.map(m => 
         m.id === model.id 
-          ? { ...m, name: editModelValue.trim(), image: imageToUse }
+          ? updatedModel
           : m
       );
       setModels(updatedModels);
@@ -534,10 +537,11 @@ const Admin: React.FC = () => {
       setEditModelValue('');
       setEditModelImagePreview(null);
       setEditModelImageUrl('');
-      showSnackbar('Model updated successfully!');
-    } catch (error) {
-      console.error('Failed to update model:', error);
-      showSnackbar('Failed to update model!', 'error');
+      showSnackbar('Model updated successfully in Supabase!');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error';
+      const errorCode = error?.code || 'N/A';
+      showSnackbar(`Failed to update model in Supabase (${errorCode}): ${errorMessage}`, 'error');
     }
   };
 
@@ -548,7 +552,7 @@ const Admin: React.FC = () => {
     setEditModelImageUrl('');
   };
 
-  const handleDeleteModel = (modelName: string) => {
+  const handleDeleteModel = async (modelName: string) => {
     const model = models.find(m => m.name === modelName);
     if (!model) return;
 
@@ -556,12 +560,19 @@ const Admin: React.FC = () => {
     if (!confirmDelete) return;
 
     try {
-      modelService.delete(model.id);
+      // Delete from Supabase
+      await modelService.delete(model.id);
+      
+      // Update local state
       setModels(models.filter(m => m.name !== modelName));
-      showSnackbar('Model deleted successfully!');
-    } catch (error) {
-      console.error('Failed to delete model:', error);
-      showSnackbar('Failed to delete model!', 'error');
+      showSnackbar('Model deleted successfully from Supabase!');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error';
+      const errorCode = error?.code || 'N/A';
+      
+      // Fallback: delete from local state only
+      setModels(models.filter(m => m.name !== modelName));
+      showSnackbar(`Model deleted locally (Supabase error: ${errorCode})`, 'warning');
     }
   };
 
@@ -920,7 +931,7 @@ const Admin: React.FC = () => {
                             marginBottom: '8px'
                           }}
                           onError={(e) => {
-                            console.error('Preview image load error:', e);
+                            // Silently handle image load error
                             e.currentTarget.style.display = 'none';
                           }}
                         />
@@ -1217,7 +1228,7 @@ const Admin: React.FC = () => {
                             marginBottom: '8px'
                           }}
                           onError={(e) => {
-                            console.error('Preview image load error:', e);
+                            // Silently handle image load error
                             e.currentTarget.style.display = 'none';
                           }}
                         />
