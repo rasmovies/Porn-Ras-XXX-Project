@@ -1248,17 +1248,48 @@ const Admin: React.FC = () => {
                           size="small"
                           sx={{ mb: 1 }}
                         />
-                        {modelImagePreview && (
-                          <Box sx={{ mt: 1, mb: 1 }}>
-                            <img
-                              src={modelImagePreview}
-                              alt="Preview"
-                              style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }}
-                              onError={(e) => {
-                                console.error('Preview image load error:', e);
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
+                        {modelImageUrl.trim() && (
+                          <Box sx={{ 
+                            mt: 2, 
+                            mb: 2,
+                            p: 2,
+                            border: '2px solid',
+                            borderColor: modelImagePreview ? 'success.main' : 'warning.main',
+                            borderRadius: 2,
+                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 1
+                          }}>
+                            {modelImagePreview ? (
+                              <>
+                                <Typography variant="caption" color="success.main" sx={{ fontWeight: 'bold' }}>
+                                  ✓ Image Preview
+                                </Typography>
+                                <img
+                                  src={modelImagePreview}
+                                  alt="Preview"
+                                  style={{ 
+                                    maxWidth: '100%', 
+                                    maxHeight: '300px', 
+                                    width: 'auto',
+                                    height: 'auto',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+                                  }}
+                                  onError={(e) => {
+                                    console.error('Preview image load error:', e);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </>
+                            ) : (
+                              <Typography variant="caption" color="warning.main">
+                                Loading preview...
+                              </Typography>
+                            )}
                           </Box>
                         )}
                         <input
