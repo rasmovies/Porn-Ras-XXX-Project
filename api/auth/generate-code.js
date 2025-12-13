@@ -120,8 +120,8 @@ module.exports = async function handler(req, res) {
         // Table might not exist or RLS issue - bu normal, devam et
         console.warn('⚠️ verification_codes table not accessible, skipping storage:', findError.message, findError.code);
         // Don't throw error, continue with email sending
-      } else if (existingCode && existingCode.length > 0) {
-        // Update existing code
+      } else if (existingCode) {
+        // Update existing code (maybeSingle returns object or null, not array)
         const { data, error } = await supabase
           .from('verification_codes')
           .update({
@@ -170,6 +170,10 @@ module.exports = async function handler(req, res) {
     // Send verification email with code
     let emailSent = false;
     try {
+      if (!email || !username || !verificationCode) {
+        throw new Error('Missing required parameters for email sending');
+      }
+      
       await sendVerificationMail({ 
         email, 
         username, 
@@ -179,9 +183,10 @@ module.exports = async function handler(req, res) {
       console.log('✅ Verification email sent successfully to:', email);
     } catch (emailError) {
       console.error('❌ Failed to send verification email:', emailError);
-      console.error('   Error message:', emailError.message);
-      console.error('   Error code:', emailError.code);
-      console.error('   Error status:', emailError.status);
+      console.error('   Error message:', emailError?.message || 'Unknown error');
+      console.error('   Error code:', emailError?.code || 'N/A');
+      console.error('   Error status:', emailError?.status || 'N/A');
+      console.error('   Error stack:', emailError?.stack || 'N/A');
       
       // Email gönderimi başarısız olsa bile success döndür
       // Kullanıcı kod ile devam edebilir (email gönderimi optional)
