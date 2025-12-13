@@ -23,6 +23,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, In
 import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
+import { uploadToSupabaseStorage } from '../utils/supabaseStorage';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -83,6 +84,7 @@ const Admin: React.FC = () => {
   const [categoryThumbnailUrl, setCategoryThumbnailUrl] = useState<string>('');
   const [modelImagePreview, setModelImagePreview] = useState<string | null>(null);
   const [modelImageUrl, setModelImageUrl] = useState<string>('');
+  const [modelImageFile, setModelImageFile] = useState<File | null>(null);
   const [channelThumbnail, setChannelThumbnail] = useState<File | null>(null);
   const [channelThumbnailPreview, setChannelThumbnailPreview] = useState<string | null>(null);
   const [channelThumbnailUrl, setChannelThumbnailUrl] = useState<string>('');
@@ -307,8 +309,23 @@ const Admin: React.FC = () => {
   const handleAddCategory = async () => {
     if (newCategory.trim() && !categories.some(cat => cat.name === newCategory.trim())) {
       try {
-        // Use URL if available, otherwise use file preview
-        const thumbnailToUse = categoryThumbnailUrl.trim() || categoryThumbnailPreview || null;
+        let thumbnailToUse: string | null = null;
+
+        // If URL is provided, use it directly
+        if (categoryThumbnailUrl.trim()) {
+          thumbnailToUse = categoryThumbnailUrl.trim();
+        }
+        // If file is selected, upload to Supabase Storage
+        else if (categoryThumbnail) {
+          try {
+            toast.loading('Uploading thumbnail to Supabase Storage...', { id: 'upload-thumbnail' });
+            thumbnailToUse = await uploadToSupabaseStorage(categoryThumbnail, 'thumbnails', 'categories');
+            toast.success('Thumbnail uploaded successfully!', { id: 'upload-thumbnail' });
+          } catch (uploadError: any) {
+            toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-thumbnail' });
+            throw uploadError;
+          }
+        }
         
         const newCategoryData = await categoryService.create({
           name: newCategory.trim(),
@@ -403,6 +420,7 @@ const Admin: React.FC = () => {
         return;
       }
 
+      setModelImageFile(file);
       setModelImageUrl(''); // Clear URL when file is selected
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -415,6 +433,7 @@ const Admin: React.FC = () => {
   const handleRemoveModelImage = () => {
     setModelImagePreview(null);
     setModelImageUrl('');
+    setModelImageFile(null);
   };
 
   const handleFetchMetadata = async () => {
@@ -473,8 +492,23 @@ const Admin: React.FC = () => {
   const handleAddModel = async () => {
     if (newModel.trim() && !models.some(m => m.name === newModel.trim())) {
       try {
-        // Use only URL for image
-        const imageToUse = modelImageUrl.trim() || null;
+        let imageToUse: string | null = null;
+
+        // If URL is provided, use it directly
+        if (modelImageUrl.trim()) {
+          imageToUse = modelImageUrl.trim();
+        }
+        // If file is selected, upload to Supabase Storage
+        else if (modelImageFile) {
+          try {
+            toast.loading('Uploading image to Supabase Storage...', { id: 'upload-model-image' });
+            imageToUse = await uploadToSupabaseStorage(modelImageFile, 'thumbnails', 'models');
+            toast.success('Image uploaded successfully!', { id: 'upload-model-image' });
+          } catch (uploadError: any) {
+            toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-model-image' });
+            throw uploadError;
+          }
+        }
         
         // First try to save to Supabase
         const createdModel = await modelService.create({
@@ -487,6 +521,7 @@ const Admin: React.FC = () => {
         setNewModel('');
         setModelImagePreview(null);
         setModelImageUrl('');
+        setModelImageFile(null);
         showSnackbar('Model added successfully to Supabase!');
       } catch (error: any) {
         // Log error details for debugging
@@ -655,8 +690,23 @@ const Admin: React.FC = () => {
   const handleAddChannel = async () => {
     if (newChannel.trim() && !channels.some(c => c.name === newChannel.trim())) {
       try {
-        // Use URL if available, otherwise use file preview
-        const thumbnailToUse = channelThumbnailUrl.trim() || channelThumbnailPreview;
+        let thumbnailToUse: string | null = null;
+
+        // If URL is provided, use it directly
+        if (channelThumbnailUrl.trim()) {
+          thumbnailToUse = channelThumbnailUrl.trim();
+        }
+        // If file is selected, upload to Supabase Storage
+        else if (channelThumbnail) {
+          try {
+            toast.loading('Uploading thumbnail to Supabase Storage...', { id: 'upload-channel-thumbnail' });
+            thumbnailToUse = await uploadToSupabaseStorage(channelThumbnail, 'thumbnails', 'channels');
+            toast.success('Thumbnail uploaded successfully!', { id: 'upload-channel-thumbnail' });
+          } catch (uploadError: any) {
+            toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-channel-thumbnail' });
+            throw uploadError;
+          }
+        }
         
         // First try to save to Supabase
         await channelService.create({
