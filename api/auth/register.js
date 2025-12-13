@@ -153,7 +153,7 @@ module.exports = async function handler(req, res) {
       
       // Always return detailed error in development, simplified in production
       const errorResponse = {
-        success: false,
+        success: false, 
         message: errorMessage
       };
       

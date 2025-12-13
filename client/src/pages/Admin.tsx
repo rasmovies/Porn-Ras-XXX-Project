@@ -23,7 +23,6 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, In
 import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
-import { uploadToImgbb } from '../utils/imgbbUpload';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -268,26 +267,7 @@ const Admin: React.FC = () => {
   };
 
   // Category functions
-  const handleCategoryThumbnailUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate image file
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error || 'Geçersiz resim dosyası');
-        event.target.value = ''; // Reset input
-        return;
-      }
-
-      setCategoryThumbnail(file);
-      setCategoryThumbnailUrl(''); // Clear URL when file is selected
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setCategoryThumbnailPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Note: File upload removed - users should upload to imgbb manually and provide direct link
 
   const handleCategoryThumbnailUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const url = event.target.value;
@@ -309,23 +289,9 @@ const Admin: React.FC = () => {
   const handleAddCategory = async () => {
     if (newCategory.trim() && !categories.some(cat => cat.name === newCategory.trim())) {
       try {
-        let thumbnailToUse: string | null = null;
-
-        // If URL is provided, use it directly
-        if (categoryThumbnailUrl.trim()) {
-          thumbnailToUse = categoryThumbnailUrl.trim();
-        }
-        // If file is selected, upload to imgbb (external hosting, no server resources used)
-        else if (categoryThumbnail) {
-          try {
-            toast.loading('Uploading thumbnail to imgbb...', { id: 'upload-thumbnail' });
-            thumbnailToUse = await uploadToImgbb(categoryThumbnail);
-            toast.success('Thumbnail uploaded successfully!', { id: 'upload-thumbnail' });
-          } catch (uploadError: any) {
-            toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-thumbnail' });
-            throw uploadError;
-          }
-        }
+        // Use URL if provided (imgbb direct link or any external URL)
+        // No upload - user provides the URL directly from imgbb or other image hosting
+        const thumbnailToUse = categoryThumbnailUrl.trim() || null;
         
         const newCategoryData = await categoryService.create({
           name: newCategory.trim(),
@@ -409,26 +375,7 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleModelImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate image file
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error || 'Geçersiz resim dosyası');
-        event.target.value = ''; // Reset input
-        return;
-      }
-
-      setModelImageFile(file);
-      setModelImageUrl(''); // Clear URL when file is selected
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setModelImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Note: File upload removed - users should upload to imgbb manually and provide direct link
 
   const handleRemoveModelImage = () => {
     setModelImagePreview(null);
@@ -492,23 +439,9 @@ const Admin: React.FC = () => {
   const handleAddModel = async () => {
     if (newModel.trim() && !models.some(m => m.name === newModel.trim())) {
       try {
-        let imageToUse: string | null = null;
-
-        // If URL is provided, use it directly
-        if (modelImageUrl.trim()) {
-          imageToUse = modelImageUrl.trim();
-        }
-        // If file is selected, upload to imgbb (external hosting, no server resources used)
-        else if (modelImageFile) {
-          try {
-            toast.loading('Uploading image to imgbb...', { id: 'upload-model-image' });
-            imageToUse = await uploadToImgbb(modelImageFile);
-            toast.success('Image uploaded successfully!', { id: 'upload-model-image' });
-          } catch (uploadError: any) {
-            toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-model-image' });
-            throw uploadError;
-          }
-        }
+        // Use URL if provided (imgbb direct link or any external URL)
+        // No upload - user provides the URL directly from imgbb or other image hosting
+        const imageToUse = modelImageUrl.trim() || null;
         
         // First try to save to Supabase
         const createdModel = await modelService.create({
@@ -649,26 +582,7 @@ const Admin: React.FC = () => {
 
 
   // Channel functions
-  const handleChannelThumbnailUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate image file
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error || 'Geçersiz resim dosyası');
-        event.target.value = ''; // Reset input
-        return;
-      }
-
-      setChannelThumbnail(file);
-      setChannelThumbnailUrl(''); // Clear URL when file is selected
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setChannelThumbnailPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Note: File upload removed - users should upload to imgbb manually and provide direct link
 
   const handleChannelThumbnailUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const url = event.target.value;
@@ -690,23 +604,9 @@ const Admin: React.FC = () => {
   const handleAddChannel = async () => {
     if (newChannel.trim() && !channels.some(c => c.name === newChannel.trim())) {
       try {
-        let thumbnailToUse: string | null = null;
-
-        // If URL is provided, use it directly
-        if (channelThumbnailUrl.trim()) {
-          thumbnailToUse = channelThumbnailUrl.trim();
-        }
-        // If file is selected, upload to imgbb (external hosting, no server resources used)
-        else if (channelThumbnail) {
-          try {
-            toast.loading('Uploading thumbnail to imgbb...', { id: 'upload-channel-thumbnail' });
-            thumbnailToUse = await uploadToImgbb(channelThumbnail);
-            toast.success('Thumbnail uploaded successfully!', { id: 'upload-channel-thumbnail' });
-          } catch (uploadError: any) {
-            toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-channel-thumbnail' });
-            throw uploadError;
-          }
-        }
+        // Use URL if provided (imgbb direct link or any external URL)
+        // No upload - user provides the URL directly from imgbb or other image hosting
+        const thumbnailToUse = channelThumbnailUrl.trim() || null;
         
         // First try to save to Supabase
         await channelService.create({
@@ -1019,12 +919,15 @@ const Admin: React.FC = () => {
                     ) : (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Click to upload category thumbnail or enter a URL
+                          Enter imgbb direct link or any image URL
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, fontSize: '0.75rem' }}>
+                          💡 Upload your image to imgbb.com first, then paste the direct link here
                         </Typography>
                         <TextField
                           fullWidth
-                          label="Thumbnail URL (Optional)"
-                          placeholder="Enter thumbnail URL"
+                          label="Thumbnail URL (imgbb direct link)"
+                          placeholder="https://i.ibb.co/xxxxx/image.jpg"
                           value={categoryThumbnailUrl}
                           onChange={handleCategoryThumbnailUrlChange}
                           variant="outlined"
@@ -1064,10 +967,8 @@ const Admin: React.FC = () => {
                                 display: 'block'
                               }}
                               onError={(e) => {
-                                // Silently handle image load error
                                 const target = e.currentTarget;
                                 target.style.display = 'none';
-                                // Show error message
                                 const errorBox = target.parentElement?.querySelector('.preview-error');
                                 if (errorBox) {
                                   (errorBox as HTMLElement).style.display = 'block';
@@ -1092,23 +993,6 @@ const Admin: React.FC = () => {
                             </Typography>
                           </Box>
                         )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleCategoryThumbnailUpload}
-                          style={{ display: 'none' }}
-                          id="category-thumbnail-upload"
-                        />
-                        <label htmlFor="category-thumbnail-upload">
-                          <Button 
-                            variant="outlined" 
-                            component="span" 
-                            startIcon={<CloudUpload />}
-                            size="small"
-                          >
-                            Choose Thumbnail
-                          </Button>
-                        </label>
                       </Box>
                     )}
                   </Box>
@@ -1388,12 +1272,15 @@ const Admin: React.FC = () => {
                     ) : (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Click to upload model image or enter a URL
+                          Enter imgbb direct link or any image URL
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, fontSize: '0.75rem' }}>
+                          💡 Upload your image to imgbb.com first, then paste the direct link here
                         </Typography>
                         <TextField
                           fullWidth
-                          label="Image URL (Optional)"
-                          placeholder="Enter image URL"
+                          label="Image URL (imgbb direct link)"
+                          placeholder="https://i.ibb.co/xxxxx/image.jpg"
                           value={modelImageUrl}
                           onChange={handleModelImageUrlChange}
                           variant="outlined"
@@ -1433,10 +1320,8 @@ const Admin: React.FC = () => {
                                 display: 'block'
                               }}
                               onError={(e) => {
-                                // Silently handle image load error
                                 const target = e.currentTarget;
                                 target.style.display = 'none';
-                                // Show error message
                                 const errorBox = target.parentElement?.querySelector('.preview-error');
                                 if (errorBox) {
                                   (errorBox as HTMLElement).style.display = 'block';
@@ -1461,18 +1346,6 @@ const Admin: React.FC = () => {
                             </Typography>
                           </Box>
                         )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleModelImageUpload}
-                          style={{ display: 'none' }}
-                          id="model-image-upload"
-                        />
-                        <label htmlFor="model-image-upload">
-                          <Button variant="outlined" component="span" startIcon={<CloudUpload />} size="small">
-                            Choose Image
-                          </Button>
-                        </label>
                       </Box>
                     )}
                   </Box>

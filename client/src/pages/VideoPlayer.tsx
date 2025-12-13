@@ -623,52 +623,52 @@ const VideoPlayer: React.FC = () => {
             
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               {/* Favorite Button */}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <ToggleButton
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <ToggleButton
                   value="favorite"
                   selected={isFavorited}
                   onChange={handleFavoriteToggle}
                   disabled={isFavorited}
-                  sx={{
-                    border: '2px solid',
+                    sx={{
+                      border: '2px solid',
                     borderColor: isFavorited ? '#ff6b6b' : 'rgba(255, 255, 255, 0.23)',
                     backgroundColor: isFavorited ? 'rgba(255, 107, 107, 0.1)' : 'transparent',
                     color: isFavorited ? '#ff6b6b' : 'inherit',
-                    borderRadius: '25px',
-                    px: 2,
-                    py: 1,
-                    minWidth: '80px',
-                    '&:hover': {
+                      borderRadius: '25px',
+                      px: 2,
+                      py: 1,
+                      minWidth: '80px',
+                      '&:hover': {
                       backgroundColor: isFavorited ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 255, 255, 0.08)',
                       borderColor: isFavorited ? '#ff6b6b' : 'rgba(255, 255, 255, 0.4)',
-                    },
-                    '&.Mui-selected': {
-                      backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                      color: '#ff6b6b',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
                       },
-                    },
+                      '&.Mui-selected': {
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        color: '#ff6b6b',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        },
+                      },
                     '&.Mui-disabled': {
                       opacity: 0.7,
                     },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {isFavorited ? (
-                      <Favorite sx={{ fontSize: 20 }} />
-                    ) : (
-                      <FavoriteBorder sx={{ fontSize: 20 }} />
-                    )}
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <Favorite sx={{ fontSize: 20 }} />
+                      ) : (
+                        <FavoriteBorder sx={{ fontSize: 20 }} />
+                      )}
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {favoriteCount.toLocaleString()}
-                    </Typography>
-                  </Box>
-                </ToggleButton>
-              </motion.div>
+                      </Typography>
+                    </Box>
+                  </ToggleButton>
+                </motion.div>
 
               {/* Magic Social Share Menu */}
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>{shareMenu}</Box>

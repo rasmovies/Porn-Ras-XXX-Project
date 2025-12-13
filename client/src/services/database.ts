@@ -5,11 +5,11 @@ export const categoryService = {
   // Get all categories
   async getAll(): Promise<Category[]> {
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
       if (error) {
         console.error('❌ Categories fetch error:', error);
         console.error('   Error code:', error.code);
@@ -21,7 +21,7 @@ export const categoryService = {
         throw error;
       }
       console.log('✅ Categories loaded:', data?.length || 0);
-      return data || [];
+    return data || [];
     } catch (error: any) {
       console.error('❌ Categories service error:', error);
       return [];
@@ -104,8 +104,8 @@ export const modelService = {
   async getAll(): Promise<Model[]> {
     try {
       // Optimize query: only select necessary columns and reduce limit
-      const { data, error } = await supabase
-        .from('models')
+    const { data, error } = await supabase
+      .from('models')
         .select('id, name, image, created_at')
         .order('created_at', { ascending: false })
         .limit(200); // Reduced limit to prevent timeout
@@ -140,7 +140,7 @@ export const modelService = {
         return [];
       }
       console.log('✅ Models loaded:', data?.length || 0);
-      return data || [];
+    return data || [];
     } catch (error: any) {
       console.error('❌ Models service error:', error);
       console.error('   Error code:', error?.code);
@@ -211,13 +211,13 @@ export const videoService = {
   async getAll(): Promise<Video[]> {
     try {
       // Timeout hatasını önlemek için limit ekle ve optimize et
-      const { data, error } = await supabase
-        .from('videos')
-        .select(`
-          *,
-          categories(name),
-          models(name)
-        `)
+    const { data, error } = await supabase
+      .from('videos')
+      .select(`
+        *,
+        categories(name),
+        models(name)
+      `)
         .order('created_at', { ascending: false })
         .limit(1000); // Maksimum 1000 video (timeout önleme)
       
@@ -254,7 +254,7 @@ export const videoService = {
         return [];
       }
       console.log('✅ Videos loaded:', data?.length || 0);
-      return data || [];
+    return data || [];
     } catch (error: any) {
       console.error('❌ Videos service error:', error);
       console.error('   Error type:', error?.constructor?.name);
@@ -429,9 +429,9 @@ export const channelService = {
   // Get all channels
   async getAll(): Promise<Channel[]> {
     try {
-      const { data, error } = await supabase
-        .from('channels')
-        .select('*')
+    const { data, error } = await supabase
+      .from('channels')
+      .select('*')
         .order('created_at', { ascending: false })
         .limit(500); // Timeout önleme için limit
       
@@ -457,7 +457,7 @@ export const channelService = {
         return [];
       }
       console.log('✅ Channels loaded:', data?.length || 0);
-      return data || [];
+    return data || [];
     } catch (error: any) {
       console.error('❌ Channels service error:', error);
       console.error('   Error code:', error?.code);
@@ -588,11 +588,11 @@ export const adminUserService = {
     try {
       // First try exact match
       const { data: exactMatch, error: exactError } = await supabase
-        .from('admin_users')
+      .from('admin_users')
         .select('is_admin, user_name')
-        .eq('user_name', username)
-        .single();
-      
+      .eq('user_name', username)
+      .single();
+    
       if (!exactError && exactMatch) {
         console.log(`✅ Exact match found: "${exactMatch.user_name}" -> is_admin: ${exactMatch.is_admin}`);
         if (exactMatch.is_admin === true) {
