@@ -46,19 +46,20 @@
       text-align: center;
       margin: 30px 0;
     }
-    .verify-button {
+    .code-box {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+      padding: 20px;
+      border-radius: 12px;
       display: inline-block;
-      padding: 14px 32px;
-      background-color: #ff6b6b;
-      color: #ffffff !important;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 16px;
-      transition: background-color 0.3s;
+      margin: 20px 0;
     }
-    .verify-button:hover {
-      background-color: #ff5252;
+    .code {
+      font-size: 36px;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: 8px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
     }
     .footer {
       margin-top: 30px;
@@ -80,6 +81,14 @@
       margin: 0;
       font-size: 14px;
     }
+    ul {
+      color: #666;
+      margin: 15px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin: 8px 0;
+    }
   </style>
 </head>
 <body>
@@ -92,23 +101,20 @@
     
     <div class="content">
       {{#verificationCode}}
-      <p>Merhaba {{username}},</p>
-      <p>PORNRAS hesabınızı oluşturduğunuz için teşekkürler. Kaydınızı tamamlamak ve içeriklerimizden yararlanmaya başlamak için aşağıdaki doğrulama kodunu kullanın:</p>
+      <p>Thank you for creating an account with PORNRAS. To complete your registration and start enjoying our content, please verify your email address using the verification code below:</p>
       
       <div class="button-container">
-        <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%); padding: 20px; border-radius: 12px; display: inline-block; margin: 20px 0;">
-          <div style="font-size: 36px; font-weight: bold; color: #ffffff; letter-spacing: 8px; text-align: center; font-family: 'Courier New', monospace;">
-            {{verificationCode}}
-          </div>
+        <div class="code-box">
+          <div class="code">{{verificationCode}}</div>
         </div>
       </div>
       
       <p style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
-        Bu kodu doğrulama sayfasına girerek kaydınızı tamamlayın.
+        Enter this code on the verification page to complete your registration.
       </p>
       
       <div class="warning">
-        <p class="warning-text"><strong>Önemli:</strong> Bu doğrulama kodu 15 dakika içinde geçerliliğini yitirecektir. Eğer PORNRAS'ta bir hesap oluşturmadıysanız, lütfen bu e-postayı yok sayın.</p>
+        <p class="warning-text"><strong>Important:</strong> This verification code will expire in 15 minutes. If you didn't create an account with PORNRAS, please ignore this email.</p>
       </div>
       {{/verificationCode}}
       
@@ -117,7 +123,7 @@
       <p>Thank you for creating an account with PORNRAS. To complete your registration and start enjoying our content, please verify your email address by clicking the button below:</p>
       
       <div class="button-container">
-        <a href="{{verifyUrl}}" class="verify-button">Verify My Email Address</a>
+        <a href="{{verifyUrl}}" class="verify-button" style="display: inline-block; padding: 14px 32px; background-color: #ff6b6b; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">Verify My Email Address</a>
       </div>
       
       <p>Or copy and paste this link into your browser:</p>
@@ -133,7 +139,7 @@
       {{/verificationCode}}
       
       <p>Once verified, you'll be able to:</p>
-      <ul style="color: #666; margin: 15px 0; padding-left: 20px;">
+      <ul>
         <li>Access all premium content</li>
         <li>Upload and share your videos</li>
         <li>Interact with other members</li>

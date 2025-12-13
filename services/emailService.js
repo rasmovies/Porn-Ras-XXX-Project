@@ -126,10 +126,10 @@
          const templateData = { username, verificationCode: String(verificationCode) };
          console.log('📧 Sending verification email with code:', { email, username, codeLength: verificationCode.length });
          const html = await renderTemplate('verification', templateData);
-         return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Doğrulama Kodu', html });
+         return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Verification Code', html });
        } else {
          const html = await renderTemplate('verification', { username, verifyUrl });
-         return dispatchEmail({ recipients: [email], subject: 'Hesabını Doğrula', html });
+         return dispatchEmail({ recipients: [email], subject: 'Verify Your PORNRAS Account', html });
        }
      } catch (templateError) {
        console.error('❌ Template rendering error:', templateError);
