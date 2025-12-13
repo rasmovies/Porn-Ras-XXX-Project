@@ -1662,30 +1662,80 @@ const Admin: React.FC = () => {
                                           ) : (
                         <Box>
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            Click to upload channel thumbnail or enter a URL
+                            Enter imgbb direct link or any image URL
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 2, fontSize: '0.75rem' }}>
+                            💡 Upload your image to imgbb.com first, then paste the direct link here
                           </Typography>
                           <TextField
                             fullWidth
-                            label="Thumbnail URL (Optional)"
-                            placeholder="Enter thumbnail URL"
+                            label="Thumbnail URL (imgbb direct link)"
+                            placeholder="https://i.ibb.co/xxxxx/image.jpg"
                             value={channelThumbnailUrl}
                             onChange={handleChannelThumbnailUrlChange}
                             variant="outlined"
                             size="small"
                             sx={{ mb: 1 }}
                           />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleChannelThumbnailUpload}
-                            style={{ display: 'none' }}
-                            id="channel-thumbnail-upload"
-                          />
-                          <label htmlFor="channel-thumbnail-upload">
-                            <Button variant="outlined" component="span" startIcon={<CloudUpload />}>
-                              Choose Thumbnail
-                            </Button>
-                          </label>
+                          {channelThumbnailUrl.trim() && (
+                            <Box sx={{ 
+                              mt: 2, 
+                              mb: 2,
+                              p: 2,
+                              border: '2px solid',
+                              borderColor: 'primary.main',
+                              borderRadius: 2,
+                              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: 1,
+                              minHeight: '150px',
+                              justifyContent: 'center'
+                            }}>
+                              <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                Thumbnail Preview
+                              </Typography>
+                              <img
+                                src={channelThumbnailUrl.trim()}
+                                alt="Preview"
+                                style={{ 
+                                  maxWidth: '100%', 
+                                  maxHeight: '200px', 
+                                  width: 'auto',
+                                  height: 'auto',
+                                  borderRadius: '8px',
+                                  border: '1px solid rgba(0, 0, 0, 0.1)',
+                                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                                  display: 'block'
+                                }}
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = 'none';
+                                  const errorBox = target.parentElement?.querySelector('.preview-error');
+                                  if (errorBox) {
+                                    (errorBox as HTMLElement).style.display = 'block';
+                                  }
+                                }}
+                                onLoad={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = 'block';
+                                  const errorBox = target.parentElement?.querySelector('.preview-error');
+                                  if (errorBox) {
+                                    (errorBox as HTMLElement).style.display = 'none';
+                                  }
+                                }}
+                              />
+                              <Typography 
+                                variant="caption" 
+                                color="error.main" 
+                                className="preview-error"
+                                sx={{ display: 'none', mt: 1 }}
+                              >
+                                Failed to load image. Please check the URL.
+                              </Typography>
+                            </Box>
+                          )}
                         </Box>
                       )}
                   </Box>
