@@ -23,7 +23,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, In
 import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
-import { uploadToSupabaseStorage } from '../utils/supabaseStorage';
+import { uploadToImgbb } from '../utils/imgbbUpload';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -315,11 +315,11 @@ const Admin: React.FC = () => {
         if (categoryThumbnailUrl.trim()) {
           thumbnailToUse = categoryThumbnailUrl.trim();
         }
-        // If file is selected, upload to Supabase Storage
+        // If file is selected, upload to imgbb (external hosting, no server resources used)
         else if (categoryThumbnail) {
           try {
-            toast.loading('Uploading thumbnail to Supabase Storage...', { id: 'upload-thumbnail' });
-            thumbnailToUse = await uploadToSupabaseStorage(categoryThumbnail, 'thumbnails', 'categories');
+            toast.loading('Uploading thumbnail to imgbb...', { id: 'upload-thumbnail' });
+            thumbnailToUse = await uploadToImgbb(categoryThumbnail);
             toast.success('Thumbnail uploaded successfully!', { id: 'upload-thumbnail' });
           } catch (uploadError: any) {
             toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-thumbnail' });
@@ -498,11 +498,11 @@ const Admin: React.FC = () => {
         if (modelImageUrl.trim()) {
           imageToUse = modelImageUrl.trim();
         }
-        // If file is selected, upload to Supabase Storage
+        // If file is selected, upload to imgbb (external hosting, no server resources used)
         else if (modelImageFile) {
           try {
-            toast.loading('Uploading image to Supabase Storage...', { id: 'upload-model-image' });
-            imageToUse = await uploadToSupabaseStorage(modelImageFile, 'thumbnails', 'models');
+            toast.loading('Uploading image to imgbb...', { id: 'upload-model-image' });
+            imageToUse = await uploadToImgbb(modelImageFile);
             toast.success('Image uploaded successfully!', { id: 'upload-model-image' });
           } catch (uploadError: any) {
             toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-model-image' });
@@ -696,11 +696,11 @@ const Admin: React.FC = () => {
         if (channelThumbnailUrl.trim()) {
           thumbnailToUse = channelThumbnailUrl.trim();
         }
-        // If file is selected, upload to Supabase Storage
+        // If file is selected, upload to imgbb (external hosting, no server resources used)
         else if (channelThumbnail) {
           try {
-            toast.loading('Uploading thumbnail to Supabase Storage...', { id: 'upload-channel-thumbnail' });
-            thumbnailToUse = await uploadToSupabaseStorage(channelThumbnail, 'thumbnails', 'channels');
+            toast.loading('Uploading thumbnail to imgbb...', { id: 'upload-channel-thumbnail' });
+            thumbnailToUse = await uploadToImgbb(channelThumbnail);
             toast.success('Thumbnail uploaded successfully!', { id: 'upload-channel-thumbnail' });
           } catch (uploadError: any) {
             toast.error(`Upload failed: ${uploadError.message}`, { id: 'upload-channel-thumbnail' });
