@@ -87,14 +87,6 @@ const Upload: React.FC = () => {
   const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryThumbnailUrl, setNewCategoryThumbnailUrl] = useState('');
-  
-  // Add Model/Category states
-  const [addModelDialogOpen, setAddModelDialogOpen] = useState(false);
-  const [newModelName, setNewModelName] = useState('');
-  const [newModelImageUrl, setNewModelImageUrl] = useState('');
-  const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryThumbnailUrl, setNewCategoryThumbnailUrl] = useState('');
 
   // Upload Queue System (FileZilla-like)
   interface UploadItem {
@@ -362,6 +354,52 @@ const Upload: React.FC = () => {
   const handleRemoveStreamtapeThumbnail = () => {
     setStreamtapeThumbnail(null);
     setStreamtapeThumbnailUrl('');
+  };
+
+  // Add Model function
+  const handleAddModel = async () => {
+    if (newModelName.trim() && !models.some(m => m.name === newModelName.trim())) {
+      try {
+        const imageToUse = newModelImageUrl.trim() || null;
+        const createdModel = await modelService.create({
+          name: newModelName.trim(),
+          image: imageToUse
+        });
+        setModels([...models, createdModel]);
+        setNewModelName('');
+        setNewModelImageUrl('');
+        setAddModelDialogOpen(false);
+        toast.success('Model added successfully!');
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Unknown error';
+        toast.error(`Failed to add model: ${errorMessage}`);
+      }
+    } else if (models.some(m => m.name === newModelName.trim())) {
+      toast.error('Model already exists!');
+    }
+  };
+
+  // Add Category function
+  const handleAddCategory = async () => {
+    if (newCategoryName.trim() && !customCategories.some(cat => cat.name === newCategoryName.trim())) {
+      try {
+        const thumbnailToUse = newCategoryThumbnailUrl.trim() || null;
+        const newCategoryData = await categoryService.create({
+          name: newCategoryName.trim(),
+          thumbnail: thumbnailToUse,
+        });
+        setCustomCategories([...customCategories, newCategoryData]);
+        setNewCategoryName('');
+        setNewCategoryThumbnailUrl('');
+        setAddCategoryDialogOpen(false);
+        toast.success('Category added successfully!');
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Unknown error';
+        toast.error(`Failed to add category: ${errorMessage}`);
+      }
+    } else if (customCategories.some(cat => cat.name === newCategoryName.trim())) {
+      toast.error('Category already exists!');
+    }
   };
 
 
