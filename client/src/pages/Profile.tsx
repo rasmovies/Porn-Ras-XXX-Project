@@ -1137,13 +1137,17 @@ const ProfilePage: React.FC = () => {
                 mb: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s',
+                position: 'relative',
+                minHeight: 148,
+                display: 'flex',
+                flexDirection: 'column',
                 '&:hover': {
                   borderColor: '#ff6b6b',
                   bgcolor: 'rgba(255,107,107,0.05)',
                 }
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, position: 'relative', zIndex: 2 }}>
                 <Avatar
                   sx={{
                     width: { xs: 40, md: 50 },
@@ -1163,6 +1167,24 @@ const ProfilePage: React.FC = () => {
                     Browse latest videos and click [+] to create a custom playlist
                   </Typography>
                 </Box>
+              </Box>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  filter: 'blur(5px)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Typography variant="h5" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 'bold' }}>
+                  Coming Soon
+                </Typography>
               </Box>
             </Paper>
             
@@ -1412,15 +1434,12 @@ const ProfilePage: React.FC = () => {
                 p: 3,
                 mb: 3,
                 position: 'relative',
-                filter: 'blur(5px)',
-                '& > *:first-child': {
-                  filter: 'blur(0px)',
-                  position: 'relative',
-                  zIndex: 1,
-                },
+                minHeight: 148,
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, filter: 'blur(0px)', position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, position: 'relative', zIndex: 2 }}>
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
                   Achievements (4)
                 </Typography>
@@ -1434,6 +1453,24 @@ const ProfilePage: React.FC = () => {
                 >
                   View All
                 </Button>
+              </Box>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  filter: 'blur(5px)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Typography variant="h5" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 'bold' }}>
+                  Coming Soon
+                </Typography>
               </Box>
             </Paper>
           </Box>
