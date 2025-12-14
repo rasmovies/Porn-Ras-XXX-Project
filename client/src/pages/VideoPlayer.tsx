@@ -745,137 +745,117 @@ const VideoPlayer: React.FC = () => {
 
             {showComments && (
               <>
-                {/* Add Comment Form */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Card sx={{ 
-                    mb: 4, 
-                    p: { xs: 2, md: 3 },
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '20px',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                      <Box sx={{
-                        width: { xs: 35, md: 40 },
-                        height: { xs: 35, md: 40 },
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <Typography variant="h6" sx={{ color: 'white', fontSize: { xs: '0.875rem', md: '1.25rem' } }}>
-                          ✍️
+                {/* Add Comment Form - Only for authenticated users */}
+                {user ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Card sx={{ 
+                      mb: 4, 
+                      p: { xs: 2, md: 3 },
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '20px',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                        <Box sx={{
+                          width: { xs: 35, md: 40 },
+                          height: { xs: 35, md: 40 },
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <Typography variant="h6" sx={{ color: 'white', fontSize: { xs: '0.875rem', md: '1.25rem' } }}>
+                            ✍️
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 'bold',
+                          background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)',
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          fontSize: { xs: '1rem', md: '1.25rem' }
+                        }}>
+                          Share Your Thoughts
                         </Typography>
                       </Box>
-                      <Typography variant="h6" sx={{ 
-                        fontWeight: 'bold',
-                        background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)',
-                        backgroundClip: 'text',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontSize: { xs: '1rem', md: '1.25rem' }
-                      }}>
-                        Share Your Thoughts
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <TextField
-                        fullWidth
-                        label="Your Name"
-                        placeholder="Enter your name..."
-                        value={commentAuthor}
-                        onChange={(e) => setCommentAuthor(e.target.value)}
-                        variant="outlined"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: '15px',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            '& fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(255, 107, 107, 0.5)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#ff6b6b',
-                            },
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: 'text.secondary',
-                          },
-                        }}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Comment"
-                        placeholder="Share your thoughts about this video..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        multiline
-                        rows={4}
-                        variant="outlined"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: '15px',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            '& fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(255, 107, 107, 0.5)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#ff6b6b',
-                            },
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: 'text.secondary',
-                          },
-                        }}
-                      />
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Button
-                            variant="contained"
-                            onClick={handleAddComment}
-                            disabled={!newComment.trim()}
-                            sx={{ 
-                              borderRadius: '25px',
-                              px: 4,
-                              py: 1.5,
-                              background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)',
-                              boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)',
-                              fontWeight: 'bold',
-                              fontSize: '1rem',
-                              '&:hover': {
-                                background: 'linear-gradient(135deg, #ff5252, #26a69a)',
-                                boxShadow: '0 12px 35px rgba(255, 107, 107, 0.4)',
-                                transform: 'translateY(-2px)',
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <TextField
+                          fullWidth
+                          label="Comment"
+                          placeholder="Share your thoughts about this video..."
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          multiline
+                          rows={4}
+                          variant="outlined"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: '15px',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              '& fieldset': {
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
                               },
-                              '&:disabled': {
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                color: 'text.secondary',
+                              '&:hover fieldset': {
+                                borderColor: 'rgba(255, 107, 107, 0.5)',
                               },
-                              transition: 'all 0.3s ease',
-                            }}
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#ff6b6b',
+                              },
+                            },
+                            '& .MuiInputLabel-root': {
+                              color: 'text.secondary',
+                            },
+                          }}
+                        />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                           >
-                            🚀 Post Comment
-                          </Button>
-                        </motion.div>
+                            <Button
+                              variant="contained"
+                              onClick={handleAddComment}
+                              disabled={!newComment.trim()}
+                              sx={{ 
+                                borderRadius: '25px',
+                                px: 4,
+                                py: 1.5,
+                                background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)',
+                                boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)',
+                                fontWeight: 'bold',
+                                fontSize: '1rem',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #ff5252, #26a69a)',
+                                  boxShadow: '0 12px 35px rgba(255, 107, 107, 0.4)',
+                                  transform: 'translateY(-2px)',
+                                },
+                                '&:disabled': {
+                                  background: 'rgba(255, 255, 255, 0.1)',
+                                  color: 'text.secondary',
+                                },
+                                transition: 'all 0.3s ease',
+                              }}
+                            >
+                              🚀 Post Comment
+                            </Button>
+                          </motion.div>
+                        </Box>
                       </Box>
-                    </Box>
-                  </Card>
-                </motion.div>
+                    </Card>
+                  </motion.div>
+                ) : (
+                  <Alert severity="info" sx={{ mb: 4, borderRadius: '15px' }}>
+                    Please login to comment on this video.
+                  </Alert>
+                )}
 
                 {/* Comments List */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
