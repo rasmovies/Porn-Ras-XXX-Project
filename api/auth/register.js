@@ -60,9 +60,24 @@ module.exports = async function handler(req, res) {
       });
     }
     
-    // Note: Email column may not exist in profiles table
-    // Skip email uniqueness check if column doesn't exist
-    // We rely on username uniqueness check instead
+    // Check if email already exists in Supabase Auth
+    // Supabase Auth automatically prevents duplicate emails, but we check first to provide better error message
+    try {
+      const { data: existingAuthUser, error: authCheckError } = await supabase.auth.admin.getUserByEmail(email);
+      if (authCheckError && authCheckError.message && !authCheckError.message.includes('User not found')) {
+        console.error('Auth check error:', authCheckError);
+      }
+      if (existingAuthUser && existingAuthUser.user) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Email already registered. Please use a different email or login.' 
+        });
+      }
+    } catch (authCheckException) {
+      // If admin API is not available, we'll rely on Supabase Auth's built-in duplicate email check
+      // which will throw an error during signUp if email already exists
+      console.warn('Could not check email uniqueness via admin API:', authCheckException.message);
+    }
     
     // Step 1: Create user in Supabase Auth
     let authUser = null;

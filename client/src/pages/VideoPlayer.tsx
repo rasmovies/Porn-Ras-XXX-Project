@@ -31,9 +31,11 @@ import { motion } from 'motion/react';
 import { videoService, commentService } from '../services/database';
 import { Video, Comment } from '../lib/supabase';
 import SEO from '../components/SEO/SEO';
+import { useAuth } from '../components/Auth/AuthProvider';
 
 const VideoPlayer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -232,8 +234,14 @@ const VideoPlayer: React.FC = () => {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !commentAuthor.trim()) {
-      alert('Please enter both your name and comment');
+    // Only authenticated users can comment
+    if (!user) {
+      alert('Please login to comment');
+      return;
+    }
+
+    if (!newComment.trim()) {
+      alert('Please enter a comment');
       return;
     }
 
@@ -243,10 +251,13 @@ const VideoPlayer: React.FC = () => {
     }
 
     try {
+      // Use authenticated user's username as author
+      const authorName = user.username || user.name || user.email || 'Anonymous';
+      
       // Create comment data for Supabase
       const commentData = {
         video_id: video.id,
-        author: commentAuthor,
+        author: authorName,
         content: newComment
       };
 
@@ -257,7 +268,7 @@ const VideoPlayer: React.FC = () => {
       const localStorageComment: Comment = {
         id: savedComment.id,
         video_id: video.id,
-        author: commentAuthor,
+        author: authorName,
         content: newComment,
         likes: 0,
         dislikes: 0,
@@ -266,7 +277,6 @@ const VideoPlayer: React.FC = () => {
 
       setComments(prev => [localStorageComment, ...prev]);
       setNewComment('');
-      setCommentAuthor('');
     } catch (error) {
       console.error('Failed to add comment:', error);
       alert('Failed to add comment. Please try again.');
@@ -838,7 +848,7 @@ const VideoPlayer: React.FC = () => {
                           <Button
                             variant="contained"
                             onClick={handleAddComment}
-                            disabled={!newComment.trim() || !commentAuthor.trim()}
+                            disabled={!newComment.trim()}
                             sx={{ 
                               borderRadius: '25px',
                               px: 4,
@@ -1071,28 +1081,30 @@ const VideoPlayer: React.FC = () => {
                                     👎 {comment.dislikes || 0}
                                   </Button>
                                 </motion.div>
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                  <Button
-                                    size="small"
-                                    onClick={() => alert('Reply functionality coming soon!')}
-                                    sx={{ 
-                                      borderRadius: '20px',
-                                      px: 2,
-                                      py: 1,
-                                      background: 'rgba(78, 205, 196, 0.1)',
-                                      border: '1px solid rgba(78, 205, 196, 0.2)',
-                                      color: 'secondary.main',
-                                      fontWeight: 'bold',
-                                      '&:hover': { 
-                                        background: 'rgba(78, 205, 196, 0.2)',
-                                        transform: 'translateY(-1px)',
-                                      },
-                                      transition: 'all 0.2s ease',
-                                    }}
-                                  >
-                                    💬 Reply
-                                  </Button>
-                                </motion.div>
+                                {user && (
+                                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      size="small"
+                                      onClick={() => alert('Reply functionality coming soon!')}
+                                      sx={{ 
+                                        borderRadius: '20px',
+                                        px: 2,
+                                        py: 1,
+                                        background: 'rgba(78, 205, 196, 0.1)',
+                                        border: '1px solid rgba(78, 205, 196, 0.2)',
+                                        color: 'secondary.main',
+                                        fontWeight: 'bold',
+                                        '&:hover': { 
+                                          background: 'rgba(78, 205, 196, 0.2)',
+                                          transform: 'translateY(-1px)',
+                                        },
+                                        transition: 'all 0.2s ease',
+                                      }}
+                                    >
+                                      💬 Reply
+                                    </Button>
+                                  </motion.div>
+                                )}
                               </Box>
                             </Box>
                           </Box>

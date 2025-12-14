@@ -2083,15 +2083,6 @@ const Upload: React.FC = () => {
                   helperText="Format: MM:SS or HH:MM:SS"
                 />
 
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Age Rating</InputLabel>
-                    <Select label="Age Rating" defaultValue="18+">
-                      <MenuItem value="18+">18+</MenuItem>
-                      <MenuItem value="21+">21+</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
 
 
             <Box>
