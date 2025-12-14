@@ -104,9 +104,11 @@ export const modelService = {
   async getAll(): Promise<Model[]> {
     try {
       // Optimize query: only select necessary columns and reduce limit
+      // Note: is_trans column may not exist in database yet, so we don't select it
+      // We'll default it to false in the mapping
     const { data, error } = await supabase
       .from('models')
-        .select('id, name, image, is_trans, created_at')
+        .select('id, name, image, created_at')
         .order('created_at', { ascending: false })
         .limit(200); // Reduced limit to prevent timeout
       
@@ -159,14 +161,84 @@ export const modelService = {
 
   // Create model
   async create(model: Omit<Model, 'id' | 'created_at'>): Promise<Model> {
+    // Only include is_trans if it's explicitly set (to avoid errors if column doesn't exist)
+    const modelData: any = {
+      name: model.name,
+      image: model.image
+    };
+    
+    // Only add is_trans if it's explicitly true (to avoid errors if column doesn't exist)
+    // If column doesn't exist, we'll just skip it
+    if (model.is_trans === true) {
+      modelData.is_trans = true;
+    }
+    
     const { data, error } = await supabase
       .from('models')
-      .insert([model])
+      .insert([modelData])
       .select()
       .single();
     
-    if (error) throw error;
-    return data;
+    // If successful and is_trans is true, save to localStorage
+    if (!error && data && model.is_trans === true) {
+      try {
+        const transModels = JSON.parse(localStorage.getItem('transModels') || '[]');
+        if (!transModels.includes(data.id)) {
+          transModels.push(data.id);
+          localStorage.setItem('transModels', JSON.stringify(transModels));
+          console.log('✅ Saved trans model to localStorage:', data.id, data.name);
+        }
+      } catch (e) {
+        console.error('Failed to save trans model to localStorage:', e);
+      }
+    }
+    
+    if (error) {
+      // If error is about is_trans column not existing, try again without it
+      if (error.message?.includes('is_trans') || error.code === '42703') {
+        console.warn('⚠️ is_trans column does not exist, creating model without it');
+        const { data: retryData, error: retryError } = await supabase
+          .from('models')
+          .insert([{ name: model.name, image: model.image }])
+          .select()
+          .single();
+        
+        if (retryError) throw retryError;
+        
+        // Save is_trans to localStorage if it's true
+        if (model.is_trans === true) {
+          try {
+            const transModels = JSON.parse(localStorage.getItem('transModels') || '[]');
+            if (!transModels.includes(retryData.id)) {
+              transModels.push(retryData.id);
+              localStorage.setItem('transModels', JSON.stringify(transModels));
+              console.log('✅ Saved trans model to localStorage:', retryData.id);
+            }
+          } catch (e) {
+            console.error('Failed to save trans model to localStorage:', e);
+          }
+        }
+        
+        return { ...retryData, is_trans: model.is_trans || false };
+      }
+      throw error;
+    }
+    
+    // Save is_trans to localStorage if it's true (in case column doesn't exist but insert succeeded)
+    if (model.is_trans === true) {
+      try {
+        const transModels = JSON.parse(localStorage.getItem('transModels') || '[]');
+        if (!transModels.includes(data.id)) {
+          transModels.push(data.id);
+          localStorage.setItem('transModels', JSON.stringify(transModels));
+          console.log('✅ Saved trans model to localStorage:', data.id);
+        }
+      } catch (e) {
+        console.error('Failed to save trans model to localStorage:', e);
+      }
+    }
+    
+    return { ...data, is_trans: data.is_trans || false };
   },
 
   // Update model

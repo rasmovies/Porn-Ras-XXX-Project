@@ -10,14 +10,16 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
-import { Person, Search, Visibility, Videocam, VpnKey } from '@mui/icons-material';
+import { Person, Search, Visibility, Videocam } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { modelService, videoService } from '../services/database';
 import { Model, Video } from '../lib/supabase';
 import { motion } from 'motion/react';
 import SEO from '../components/SEO/SEO';
+import { toast } from 'react-hot-toast';
 
 interface ModelData {
+  id?: string;
   name: string;
   image: string | null;
   is_trans?: boolean;
@@ -32,6 +34,50 @@ const Models: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTransModels, setShowTransModels] = useState(false);
+
+  // Helper function to manually mark a model as trans (for existing models)
+  // This can be called from browser console: window.markModelAsTrans('Model Name')
+  useEffect(() => {
+    (window as any).markModelAsTrans = (modelName: string) => {
+      const model = models.find(m => m.name === modelName);
+      if (model && model.id) {
+        const transModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
+        if (!transModelIds.includes(model.id)) {
+          transModelIds.push(model.id);
+          localStorage.setItem('transModels', JSON.stringify(transModelIds));
+          console.log('✅ Marked model as trans:', modelName, model.id);
+          // Update the model in state
+          setModels(prevModels => 
+            prevModels.map(m => 
+              m.name === modelName ? { ...m, is_trans: true } : m
+            )
+          );
+          toast.success(`Model "${modelName}" marked as Trans!`);
+        } else {
+          console.log('⚠️ Model already marked as trans:', modelName);
+          toast.success(`Model "${modelName}" is already marked as Trans!`);
+        }
+      } else {
+        console.error('❌ Model not found:', modelName);
+        toast.error(`Model "${modelName}" not found!`);
+      }
+    };
+  }, [models]);
+
+  // Helper function to manually mark a model as trans (for existing models)
+  const markModelAsTrans = (modelName: string) => {
+    const model = models.find(m => m.name === modelName);
+    if (model && model.id) {
+      const transModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
+      if (!transModelIds.includes(model.id)) {
+        transModelIds.push(model.id);
+        localStorage.setItem('transModels', JSON.stringify(transModelIds));
+        console.log('✅ Marked model as trans:', modelName, model.id);
+        // Reload models to reflect the change
+        window.location.reload();
+      }
+    }
+  };
 
   useEffect(() => {
     // Load models from both Supabase and localStorage
@@ -62,15 +108,31 @@ const Models: React.FC = () => {
         console.log('✅ Models Page: Models from Supabase:', modelsData.length);
         console.log('   Models:', modelsData.map(m => m.name));
         
+        // Load trans models from localStorage (since column doesn't exist in DB)
+        const transModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
+        console.log('🔍 Trans model IDs from localStorage:', transModelIds);
+        
         const formattedModels: ModelData[] = modelsData.map(model => {
           // Count videos for this model
           const modelVideos = videos.filter(v => v.model_id === model.id);
           const totalViews = modelVideos.reduce((sum, v) => sum + (v.views || 0), 0);
           
+          // Check if this model is marked as trans in localStorage
+          const isTrans = transModelIds.includes(model.id) || model.is_trans === true;
+          
+          console.log('🔍 Model data:', {
+            name: model.name,
+            id: model.id,
+            is_trans_from_db: model.is_trans,
+            is_trans_from_localStorage: transModelIds.includes(model.id),
+            final_is_trans: isTrans
+          });
+          
           return {
+            id: model.id,
             name: model.name,
             image: model.image,
-            is_trans: model.is_trans || false,
+            is_trans: isTrans,
             viewCount: totalViews,
             videoCount: modelVideos.length
           };
@@ -86,19 +148,77 @@ const Models: React.FC = () => {
           const localModels: ModelData[] = JSON.parse(savedModels);
           console.log('✅ Models Page: localStorage models:', localModels.length);
           // Merge Supabase and localStorage models, removing duplicates
-          const mergedModels = [...localModels];
+          // Ensure localStorage models have is_trans field and check transModelIds
+          const localModelsWithTrans = localModels.map(model => ({
+            ...model,
+            is_trans: transModelIds.includes(model.id || '') || model.is_trans === true
+          }));
+          const mergedModels = [...localModelsWithTrans];
           formattedModels.forEach(model => {
-            if (!mergedModels.find(m => m.name === model.name)) {
-              mergedModels.push(model);
+            const existingModel = mergedModels.find(m => m.name === model.name);
+            if (!existingModel) {
+              // Ensure is_trans is always a boolean when pushing
+              mergedModels.push({
+                ...model,
+                is_trans: transModelIds.includes(model.id || '') || model.is_trans === true
+              });
+            } else {
+              // Update existing model with latest data from Supabase
+              const index = mergedModels.indexOf(existingModel);
+              mergedModels[index] = {
+                ...mergedModels[index],
+                id: model.id,
+                name: model.name,
+                image: model.image,
+                is_trans: transModelIds.includes(model.id || '') || model.is_trans === true,
+                viewCount: model.viewCount,
+                videoCount: model.videoCount
+              };
             }
           });
           console.log('✅ Models Page: Final merged models:', mergedModels.length);
+          console.log('   Merged models data:', mergedModels.map(m => ({ name: m.name, is_trans: m.is_trans })));
+          
+          // Auto-mark "Jessy dubai" as trans if not already marked
+          const jessyDubai = mergedModels.find(m => m.name.toLowerCase().includes('jessy') && m.name.toLowerCase().includes('dubai'));
+          if (jessyDubai && jessyDubai.id && !transModelIds.includes(jessyDubai.id)) {
+            transModelIds.push(jessyDubai.id);
+            localStorage.setItem('transModels', JSON.stringify(transModelIds));
+            console.log('✅ Auto-marked "Jessy dubai" as trans:', jessyDubai.id);
+            // Update the model in mergedModels
+            const jessyIndex = mergedModels.findIndex(m => m.id === jessyDubai.id);
+            if (jessyIndex > -1) {
+              mergedModels[jessyIndex] = { ...mergedModels[jessyIndex], is_trans: true };
+            }
+          }
+          
           setModels(mergedModels);
-          setFilteredModels(mergedModels);
+          // Initial filter - show non-trans models by default
+          const initialFiltered = mergedModels.filter(model => model.is_trans !== true);
+          console.log('✅ Initial filtered models (non-trans):', initialFiltered.length);
+          setFilteredModels(initialFiltered);
         } else {
           console.log('✅ Models Page: Using only Supabase models:', formattedModels.length);
+          console.log('   Supabase models data:', formattedModels.map(m => ({ name: m.name, is_trans: m.is_trans })));
+          
+          // Auto-mark "Jessy dubai" as trans if not already marked
+          const jessyDubai = formattedModels.find(m => m.name.toLowerCase().includes('jessy') && m.name.toLowerCase().includes('dubai'));
+          if (jessyDubai && jessyDubai.id && !transModelIds.includes(jessyDubai.id)) {
+            transModelIds.push(jessyDubai.id);
+            localStorage.setItem('transModels', JSON.stringify(transModelIds));
+            console.log('✅ Auto-marked "Jessy dubai" as trans:', jessyDubai.id);
+            // Update the model in formattedModels
+            const jessyIndex = formattedModels.findIndex(m => m.id === jessyDubai.id);
+            if (jessyIndex > -1) {
+              formattedModels[jessyIndex] = { ...formattedModels[jessyIndex], is_trans: true };
+            }
+          }
+          
           setModels(formattedModels);
-          setFilteredModels(formattedModels);
+          // Initial filter - show non-trans models by default
+          const initialFiltered = formattedModels.filter(model => model.is_trans !== true);
+          console.log('✅ Initial filtered models (non-trans):', initialFiltered.length);
+          setFilteredModels(initialFiltered);
         }
       } catch (error: any) {
         console.error('❌ Models Page: Failed to load models:', error);
@@ -111,10 +231,25 @@ const Models: React.FC = () => {
         const savedModels = localStorage.getItem('adminModels');
         if (savedModels) {
           console.log('⚠️ Models Page: Using localStorage fallback');
+          // Load trans models from localStorage (since column doesn't exist in DB)
+          const fallbackTransModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
           const modelsData: ModelData[] = JSON.parse(savedModels);
-          console.log('✅ Models Page: localStorage models loaded:', modelsData.length);
-          setModels(modelsData);
-          setFilteredModels(modelsData);
+          // Ensure is_trans field exists
+          const modelsWithTrans = modelsData.map(model => ({
+            ...model,
+            is_trans: fallbackTransModelIds.includes(model.id || '') || model.is_trans === true
+          }));
+          // Also check transModelIds for localStorage models
+          const modelsWithTransChecked = modelsWithTrans.map(model => ({
+            ...model,
+            is_trans: fallbackTransModelIds.includes(model.id || '') || model.is_trans === true
+          }));
+          console.log('✅ Models Page: localStorage models loaded:', modelsWithTransChecked.length);
+          setModels(modelsWithTransChecked);
+          // Initial filter - show non-trans models by default
+          const initialFiltered = modelsWithTransChecked.filter(model => model.is_trans !== true);
+          console.log('✅ Initial filtered models (non-trans):', initialFiltered.length);
+          setFilteredModels(initialFiltered);
         } else {
           console.log('❌ Models Page: No models found in Supabase or localStorage');
           setModels([]);
@@ -130,14 +265,40 @@ const Models: React.FC = () => {
 
   useEffect(() => {
     // Filter models based on search term and trans filter
-    let filtered = models;
+    let filtered = [...models]; // Create a copy
+    
+    console.log('🔍 Filtering models:', {
+      totalModels: models.length,
+      showTransModels,
+      modelsData: models.map(m => ({ name: m.name, is_trans: m.is_trans }))
+    });
     
     // Filter by trans status
     if (showTransModels) {
-      filtered = filtered.filter(model => model.is_trans === true);
+      // Show only trans models (is_trans === true)
+      filtered = filtered.filter(model => {
+        const isTrans = model.is_trans === true;
+        if (isTrans) {
+          console.log(`✅ Including trans model: ${model.name}`);
+        }
+        return isTrans;
+      });
+      console.log('✅ Trans models filtered:', filtered.length, 'out of', models.length);
     } else {
-      // Show all models that are not trans (is_trans is false or undefined)
-      filtered = filtered.filter(model => !model.is_trans);
+      // Show all models that are NOT trans
+      // Include models where is_trans is false, undefined, null, or not set
+      filtered = filtered.filter(model => {
+        // Only exclude if is_trans is explicitly true
+        const isTrans = model.is_trans === true;
+        if (isTrans) {
+          console.log(`❌ Excluding trans model: ${model.name} (is_trans=${model.is_trans})`);
+        } else {
+          console.log(`✅ Including normal model: ${model.name} (is_trans=${model.is_trans})`);
+        }
+        return !isTrans;
+      });
+      console.log('✅ Normal models filtered:', filtered.length, 'out of', models.length);
+      console.log('   Filtered model names:', filtered.map(m => m.name));
     }
     
     // Filter by search term
@@ -145,8 +306,10 @@ const Models: React.FC = () => {
       filtered = filtered.filter(model =>
         model.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('✅ After search filter:', filtered.length);
     }
     
+    console.log('✅ Final filtered models:', filtered.length, filtered.map(m => m.name));
     setFilteredModels(filtered);
   }, [searchTerm, models, showTransModels]);
 
@@ -184,9 +347,11 @@ const Models: React.FC = () => {
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 4, px: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2, maxWidth: 1200, mx: 'auto' }}>
-          <Typography variant="h3" component="h1" className="gradient-text">
-            {showTransModels ? 'Trans Models' : 'Models'}
-          </Typography>
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <Typography variant="h3" component="h1" className="gradient-text">
+              {showTransModels ? 'Trans Models' : 'Models'}
+            </Typography>
+          </Box>
           <FormControlLabel
             control={
               <Switch
@@ -204,7 +369,22 @@ const Models: React.FC = () => {
             }
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <VpnKey sx={{ fontSize: 20, color: showTransModels ? '#ff6b6b' : 'inherit' }} />
+                <Box
+                  component="svg"
+                  width="800px"
+                  height="800px"
+                  viewBox="0 0 16 16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill={showTransModels ? '#ff6b6b' : 'currentColor'}
+                  className="bi bi-gender-trans"
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    color: showTransModels ? '#ff6b6b' : 'currentColor',
+                  }}
+                >
+                  <path fillRule="evenodd" d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1.707L3.5 2.793l.646-.647a.5.5 0 1 1 .708.708l-.647.646.822.822A3.99 3.99 0 0 1 8 3c1.18 0 2.239.51 2.971 1.322L14.293 1H11.5a.5.5 0 0 1 0-1h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-3.45 3.45A4 4 0 0 1 8.5 10.97V13H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V14H6a.5.5 0 0 1 0-1h1.5v-2.03a4 4 0 0 1-3.05-5.814l-.95-.949-.646.647a.5.5 0 1 1-.708-.708l.647-.646L1 1.707V3.5a.5.5 0 0 1-1 0v-3zm5.49 4.856a3 3 0 1 0 5.02 3.288 3 3 0 0 0-5.02-3.288z"/>
+                </Box>
                 <Typography variant="body2" sx={{ color: showTransModels ? '#ff6b6b' : 'inherit' }}>
                   Trans
                 </Typography>

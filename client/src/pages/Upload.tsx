@@ -372,6 +372,21 @@ const Upload: React.FC = () => {
           image: imageToUse,
           is_trans: newModelIsTrans
         });
+        
+        // If is_trans is true, save model ID to localStorage
+        if (newModelIsTrans && createdModel.id) {
+          try {
+            const transModels = JSON.parse(localStorage.getItem('transModels') || '[]');
+            if (!transModels.includes(createdModel.id)) {
+              transModels.push(createdModel.id);
+              localStorage.setItem('transModels', JSON.stringify(transModels));
+              console.log('✅ Saved trans model to localStorage:', createdModel.id, createdModel.name);
+            }
+          } catch (e) {
+            console.error('Failed to save trans model to localStorage:', e);
+          }
+        }
+        
         setModels([...models, createdModel]);
         setNewModelName('');
         setNewModelImageUrl('');

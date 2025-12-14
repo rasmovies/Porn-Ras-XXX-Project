@@ -19,7 +19,7 @@ import { categoryService, modelService, channelService, profileService, banUserS
 import { emailApi } from '../services/emailApi';
 import { metadataApi, ModelMetadata } from '../services/metadataApi';
 import { Category, Model, Channel, Profile, BanUser } from '../lib/supabase';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, CircularProgress, Switch, FormControlLabel } from '@mui/material';
 import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
@@ -74,6 +74,7 @@ const Admin: React.FC = () => {
   const [editModelValue, setEditModelValue] = useState('');
   const [editModelImagePreview, setEditModelImagePreview] = useState<string | null>(null);
   const [editModelImageUrl, setEditModelImageUrl] = useState<string>('');
+  const [editModelIsTrans, setEditModelIsTrans] = useState(false);
   const [editChannelValue, setEditChannelValue] = useState('');
   const [editChannelDescription, setEditChannelDescription] = useState('');
   const [editChannelThumbnail, setEditChannelThumbnail] = useState<File | null>(null);
@@ -451,6 +452,20 @@ const Admin: React.FC = () => {
           is_trans: modelIsTrans
         });
         
+        // If is_trans is true, save model ID to localStorage
+        if (modelIsTrans && createdModel.id) {
+          try {
+            const transModels = JSON.parse(localStorage.getItem('transModels') || '[]');
+            if (!transModels.includes(createdModel.id)) {
+              transModels.push(createdModel.id);
+              localStorage.setItem('transModels', JSON.stringify(transModels));
+              console.log('✅ Saved trans model to localStorage:', createdModel.id, createdModel.name);
+            }
+          } catch (e) {
+            console.error('Failed to save trans model to localStorage:', e);
+          }
+        }
+        
         // Then update local state with Supabase response
         setModels([...models, createdModel]);
         setNewModel('');
@@ -466,13 +481,29 @@ const Admin: React.FC = () => {
         
         // Fallback to local state only
         const imageToUse = modelImageUrl.trim() || null;
+        const tempId = Date.now().toString();
         const newModelData: Model = {
-          id: Date.now().toString(),
+          id: tempId,
           name: newModel.trim(),
           image: imageToUse,
           is_trans: modelIsTrans,
           created_at: new Date().toISOString()
         };
+        
+        // If is_trans is true, save model ID to localStorage
+        if (modelIsTrans) {
+          try {
+            const transModels = JSON.parse(localStorage.getItem('transModels') || '[]');
+            if (!transModels.includes(tempId)) {
+              transModels.push(tempId);
+              localStorage.setItem('transModels', JSON.stringify(transModels));
+              console.log('✅ Saved trans model to localStorage (fallback):', tempId, newModel.trim());
+            }
+          } catch (e) {
+            console.error('Failed to save trans model to localStorage:', e);
+          }
+        }
+        
         setModels([...models, newModelData]);
         setNewModel('');
         setModelImagePreview(null);
@@ -500,6 +531,10 @@ const Admin: React.FC = () => {
     setEditModelValue(modelName);
     setEditModelImagePreview(model?.image || null);
     setEditModelImageUrl(model?.image || '');
+    // Check if model is marked as trans in localStorage
+    const transModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
+    const isTrans = model?.id ? transModelIds.includes(model.id) : false;
+    setEditModelIsTrans(isTrans);
   };
 
   const handleSaveModel = async () => {
@@ -517,10 +552,29 @@ const Admin: React.FC = () => {
         image: imageToUse
       });
 
+      // Update trans status in localStorage
+      const transModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
+      if (editModelIsTrans) {
+        // Add to trans models if not already there
+        if (!transModelIds.includes(model.id)) {
+          transModelIds.push(model.id);
+          localStorage.setItem('transModels', JSON.stringify(transModelIds));
+          console.log('✅ Saved trans model to localStorage:', model.id, editModelValue.trim());
+        }
+      } else {
+        // Remove from trans models if it's there
+        const index = transModelIds.indexOf(model.id);
+        if (index > -1) {
+          transModelIds.splice(index, 1);
+          localStorage.setItem('transModels', JSON.stringify(transModelIds));
+          console.log('✅ Removed trans model from localStorage:', model.id, editModelValue.trim());
+        }
+      }
+
       // Update local state with Supabase response
       const updatedModels = models.map(m => 
         m.id === model.id 
-          ? updatedModel
+          ? { ...updatedModel, is_trans: editModelIsTrans }
           : m
       );
       setModels(updatedModels);
@@ -528,6 +582,7 @@ const Admin: React.FC = () => {
       setEditModelValue('');
       setEditModelImagePreview(null);
       setEditModelImageUrl('');
+      setEditModelIsTrans(false);
       showSnackbar('Model updated successfully in Supabase!');
     } catch (error: any) {
       const errorMessage = error?.message || 'Unknown error';
@@ -541,6 +596,7 @@ const Admin: React.FC = () => {
     setEditModelValue('');
     setEditModelImagePreview(null);
     setEditModelImageUrl('');
+    setEditModelIsTrans(false);
   };
 
   const handleDeleteModel = async (modelName: string) => {
@@ -1509,6 +1565,17 @@ const Admin: React.FC = () => {
                                 </Box>
                               )}
                             </Box>
+                            <FormControlLabel
+                              control={
+                                <Switch
+                                  checked={editModelIsTrans}
+                                  onChange={(e) => setEditModelIsTrans(e.target.checked)}
+                                  color="primary"
+                                />
+                              }
+                              label="Trans (Ts)"
+                              sx={{ mb: 1 }}
+                            />
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <Button
                                 variant="contained"
