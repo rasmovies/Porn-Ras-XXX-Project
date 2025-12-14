@@ -33,7 +33,7 @@
        // When current working dir already is "server/"
        path.join(process.cwd(), 'emailTemplates', `${templateName}.html`),
      ];
-
+ 
      let lastError;
      for (const filePath of candidatePaths) {
        try {
@@ -43,7 +43,7 @@
          lastError = err;
        }
      }
-
+ 
      const error = new Error(
        `Email template not found for "${templateName}". Checked: ${candidatePaths.join(' | ')}`
      );
@@ -120,15 +120,15 @@
      }
      
      try {
-       // If verificationCode is provided, use code-based template
-       // Otherwise use URL-based template (backward compatibility)
-       if (verificationCode) {
+     // If verificationCode is provided, use code-based template
+     // Otherwise use URL-based template (backward compatibility)
+     if (verificationCode) {
          const templateData = { username, verificationCode: String(verificationCode) };
          console.log('📧 Sending verification email with code:', { email, username, codeLength: verificationCode.length });
          const html = await renderTemplate('verification', templateData);
          return dispatchEmail({ recipients: [email], subject: 'PORNRAS - Verification Code', html });
-       } else {
-         const html = await renderTemplate('verification', { username, verifyUrl });
+     } else {
+       const html = await renderTemplate('verification', { username, verifyUrl });
          return dispatchEmail({ recipients: [email], subject: 'Verify Your PORNRAS Account', html });
        }
      } catch (templateError) {

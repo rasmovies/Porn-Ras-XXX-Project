@@ -134,7 +134,7 @@ module.exports = async function handler(req, res) {
           .single();
         
         if (!error) {
-          codeData = data;
+        codeData = data;
           console.log('✅ Updated existing verification code');
         } else {
           console.warn('⚠️ Failed to update verification code:', error.message, error.code);

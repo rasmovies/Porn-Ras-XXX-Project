@@ -21,7 +21,7 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { CloudUpload, VideoFile, PlayArrow, Delete, Edit } from '@mui/icons-material';
+import { CloudUpload, VideoFile, PlayArrow, Delete, Edit, Add } from '@mui/icons-material';
 import { motion } from 'motion/react';
 import { videoService, categoryService, modelService, channelService, subscriptionService, channelSubscriptionService, notificationService } from '../services/database';
 import { blueskyApi } from '../services/emailApi';
@@ -79,6 +79,22 @@ const Upload: React.FC = () => {
   const [editModelIds, setEditModelIds] = useState<string[]>([]);
   const [editChannelIds, setEditChannelIds] = useState<string[]>([]);
   const [uploadedStreamtapeUrl, setUploadedStreamtapeUrl] = useState<string>('');
+  
+  // Add Model/Category states
+  const [addModelDialogOpen, setAddModelDialogOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState('');
+  const [newModelImageUrl, setNewModelImageUrl] = useState('');
+  const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryThumbnailUrl, setNewCategoryThumbnailUrl] = useState('');
+  
+  // Add Model/Category states
+  const [addModelDialogOpen, setAddModelDialogOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState('');
+  const [newModelImageUrl, setNewModelImageUrl] = useState('');
+  const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryThumbnailUrl, setNewCategoryThumbnailUrl] = useState('');
 
   // Upload Queue System (FileZilla-like)
   interface UploadItem {
@@ -1767,7 +1783,18 @@ const Upload: React.FC = () => {
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <FormControl fullWidth>
-                    <InputLabel>Categories</InputLabel>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <InputLabel>Categories</InputLabel>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Add />}
+                        onClick={() => setAddCategoryDialogOpen(true)}
+                        sx={{ ml: 'auto' }}
+                      >
+                        Add Category
+                      </Button>
+                    </Box>
                     <Select 
                       label="Categories"
                       multiple
@@ -1812,7 +1839,18 @@ const Upload: React.FC = () => {
                   </FormControl>
 
                   <FormControl fullWidth>
-                    <InputLabel>Models</InputLabel>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <InputLabel>Models</InputLabel>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Add />}
+                        onClick={() => setAddModelDialogOpen(true)}
+                        sx={{ ml: 'auto' }}
+                      >
+                        Add Model
+                      </Button>
+                    </Box>
                     <Select 
                       label="Models"
                       multiple

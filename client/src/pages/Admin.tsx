@@ -930,7 +930,7 @@ const Admin: React.FC = () => {
                           placeholder="https://i.ibb.co/xxxxx/image.jpg"
                           value={categoryThumbnailUrl}
                           onChange={handleCategoryThumbnailUrlChange}
-                          variant="outlined"
+                            variant="outlined" 
                           size="small"
                           sx={{ mb: 1 }}
                         />
