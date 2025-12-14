@@ -136,7 +136,7 @@ const Models: React.FC = () => {
     if (showTransModels) {
       filtered = filtered.filter(model => model.is_trans === true);
     } else {
-      filtered = filtered.filter(model => !model.is_trans || model.is_trans === false);
+      filtered = filtered.filter(model => model.is_trans !== true);
     }
     
     // Filter by search term
