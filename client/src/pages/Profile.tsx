@@ -323,6 +323,54 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Handle Edit Profile
+  const handleEditProfileOpen = () => {
+    setEditUsername(authUser?.username || '');
+    setEditEmail(authUser?.email || '');
+    // Load bio from profile if exists
+    profileService.getByUsername(authUser?.username || '').then(profile => {
+      if (profile) {
+        setEditBio(profile.bio || '');
+      }
+    }).catch(() => {
+      setEditBio('');
+    });
+    setEditProfileDialogOpen(true);
+  };
+
+  const handleEditProfileSave = async () => {
+    if (!authUser?.username) return;
+
+    try {
+      const existingProfile = await profileService.getByUsername(authUser.username);
+      
+      if (existingProfile) {
+        // Update existing profile
+        await profileService.update(existingProfile.id, {
+          bio: editBio,
+          // Note: username and email updates would require auth system changes
+          // For now, we only update bio
+        });
+      } else {
+        // Create new profile
+        await profileService.upsert({
+          user_name: editUsername || authUser.username,
+          bio: editBio,
+          subscriber_count: 0,
+          videos_watched: 0
+        });
+      }
+      
+      toast.success('Profile updated successfully!');
+      setEditProfileDialogOpen(false);
+      // Reload page to reflect changes
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
+
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
