@@ -1163,7 +1163,7 @@ const ProfilePage: React.FC = () => {
                   <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.875rem', md: '1rem' } }}>
                     Playlists
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#ff6b6b', fontSize: '0.85rem' }}>
+                  <Typography variant="body2" sx={{ color: '#ff6b6b', fontSize: '0.85rem', filter: 'blur(5px)' }}>
                     Browse latest videos and click [+] to create a custom playlist
                   </Typography>
                 </Box>
@@ -1178,7 +1178,6 @@ const ProfilePage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  filter: 'blur(5px)',
                   pointerEvents: 'none',
                 }}
               >
@@ -1464,7 +1463,6 @@ const ProfilePage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  filter: 'blur(5px)',
                   pointerEvents: 'none',
                 }}
               >
