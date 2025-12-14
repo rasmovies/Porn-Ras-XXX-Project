@@ -276,57 +276,32 @@ const VideoPlayer: React.FC = () => {
   const handleCommentLike = async (commentId: string) => {
     if (!video?.id) return;
     
+    // If already liked or disliked, don't allow another action
+    if (commentLikes.has(commentId) || commentDislikes.has(commentId)) {
+      return;
+    }
+    
     try {
-      // Check if user already liked this comment
-      if (commentLikes.has(commentId)) {
-        // Remove like
-        const comment = comments.find(c => c.id === commentId);
-        if (comment) {
-          await commentService.update(commentId, { likes: Math.max(0, comment.likes - 1) });
-        }
-        
-        // Update local state
-        setComments(prev => prev.map(comment => 
-          comment.id === commentId 
-            ? { ...comment, likes: Math.max(0, comment.likes - 1) }
-            : comment
-        ));
-        
-        // Remove from likes set
-        const newLikes = new Set(commentLikes);
-        newLikes.delete(commentId);
-        setCommentLikes(newLikes);
-        
-        // Save to localStorage
-        localStorage.setItem(`commentLikes_${video.id}`, JSON.stringify(Array.from(newLikes)));
-        
-      } else {
-        // Add like, remove dislike if exists
-        const comment = comments.find(c => c.id === commentId);
-        if (comment) {
-          await commentService.update(commentId, { likes: comment.likes + 1 });
-        }
-        
-        // Update local state
-        setComments(prev => prev.map(comment => 
-          comment.id === commentId 
-            ? { ...comment, likes: comment.likes + 1 }
-            : comment
-        ));
-        
-        // Add to likes set, remove from dislikes if exists
-        const newLikes = new Set(commentLikes);
-        newLikes.add(commentId);
-        setCommentLikes(newLikes);
-        
-        const newDislikes = new Set(commentDislikes);
-        newDislikes.delete(commentId);
-        setCommentDislikes(newDislikes);
-        
-        // Save to localStorage
-        localStorage.setItem(`commentLikes_${video.id}`, JSON.stringify(Array.from(newLikes)));
-        localStorage.setItem(`commentDislikes_${video.id}`, JSON.stringify(Array.from(newDislikes)));
+      // Add like
+      const comment = comments.find(c => c.id === commentId);
+      if (comment) {
+        await commentService.update(commentId, { likes: comment.likes + 1 });
       }
+      
+      // Update local state
+      setComments(prev => prev.map(comment => 
+        comment.id === commentId 
+          ? { ...comment, likes: comment.likes + 1 }
+          : comment
+      ));
+      
+      // Add to likes set
+      const newLikes = new Set(commentLikes);
+      newLikes.add(commentId);
+      setCommentLikes(newLikes);
+      
+      // Save to localStorage
+      localStorage.setItem(`commentLikes_${video.id}`, JSON.stringify(Array.from(newLikes)));
       
     } catch (error) {
       console.error('Failed to update comment like:', error);
@@ -337,64 +312,37 @@ const VideoPlayer: React.FC = () => {
   const handleCommentDislike = async (commentId: string) => {
     if (!video?.id) return;
     
+    // If already liked or disliked, don't allow another action
+    if (commentLikes.has(commentId) || commentDislikes.has(commentId)) {
+      return;
+    }
+    
     try {
-      // Check if user already disliked this comment
-      if (commentDislikes.has(commentId)) {
-        // Remove dislike (increase likes back)
-        const comment = comments.find(c => c.id === commentId);
-        if (comment) {
-          await commentService.update(commentId, { likes: comment.likes + 1 });
-        }
-        
-        // Update local state
-        setComments(prev => prev.map(comment => 
-          comment.id === commentId 
-            ? { ...comment, likes: comment.likes + 1 }
-            : comment
-        ));
-        
-        // Remove from dislikes set
-        const newDislikes = new Set(commentDislikes);
-        newDislikes.delete(commentId);
-        setCommentDislikes(newDislikes);
-        
-        // Save to localStorage
-        localStorage.setItem(`commentDislikes_${video.id}`, JSON.stringify(Array.from(newDislikes)));
-        
-      } else {
-        // Add dislike, remove like if exists
-        const comment = comments.find(c => c.id === commentId);
-        if (comment) {
-          await commentService.update(commentId, { 
-            likes: Math.max(0, comment.likes - 1),
-            dislikes: (comment.dislikes || 0) + 1
-          });
-        }
-        
-        // Update local state
-        setComments(prev => prev.map(comment => 
-          comment.id === commentId 
-            ? { 
-                ...comment, 
-                likes: Math.max(0, comment.likes - 1),
-                dislikes: (comment.dislikes || 0) + 1
-              }
-            : comment
-        ));
-        
-        // Add to dislikes set, remove from likes if exists
-        const newDislikes = new Set(commentDislikes);
-        newDislikes.add(commentId);
-        setCommentDislikes(newDislikes);
-        
-        const newLikes = new Set(commentLikes);
-        newLikes.delete(commentId);
-        setCommentLikes(newLikes);
-        
-        // Save to localStorage
-        localStorage.setItem(`commentDislikes_${video.id}`, JSON.stringify(Array.from(newDislikes)));
-        localStorage.setItem(`commentLikes_${video.id}`, JSON.stringify(Array.from(newLikes)));
+      // Add dislike
+      const comment = comments.find(c => c.id === commentId);
+      if (comment) {
+        await commentService.update(commentId, { 
+          dislikes: (comment.dislikes || 0) + 1
+        });
       }
+      
+      // Update local state
+      setComments(prev => prev.map(comment => 
+        comment.id === commentId 
+          ? { 
+              ...comment, 
+              dislikes: (comment.dislikes || 0) + 1
+            }
+          : comment
+      ));
+      
+      // Add to dislikes set
+      const newDislikes = new Set(commentDislikes);
+      newDislikes.add(commentId);
+      setCommentDislikes(newDislikes);
+      
+      // Save to localStorage
+      localStorage.setItem(`commentDislikes_${video.id}`, JSON.stringify(Array.from(newDislikes)));
       
     } catch (error) {
       console.error('Failed to update comment dislike:', error);
@@ -1046,7 +994,7 @@ const VideoPlayer: React.FC = () => {
                                   <Button
                                     size="small"
                                     onClick={() => handleCommentLike(comment.id)}
-                                    disabled={false}
+                                    disabled={commentLikes.has(comment.id) || commentDislikes.has(comment.id)}
                                     sx={{ 
                                       borderRadius: '20px',
                                       px: 2,
@@ -1067,6 +1015,14 @@ const VideoPlayer: React.FC = () => {
                                           : 'rgba(255, 107, 107, 0.2)',
                                         transform: 'translateY(-1px)',
                                       },
+                                      '&.Mui-disabled': {
+                                        color: commentLikes.has(comment.id) 
+                                          ? 'success.main' 
+                                          : 'rgba(255, 255, 255, 0.3)',
+                                        background: commentLikes.has(comment.id) 
+                                          ? 'rgba(76, 175, 80, 0.2)' 
+                                          : 'transparent',
+                                      },
                                       transition: 'all 0.2s ease',
                                     }}
                                   >
@@ -1077,7 +1033,7 @@ const VideoPlayer: React.FC = () => {
                                   <Button
                                     size="small"
                                     onClick={() => handleCommentDislike(comment.id)}
-                                    disabled={false}
+                                    disabled={commentLikes.has(comment.id) || commentDislikes.has(comment.id)}
                                     sx={{ 
                                       borderRadius: '20px',
                                       px: 2,
@@ -1100,6 +1056,14 @@ const VideoPlayer: React.FC = () => {
                                           ? 'error.main' 
                                           : 'error.main',
                                         transform: 'translateY(-1px)',
+                                      },
+                                      '&.Mui-disabled': {
+                                        color: commentDislikes.has(comment.id) 
+                                          ? 'error.main' 
+                                          : 'rgba(255, 255, 255, 0.3)',
+                                        background: commentDislikes.has(comment.id) 
+                                          ? 'rgba(244, 67, 54, 0.2)' 
+                                          : 'transparent',
                                       },
                                       transition: 'all 0.2s ease',
                                     }}
