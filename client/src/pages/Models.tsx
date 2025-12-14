@@ -136,7 +136,8 @@ const Models: React.FC = () => {
     if (showTransModels) {
       filtered = filtered.filter(model => model.is_trans === true);
     } else {
-      filtered = filtered.filter(model => model.is_trans !== true);
+      // Show all models that are not trans (is_trans is false or undefined)
+      filtered = filtered.filter(model => !model.is_trans);
     }
     
     // Filter by search term
@@ -182,7 +183,7 @@ const Models: React.FC = () => {
     <Box sx={{ width: '100%', py: 4 }}>
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 4, px: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2, maxWidth: 1200, mx: 'auto' }}>
           <Typography variant="h3" component="h1" className="gradient-text">
             {showTransModels ? 'Trans Models' : 'Models'}
           </Typography>
@@ -209,10 +210,15 @@ const Models: React.FC = () => {
                 </Typography>
               </Box>
             }
+            labelPlacement="start"
             sx={{
-              ml: 2,
+              '& .MuiFormControlLabel-root': {
+                justifyContent: 'flex-start',
+                gap: '0px',
+              },
               '& .MuiFormControlLabel-label': {
-                marginLeft: 1,
+                marginLeft: 0,
+                marginRight: 1,
               }
             }}
           />
