@@ -4,7 +4,6 @@
   "outputDirectory": "client/build",
   "installCommand": "cd client && npm install --legacy-peer-deps",
   "framework": null,
-  "ignoreCommand": "exit 1",
   "functions": {
     "api/ftp/upload.js": {
       "maxDuration": 300,
