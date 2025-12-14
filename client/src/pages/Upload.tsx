@@ -1021,6 +1021,13 @@ const Upload: React.FC = () => {
           ? (streamtapeThumbnailUrl.trim() || streamtapeThumbnail || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail')
           : (thumbnailPreview || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video+Thumbnail');
         
+        // Combine tags array with current input
+        const allTags = [...videoTagsArray];
+        if (videoTags.trim()) {
+          allTags.push(videoTags.trim());
+        }
+        const tagsString = allTags.length > 0 ? allTags.join(', ') : null;
+
         // Create video data for Supabase
         const videoData = {
           title: sanitizedTitle,
@@ -1028,6 +1035,7 @@ const Upload: React.FC = () => {
           thumbnail: thumbnailToUse,
         streamtape_url: embedMode === 'streamtape' ? getStreamtapeEmbedUrl(streamtapeUrl) : (finalStreamtapeUrl ? getStreamtapeEmbedUrl(finalStreamtapeUrl) : null),
           duration: videoDuration || '0:00',
+          tags: tagsString,
           category_id: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null,
           model_id: selectedModelIds.length > 0 ? selectedModelIds[0] : null,
           channel_id: selectedChannelIds.length > 0 ? selectedChannelIds[0] : null,
@@ -1108,6 +1116,7 @@ const Upload: React.FC = () => {
       setVideoDescription('');
       setVideoCategory('');
       setVideoTags('');
+      setVideoTagsArray([]);
       setVideoDuration('');
               setStreamtapeUrl('');
         setSelectedFile(null);
@@ -2453,6 +2462,84 @@ const Upload: React.FC = () => {
           </Button>
           <Button onClick={handleAddCategory} variant="contained" disabled={!newCategoryName.trim()}>
             Add Category
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Channel Dialog */}
+      <Dialog open={addChannelDialogOpen} onClose={() => setAddChannelDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Channel</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Channel Name"
+              value={newChannelName}
+              onChange={(e) => setNewChannelName(e.target.value)}
+              fullWidth
+              required
+              placeholder="Enter channel name"
+            />
+            <TextField
+              label="Description"
+              value={newChannelDescription}
+              onChange={(e) => setNewChannelDescription(e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Enter channel description (optional)"
+            />
+            <TextField
+              label="Thumbnail URL (imgbb direct link)"
+              value={newChannelThumbnailUrl}
+              onChange={(e) => setNewChannelThumbnailUrl(e.target.value)}
+              fullWidth
+              placeholder="https://i.ibb.co/xxxxx/image.jpg"
+              helperText="💡 Upload your image to imgbb.com first, then paste the direct link here"
+            />
+            {newChannelThumbnailUrl.trim() && (
+              <Box sx={{ 
+                p: 2,
+                border: '2px solid',
+                borderColor: 'primary.main',
+                borderRadius: 2,
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1,
+              }}>
+                <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                  Thumbnail Preview
+                </Typography>
+                <img
+                  src={newChannelThumbnailUrl.trim()}
+                  alt="Preview"
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '200px', 
+                    width: 'auto',
+                    height: 'auto',
+                    borderRadius: '8px',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setAddChannelDialogOpen(false);
+            setNewChannelName('');
+            setNewChannelDescription('');
+            setNewChannelThumbnailUrl('');
+          }}>
+            Cancel
+          </Button>
+          <Button onClick={handleAddChannel} variant="contained" disabled={!newChannelName.trim()}>
+            Add Channel
           </Button>
         </DialogActions>
       </Dialog>
