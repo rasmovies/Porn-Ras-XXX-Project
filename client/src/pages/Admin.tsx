@@ -1291,6 +1291,18 @@ const Admin: React.FC = () => {
                           size="small"
                           sx={{ mb: 1 }}
                         />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                          <input
+                            type="checkbox"
+                            id="admin-trans-checkbox"
+                            checked={modelIsTrans}
+                            onChange={(e) => setModelIsTrans(e.target.checked)}
+                            style={{ width: 18, height: 18, cursor: 'pointer' }}
+                          />
+                          <label htmlFor="admin-trans-checkbox" style={{ cursor: 'pointer', color: 'inherit' }}>
+                            Trans (Ts)
+                          </label>
+                        </Box>
                         {modelImageUrl.trim() && (
                           <Box sx={{ 
                             mt: 2, 
