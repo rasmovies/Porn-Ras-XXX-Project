@@ -1411,9 +1411,16 @@ const ProfilePage: React.FC = () => {
                 borderRadius: 2,
                 p: 3,
                 mb: 3,
+                position: 'relative',
+                filter: 'blur(5px)',
+                '& > *:first-child': {
+                  filter: 'blur(0px)',
+                  position: 'relative',
+                  zIndex: 1,
+                },
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, filter: 'blur(0px)', position: 'relative', zIndex: 2 }}>
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
                   Achievements (4)
                 </Typography>
@@ -1427,22 +1434,6 @@ const ProfilePage: React.FC = () => {
                 >
                   View All
                 </Button>
-              </Box>
-              
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {achievements.map((achievement) => (
-                  <Avatar
-                    key={achievement.id}
-                    sx={{
-                      width: 50,
-                      height: 50,
-                      bgcolor: 'rgba(255,255,255,0.1)',
-                      border: '2px solid rgba(255,255,255,0.2)',
-                    }}
-                  >
-                    {achievement.icon}
-                  </Avatar>
-                ))}
               </Box>
             </Paper>
           </Box>
