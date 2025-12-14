@@ -98,6 +98,20 @@ module.exports = async function handler(req, res) {
       if (authErr) {
         authError = authErr;
         console.error('Supabase Auth signup error:', authErr);
+        
+        // Check if error is due to duplicate email
+        if (authErr.message && (
+          authErr.message.includes('already registered') || 
+          authErr.message.includes('User already registered') ||
+          authErr.message.includes('email address is already registered') ||
+          authErr.message.toLowerCase().includes('email') && authErr.message.toLowerCase().includes('exists')
+        )) {
+          return res.status(409).json({ 
+            success: false, 
+            message: 'Email already registered. Please use a different email or login.' 
+          });
+        }
+        
         // Continue anyway - we'll create profile without auth
       } else {
         authUser = authData.user;
