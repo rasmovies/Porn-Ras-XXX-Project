@@ -1440,7 +1440,7 @@ const ProfilePage: React.FC = () => {
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, position: 'relative', zIndex: 2 }}>
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                  Achievements (4)
+                  Achievements
                 </Typography>
                 <Button
                   size="small"
