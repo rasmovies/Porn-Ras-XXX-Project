@@ -132,6 +132,10 @@ const ProfilePage: React.FC = () => {
   const [gifDetailDescription, setGifDetailDescription] = useState('');
   const [allModels, setAllModels] = useState<Model[]>([]);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
+  const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editBio, setEditBio] = useState('');
 
   // Load profile from Supabase on mount
   useEffect(() => {
@@ -145,16 +149,29 @@ const ProfilePage: React.FC = () => {
           if (profile.avatar_image) {
             setAvatarImage(profile.avatar_image);
           }
+          // Set edit values
+          setEditUsername(authUser?.username || '');
+          setEditEmail(authUser?.email || '');
+          setEditBio(profile.bio || '');
+        } else {
+          // Set default values if no profile
+          setEditUsername(authUser?.username || '');
+          setEditEmail(authUser?.email || '');
+          setEditBio('');
         }
       } catch (error) {
         console.error('Failed to load profile from Supabase:', error);
+        // Set default values on error
+        setEditUsername(authUser?.username || '');
+        setEditEmail(authUser?.email || '');
+        setEditBio('');
       }
     };
     
     if (authUser?.username) {
       loadProfile();
     }
-  }, [authUser?.username]);
+  }, [authUser?.username, authUser?.email]);
 
   // Load pornstar subscriptions
   useEffect(() => {
@@ -758,11 +775,14 @@ const ProfilePage: React.FC = () => {
                 <Button
                   variant={activeTab === 0 ? 'contained' : 'text'}
                   sx={{
-                    color: activeTab === 0 ? '#ff6b6b' : 'white',
-                    bgcolor: activeTab === 0 ? 'rgba(255,107,107,0.1)' : 'transparent',
+                    color: 'white',
+                    bgcolor: activeTab === 0 ? 'rgba(255,107,107,0.3)' : 'rgba(255,107,107,0.2)',
                     textTransform: 'none',
                     fontWeight: 'bold',
                     minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,107,107,0.4)',
+                    },
                   }}
                   onClick={() => setActiveTab(0)}
                   startIcon={<Article />}
@@ -772,11 +792,14 @@ const ProfilePage: React.FC = () => {
                 <Button
                   variant={activeTab === 3 ? 'contained' : 'text'}
                   sx={{
-                    color: activeTab === 3 ? '#ff6b6b' : 'white',
-                    bgcolor: activeTab === 3 ? 'rgba(255,107,107,0.1)' : 'transparent',
+                    color: 'white',
+                    bgcolor: activeTab === 3 ? 'rgba(255,107,107,0.3)' : 'rgba(255,107,107,0.2)',
                     textTransform: 'none',
                     fontWeight: 'bold',
                     minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,107,107,0.4)',
+                    },
                   }}
                   onClick={() => setActiveTab(3)}
                   startIcon={<PlaylistPlay />}
@@ -786,11 +809,14 @@ const ProfilePage: React.FC = () => {
                 <Button
                   variant={activeTab === 2 ? 'contained' : 'text'}
                   sx={{
-                    color: activeTab === 2 ? '#ff6b6b' : 'white',
-                    bgcolor: activeTab === 2 ? 'rgba(255,107,107,0.1)' : 'transparent',
+                    color: 'white',
+                    bgcolor: activeTab === 2 ? 'rgba(255,107,107,0.3)' : 'rgba(255,107,107,0.2)',
                     textTransform: 'none',
                     fontWeight: 'bold',
                     minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,107,107,0.4)',
+                    },
                   }}
                   onClick={() => setActiveTab(2)}
                   startIcon={<Gif />}
@@ -819,9 +845,7 @@ const ProfilePage: React.FC = () => {
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => {
-                  alert('Edit Profile özelliği yakında eklenecek!');
-                }}
+                onClick={handleEditProfileOpen}
                 sx={{
                   borderColor: 'rgba(255,255,255,0.3)',
                   color: 'white',
@@ -833,20 +857,6 @@ const ProfilePage: React.FC = () => {
                 }}
               >
                 Edit Profile
-              </Button>
-              <Button
-                variant="outlined"
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.3)',
-                  color: 'white',
-                  textTransform: 'none',
-                  '&:hover': {
-                    borderColor: '#ff6b6b',
-                    bgcolor: 'rgba(255,107,107,0.1)',
-                  }
-                }}
-              >
-                Share
               </Button>
             </Box>
           </Box>
@@ -1932,6 +1942,48 @@ const ProfilePage: React.FC = () => {
             variant="contained" 
             sx={{ bgcolor: '#ff6b6b', '&:hover': { bgcolor: '#ff5252' } }}
           >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editProfileDialogOpen} onClose={() => setEditProfileDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Username"
+              value={editUsername}
+              onChange={(e) => setEditUsername(e.target.value)}
+              fullWidth
+              disabled
+              helperText="Username cannot be changed"
+            />
+            <TextField
+              label="Email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              fullWidth
+              disabled
+              helperText="Email cannot be changed"
+            />
+            <TextField
+              label="Bio"
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              fullWidth
+              multiline
+              rows={4}
+              placeholder="Tell us about yourself..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditProfileDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleEditProfileSave} variant="contained" sx={{ bgcolor: '#ff6b6b', '&:hover': { bgcolor: '#ff5252' } }}>
             Save
           </Button>
         </DialogActions>

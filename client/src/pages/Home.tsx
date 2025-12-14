@@ -259,18 +259,8 @@ const Home: React.FC = () => {
                       overflow: 'hidden',
                       borderRadius: 2,
                       bgcolor: 'rgba(0,0,0,0.1)',
-                      boxShadow: index < 6 ? '0 0 5px rgba(255, 215, 0, 0.3)' : 'none',
-                      animation: index < 6 ? 'goldSparkle 3s infinite ease-in-out' : 'none',
                       '&:hover': {
                         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-                      },
-                      '@keyframes goldSparkle': {
-                        '0%, 100%': {
-                          boxShadow: '0 0 5px rgba(255, 215, 0, 0.3), 0 0 8px rgba(255, 215, 0, 0.2)',
-                        },
-                        '50%': {
-                          boxShadow: '0 0 8px rgba(255, 215, 0, 0.5), 0 0 12px rgba(255, 215, 0, 0.3)',
-                        },
                       },
                     }}
                   >
