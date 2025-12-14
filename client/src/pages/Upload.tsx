@@ -2182,6 +2182,142 @@ const Upload: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Model Dialog */}
+      <Dialog open={addModelDialogOpen} onClose={() => setAddModelDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Model</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Model Name"
+              value={newModelName}
+              onChange={(e) => setNewModelName(e.target.value)}
+              fullWidth
+              required
+              placeholder="Enter model name"
+            />
+            <TextField
+              label="Image URL (imgbb direct link)"
+              value={newModelImageUrl}
+              onChange={(e) => setNewModelImageUrl(e.target.value)}
+              fullWidth
+              placeholder="https://i.ibb.co/xxxxx/image.jpg"
+              helperText="💡 Upload your image to imgbb.com first, then paste the direct link here"
+            />
+            {newModelImageUrl.trim() && (
+              <Box sx={{ 
+                p: 2,
+                border: '2px solid',
+                borderColor: 'primary.main',
+                borderRadius: 2,
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1,
+              }}>
+                <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                  Image Preview
+                </Typography>
+                <img
+                  src={newModelImageUrl.trim()}
+                  alt="Preview"
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '200px', 
+                    width: 'auto',
+                    height: 'auto',
+                    borderRadius: '8px',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setAddModelDialogOpen(false);
+            setNewModelName('');
+            setNewModelImageUrl('');
+          }}>
+            Cancel
+          </Button>
+          <Button onClick={handleAddModel} variant="contained" disabled={!newModelName.trim()}>
+            Add Model
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={addCategoryDialogOpen} onClose={() => setAddCategoryDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Category</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Category Name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              fullWidth
+              required
+              placeholder="Enter category name"
+            />
+            <TextField
+              label="Thumbnail URL (imgbb direct link)"
+              value={newCategoryThumbnailUrl}
+              onChange={(e) => setNewCategoryThumbnailUrl(e.target.value)}
+              fullWidth
+              placeholder="https://i.ibb.co/xxxxx/image.jpg"
+              helperText="💡 Upload your image to imgbb.com first, then paste the direct link here"
+            />
+            {newCategoryThumbnailUrl.trim() && (
+              <Box sx={{ 
+                p: 2,
+                border: '2px solid',
+                borderColor: 'primary.main',
+                borderRadius: 2,
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1,
+              }}>
+                <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                  Thumbnail Preview
+                </Typography>
+                <img
+                  src={newCategoryThumbnailUrl.trim()}
+                  alt="Preview"
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '200px', 
+                    width: 'auto',
+                    height: 'auto',
+                    borderRadius: '8px',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setAddCategoryDialogOpen(false);
+            setNewCategoryName('');
+            setNewCategoryThumbnailUrl('');
+          }}>
+            Cancel
+          </Button>
+          <Button onClick={handleAddCategory} variant="contained" disabled={!newCategoryName.trim()}>
+            Add Category
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
