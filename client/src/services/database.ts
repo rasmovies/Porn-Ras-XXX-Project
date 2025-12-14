@@ -369,19 +369,44 @@ export const videoService = {
 
   // Create video
   async create(video: Omit<Video, 'id' | 'created_at' | 'views' | 'likes' | 'dislikes' | 'favorites'>): Promise<Video> {
+    // Separate tags from other video data (tags column may not exist in DB)
+    const { tags, ...videoWithoutTags } = video as any;
+    
+    const videoData: any = {
+      ...videoWithoutTags,
+      views: 0,
+      likes: 0,
+      dislikes: 0,
+      favorites: 0
+    };
+    
+    // Only include tags if it's provided (column may not exist in DB)
+    if (tags !== undefined && tags !== null) {
+      videoData.tags = tags;
+    }
+    
     const { data, error } = await supabase
       .from('videos')
-      .insert([{
-        ...video,
-        views: 0,
-        likes: 0,
-        dislikes: 0,
-        favorites: 0
-      }])
+      .insert([videoData])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      // If error is about tags column not existing, try again without it
+      if (error.message?.includes('tags') || error.code === '42703') {
+        console.warn('⚠️ tags column does not exist, creating video without it');
+        const { tags: _, ...videoDataWithoutTags } = videoData;
+        const { data: retryData, error: retryError } = await supabase
+          .from('videos')
+          .insert([videoDataWithoutTags])
+          .select()
+          .single();
+        
+        if (retryError) throw retryError;
+        return retryData;
+      }
+      throw error;
+    }
     return data;
   },
 
