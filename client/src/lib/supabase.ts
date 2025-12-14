@@ -111,6 +111,7 @@ export interface Profile {
   avatar?: string | null;
   banner_image: string | null;
   avatar_image: string | null;
+  bio?: string | null;
   subscriber_count: number;
   videos_watched: number;
   email_verified: boolean;
