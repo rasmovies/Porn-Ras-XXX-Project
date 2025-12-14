@@ -7,8 +7,10 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
-import { Person, Search, Visibility, Videocam } from '@mui/icons-material';
+import { Person, Search, Visibility, Videocam, VpnKey } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { modelService, videoService } from '../services/database';
 import { Model, Video } from '../lib/supabase';
@@ -18,6 +20,7 @@ import SEO from '../components/SEO/SEO';
 interface ModelData {
   name: string;
   image: string | null;
+  is_trans?: boolean;
   viewCount?: number;
   videoCount?: number;
 }
@@ -28,6 +31,7 @@ const Models: React.FC = () => {
   const [filteredModels, setFilteredModels] = useState<ModelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTransModels, setShowTransModels] = useState(false);
 
   useEffect(() => {
     // Load models from both Supabase and localStorage
@@ -66,6 +70,7 @@ const Models: React.FC = () => {
           return {
             name: model.name,
             image: model.image,
+            is_trans: model.is_trans || false,
             viewCount: totalViews,
             videoCount: modelVideos.length
           };
@@ -124,16 +129,25 @@ const Models: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Filter models based on search term
-    if (searchTerm.trim() === '') {
-      setFilteredModels(models);
+    // Filter models based on search term and trans filter
+    let filtered = models;
+    
+    // Filter by trans status
+    if (showTransModels) {
+      filtered = filtered.filter(model => model.is_trans === true);
     } else {
-      const filtered = models.filter(model =>
+      filtered = filtered.filter(model => !model.is_trans || model.is_trans === false);
+    }
+    
+    // Filter by search term
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(model =>
         model.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredModels(filtered);
     }
-  }, [searchTerm, models]);
+    
+    setFilteredModels(filtered);
+  }, [searchTerm, models, showTransModels]);
 
   const handleModelClick = (modelName: string) => {
     const slug = modelName.toLowerCase().replace(/\s+/g, '-');
@@ -168,11 +182,45 @@ const Models: React.FC = () => {
     <Box sx={{ width: '100%', py: 4 }}>
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 4, px: 2 }}>
-        <Typography variant="h3" component="h1" gutterBottom className="gradient-text">
-          Models
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
+          <Typography variant="h3" component="h1" className="gradient-text">
+            {showTransModels ? 'Trans Models' : 'Models'}
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showTransModels}
+                onChange={(e) => setShowTransModels(e.target.checked)}
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: '#ff6b6b',
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: '#ff6b6b',
+                  },
+                }}
+              />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <VpnKey sx={{ fontSize: 20, color: showTransModels ? '#ff6b6b' : 'inherit' }} />
+                <Typography variant="body2" sx={{ color: showTransModels ? '#ff6b6b' : 'inherit' }}>
+                  Trans
+                </Typography>
+              </Box>
+            }
+            sx={{
+              ml: 2,
+              '& .MuiFormControlLabel-label': {
+                marginLeft: 1,
+              }
+            }}
+          />
+        </Box>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-          Discover our talented models and their amazing content
+          {showTransModels 
+            ? 'Discover our talented trans models and their amazing content'
+            : 'Discover our talented models and their amazing content'}
         </Typography>
         
         {/* Search Bar */}

@@ -64,6 +64,7 @@ const Admin: React.FC = () => {
   const [banType, setBanType] = useState<string>('5_days');
   const [banReason, setBanReason] = useState<string>('');
   const [newModel, setNewModel] = useState('');
+  const [modelIsTrans, setModelIsTrans] = useState(false);
   const [newChannel, setNewChannel] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -446,7 +447,8 @@ const Admin: React.FC = () => {
         // First try to save to Supabase
         const createdModel = await modelService.create({
           name: newModel.trim(),
-          image: imageToUse
+          image: imageToUse,
+          is_trans: modelIsTrans
         });
         
         // Then update local state with Supabase response
@@ -455,6 +457,7 @@ const Admin: React.FC = () => {
         setModelImagePreview(null);
         setModelImageUrl('');
         setModelImageFile(null);
+        setModelIsTrans(false);
         showSnackbar('Model added successfully to Supabase!');
       } catch (error: any) {
         // Log error details for debugging
@@ -467,6 +470,7 @@ const Admin: React.FC = () => {
           id: Date.now().toString(),
           name: newModel.trim(),
           image: imageToUse,
+          is_trans: modelIsTrans,
           created_at: new Date().toISOString()
         };
         setModels([...models, newModelData]);

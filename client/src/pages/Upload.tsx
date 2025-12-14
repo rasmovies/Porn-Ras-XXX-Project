@@ -84,6 +84,7 @@ const Upload: React.FC = () => {
   const [addModelDialogOpen, setAddModelDialogOpen] = useState(false);
   const [newModelName, setNewModelName] = useState('');
   const [newModelImageUrl, setNewModelImageUrl] = useState('');
+  const [newModelIsTrans, setNewModelIsTrans] = useState(false);
   const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryThumbnailUrl, setNewCategoryThumbnailUrl] = useState('');
@@ -368,11 +369,13 @@ const Upload: React.FC = () => {
         const imageToUse = newModelImageUrl.trim() || null;
         const createdModel = await modelService.create({
           name: newModelName.trim(),
-          image: imageToUse
+          image: imageToUse,
+          is_trans: newModelIsTrans
         });
         setModels([...models, createdModel]);
         setNewModelName('');
         setNewModelImageUrl('');
+        setNewModelIsTrans(false);
         setAddModelDialogOpen(false);
         toast.success('Model added successfully!');
       } catch (error: any) {
@@ -2373,6 +2376,18 @@ const Upload: React.FC = () => {
                 />
               </Box>
             )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <input
+                type="checkbox"
+                id="trans-checkbox"
+                checked={newModelIsTrans}
+                onChange={(e) => setNewModelIsTrans(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer' }}
+              />
+              <label htmlFor="trans-checkbox" style={{ cursor: 'pointer', color: 'inherit' }}>
+                Trans (Ts)
+              </label>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -2380,6 +2395,7 @@ const Upload: React.FC = () => {
             setAddModelDialogOpen(false);
             setNewModelName('');
             setNewModelImageUrl('');
+            setNewModelIsTrans(false);
           }}>
             Cancel
           </Button>

@@ -106,7 +106,7 @@ export const modelService = {
       // Optimize query: only select necessary columns and reduce limit
     const { data, error } = await supabase
       .from('models')
-        .select('id, name, image, created_at')
+        .select('id, name, image, is_trans, created_at')
         .order('created_at', { ascending: false })
         .limit(200); // Reduced limit to prevent timeout
       

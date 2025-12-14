@@ -62,6 +62,7 @@ export interface Model {
   id: string;
   name: string;
   image: string | null;
+  is_trans?: boolean;
   created_at: string;
 }
 
