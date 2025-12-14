@@ -87,6 +87,11 @@ const Upload: React.FC = () => {
   const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryThumbnailUrl, setNewCategoryThumbnailUrl] = useState('');
+  const [addChannelDialogOpen, setAddChannelDialogOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelDescription, setNewChannelDescription] = useState('');
+  const [newChannelThumbnailUrl, setNewChannelThumbnailUrl] = useState('');
+  const [videoTagsArray, setVideoTagsArray] = useState<string[]>([]);
 
   // Upload Queue System (FileZilla-like)
   interface UploadItem {
@@ -399,6 +404,74 @@ const Upload: React.FC = () => {
       }
     } else if (customCategories.some(cat => cat.name === newCategoryName.trim())) {
       toast.error('Category already exists!');
+    }
+  };
+
+  // Add Channel function
+  const handleAddChannel = async () => {
+    if (newChannelName.trim() && !channels.some(c => c.name === newChannelName.trim())) {
+      try {
+        const thumbnailToUse = newChannelThumbnailUrl.trim() || null;
+        await channelService.create({
+          name: newChannelName.trim(),
+          description: newChannelDescription,
+          thumbnail: thumbnailToUse,
+          banner: null
+        });
+        const newChannelData: Channel = {
+          id: Date.now().toString(),
+          name: newChannelName.trim(),
+          description: newChannelDescription,
+          thumbnail: thumbnailToUse,
+          banner: null,
+          subscriber_count: 0,
+          created_at: new Date().toISOString()
+        };
+        setChannels([...channels, newChannelData]);
+        setNewChannelName('');
+        setNewChannelDescription('');
+        setNewChannelThumbnailUrl('');
+        setAddChannelDialogOpen(false);
+        toast.success('Channel added successfully!');
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Unknown error';
+        toast.error(`Failed to add channel: ${errorMessage}`);
+      }
+    } else if (channels.some(c => c.name === newChannelName.trim())) {
+      toast.error('Channel already exists!');
+    }
+  };
+
+  // Handle tags input - convert comma-separated to array
+  const handleTagsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    
+    // If comma is pressed, add current text as tag
+    if (value.endsWith(',')) {
+      const tagToAdd = value.slice(0, -1).trim();
+      if (tagToAdd && !videoTagsArray.includes(tagToAdd)) {
+        setVideoTagsArray([...videoTagsArray, tagToAdd]);
+      }
+      setVideoTags('');
+    } else {
+      setVideoTags(value);
+    }
+  };
+
+  // Handle tag deletion
+  const handleDeleteTag = (tagToDelete: string) => {
+    setVideoTagsArray(videoTagsArray.filter(tag => tag !== tagToDelete));
+  };
+
+  // Handle tag input key press (Enter to add tag)
+  const handleTagsKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && videoTags.trim()) {
+      event.preventDefault();
+      const tagToAdd = videoTags.trim();
+      if (!videoTagsArray.includes(tagToAdd)) {
+        setVideoTagsArray([...videoTagsArray, tagToAdd]);
+      }
+      setVideoTags('');
     }
   };
 
@@ -1935,7 +2008,18 @@ const Upload: React.FC = () => {
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <FormControl fullWidth>
-                    <InputLabel>Channels</InputLabel>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <InputLabel>Channels</InputLabel>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Add />}
+                        onClick={() => setAddChannelDialogOpen(true)}
+                        sx={{ ml: 'auto' }}
+                      >
+                        Add Channel
+                      </Button>
+                    </Box>
                     <Select 
                       label="Channels"
                       multiple
@@ -2001,15 +2085,31 @@ const Upload: React.FC = () => {
                 </Box>
 
 
-            <TextField
-              fullWidth
-              label="Tags"
-              placeholder="Enter tags separated by commas..."
-              variant="outlined"
-              helperText="Tags help people discover your video"
-              value={videoTags}
-              onChange={(e) => setVideoTags(e.target.value)}
-            />
+            <Box>
+              <TextField
+                fullWidth
+                label="Tags"
+                placeholder="Enter tags separated by commas or press Enter..."
+                variant="outlined"
+                helperText="Type a tag and press comma or Enter to add it"
+                value={videoTags}
+                onChange={handleTagsChange}
+                onKeyPress={handleTagsKeyPress}
+              />
+              {videoTagsArray.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                  {videoTagsArray.map((tag, index) => (
+                    <Chip
+                      key={index}
+                      label={tag}
+                      onDelete={() => handleDeleteTag(tag)}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              )}
+            </Box>
 
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button variant="outlined" size="large">
