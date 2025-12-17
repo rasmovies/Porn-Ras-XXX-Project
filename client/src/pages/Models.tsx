@@ -9,6 +9,11 @@ import {
   InputAdornment,
   Switch,
   FormControlLabel,
+  Pagination,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { Person, Search, Visibility, Videocam } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +39,9 @@ const Models: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTransModels, setShowTransModels] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<'alphabetical' | 'reverse'>('alphabetical');
+  const modelsPerPage = 20;
 
   // Helper function to manually mark a model as trans (for existing models)
   // This can be called from browser console: window.markModelAsTrans('Model Name')
@@ -149,10 +157,18 @@ const Models: React.FC = () => {
           console.log('✅ Models Page: localStorage models:', localModels.length);
           // Merge Supabase and localStorage models, removing duplicates
           // Ensure localStorage models have is_trans field and check transModelIds
-          const localModelsWithTrans = localModels.map(model => ({
-            ...model,
-            is_trans: transModelIds.includes(model.id || '') || model.is_trans === true
-          }));
+          // Also calculate video counts for localStorage models
+          const localModelsWithTrans = localModels.map(model => {
+            // Count videos for this model
+            const modelVideos = videos.filter(v => v.model_id === model.id);
+            const totalViews = modelVideos.reduce((sum, v) => sum + (v.views || 0), 0);
+            return {
+              ...model,
+              is_trans: transModelIds.includes(model.id || '') || model.is_trans === true,
+              viewCount: totalViews,
+              videoCount: modelVideos.length
+            };
+          });
           const mergedModels = [...localModelsWithTrans];
           formattedModels.forEach(model => {
             const existingModel = mergedModels.find(m => m.name === model.name);
@@ -160,7 +176,9 @@ const Models: React.FC = () => {
               // Ensure is_trans is always a boolean when pushing
               mergedModels.push({
                 ...model,
-                is_trans: transModelIds.includes(model.id || '') || model.is_trans === true
+                is_trans: transModelIds.includes(model.id || '') || model.is_trans === true,
+                viewCount: model.viewCount || 0,
+                videoCount: model.videoCount || 0
               });
             } else {
               // Update existing model with latest data from Supabase
@@ -171,8 +189,8 @@ const Models: React.FC = () => {
                 name: model.name,
                 image: model.image,
                 is_trans: transModelIds.includes(model.id || '') || model.is_trans === true,
-                viewCount: model.viewCount,
-                videoCount: model.videoCount
+                viewCount: model.viewCount || 0,
+                videoCount: model.videoCount || 0
               };
             }
           });
@@ -231,14 +249,28 @@ const Models: React.FC = () => {
         const savedModels = localStorage.getItem('adminModels');
         if (savedModels) {
           console.log('⚠️ Models Page: Using localStorage fallback');
+          // Try to load videos for counting
+          let fallbackVideos: Video[] = [];
+          try {
+            fallbackVideos = await videoService.getAll();
+          } catch (videoError) {
+            console.warn('⚠️ Failed to load videos for fallback:', videoError);
+          }
           // Load trans models from localStorage (since column doesn't exist in DB)
           const fallbackTransModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');
           const modelsData: ModelData[] = JSON.parse(savedModels);
-          // Ensure is_trans field exists
-          const modelsWithTrans = modelsData.map(model => ({
-            ...model,
-            is_trans: fallbackTransModelIds.includes(model.id || '') || model.is_trans === true
-          }));
+          // Ensure is_trans field exists and calculate video counts
+          const modelsWithTrans = modelsData.map(model => {
+            // Count videos for this model
+            const modelVideos = fallbackVideos.filter((v: Video) => v.model_id === model.id);
+            const totalViews = modelVideos.reduce((sum: number, v: Video) => sum + (v.views || 0), 0);
+            return {
+              ...model,
+              is_trans: fallbackTransModelIds.includes(model.id || '') || model.is_trans === true,
+              viewCount: totalViews,
+              videoCount: modelVideos.length
+            };
+          });
           // Also check transModelIds for localStorage models
           const modelsWithTransChecked = modelsWithTrans.map(model => ({
             ...model,
@@ -309,9 +341,20 @@ const Models: React.FC = () => {
       console.log('✅ After search filter:', filtered.length);
     }
     
+    // Sort alphabetically
+    filtered.sort((a, b) => {
+      if (sortOrder === 'alphabetical') {
+        return a.name.localeCompare(b.name);
+      } else {
+        return b.name.localeCompare(a.name);
+      }
+    });
+    
     console.log('✅ Final filtered models:', filtered.length, filtered.map(m => m.name));
     setFilteredModels(filtered);
-  }, [searchTerm, models, showTransModels]);
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchTerm, models, showTransModels, sortOrder]);
 
   const handleModelClick = (modelName: string) => {
     const slug = modelName.toLowerCase().replace(/\s+/g, '-');
@@ -345,13 +388,11 @@ const Models: React.FC = () => {
   return (
     <Box sx={{ width: '100%', py: 4 }}>
       {/* Header */}
-      <Box sx={{ textAlign: 'center', mb: 4, px: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2, maxWidth: 1200, mx: 'auto' }}>
-          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="h3" component="h1" className="gradient-text">
-              {showTransModels ? 'Trans Models' : 'Models'}
-            </Typography>
-          </Box>
+      <Box sx={{ textAlign: 'center', mb: 4, px: 2, position: 'relative' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, maxWidth: 1200, mx: 'auto', position: 'relative' }}>
+          <Typography variant="h3" component="h1" className="gradient-text" sx={{ textAlign: 'center' }}>
+            {showTransModels ? 'Trans Models' : 'Models'}
+          </Typography>
           <FormControlLabel
             control={
               <Switch
@@ -392,6 +433,10 @@ const Models: React.FC = () => {
             }
             labelPlacement="start"
             sx={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
               '& .MuiFormControlLabel-root': {
                 justifyContent: 'flex-start',
                 gap: '0px',
@@ -403,33 +448,53 @@ const Models: React.FC = () => {
             }}
           />
         </Box>
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography 
+          variant="h6" 
+          color="text.secondary" 
+          sx={{ 
+            mb: 3,
+            textAlign: 'center'
+          }}
+        >
           {showTransModels 
             ? 'Discover our talented trans models and their amazing content'
             : 'Discover our talented models and their amazing content'}
         </Typography>
         
-        {/* Search Bar */}
-        <TextField
-          fullWidth
-          placeholder="Search models..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ 
-            maxWidth: 500, 
-            mx: 'auto',
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '25px',
-            }
-          }}
-        />
+        {/* Search Bar and Sort */}
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
+          <TextField
+            placeholder="Search models..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ 
+              maxWidth: 400,
+              flex: 1,
+              minWidth: 200,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '25px',
+              }
+            }}
+          />
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Sort</InputLabel>
+            <Select
+              value={sortOrder}
+              label="Sort"
+              onChange={(e) => setSortOrder(e.target.value as 'alphabetical' | 'reverse')}
+            >
+              <MenuItem value="alphabetical">A-Z</MenuItem>
+              <MenuItem value="reverse">Z-A</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
 
       {/* Models Grid */}
@@ -440,22 +505,32 @@ const Models: React.FC = () => {
           </Alert>
         </Box>
       ) : (
-        <Box
-          className="model-grid media-grid"
-          sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(2, minmax(0, 1fr))', 
-              sm: 'repeat(3, 1fr)', 
-              md: 'repeat(4, 1fr)',
-              lg: 'repeat(5, 1fr)',
-              xl: 'repeat(6, 1fr)'
-            }, 
-            gap: 1,
-            width: '100%'
-          }}
-        >
-          {filteredModels.map((model, index) => (
+        <>
+          {/* Calculate pagination */}
+          {(() => {
+            const totalPages = Math.ceil(filteredModels.length / modelsPerPage);
+            const startIndex = (currentPage - 1) * modelsPerPage;
+            const endIndex = startIndex + modelsPerPage;
+            const currentModels = filteredModels.slice(startIndex, endIndex);
+            
+            return (
+              <>
+                <Box
+                  className="model-grid media-grid"
+                  sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: { 
+                      xs: 'repeat(2, minmax(0, 1fr))', 
+                      sm: 'repeat(3, 1fr)', 
+                      md: 'repeat(4, 1fr)',
+                      lg: 'repeat(5, 1fr)',
+                      xl: 'repeat(6, 1fr)'
+                    }, 
+                    gap: 1,
+                    width: '100%'
+                  }}
+                >
+                  {currentModels.map((model, index) => (
             <motion.div
               key={model.name}
               initial={{ opacity: 0, y: 30 }}
@@ -578,8 +653,27 @@ const Models: React.FC = () => {
                 {model.name}
               </Typography>
             </motion.div>
-          ))}
-        </Box>
+                  ))}
+                </Box>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
+                    <Pagination
+                      count={totalPages}
+                      page={currentPage}
+                      onChange={(event, value) => setCurrentPage(value)}
+                      color="primary"
+                      size="large"
+                      showFirstButton
+                      showLastButton
+                    />
+                  </Box>
+                )}
+              </>
+            );
+          })()}
+        </>
       )}
 
       {/* Admin Panel Link */}

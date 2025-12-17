@@ -27,12 +27,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ff6b6b;
+  background: #b40202;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff5252;
+  background: #8b0101;
 }
 
 /* Custom Animations */
@@ -103,7 +103,7 @@ body {
 
 /* Gradient Text */
 .gradient-text {
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+  background: linear-gradient(45deg, #b40202, #4ecdc4, #45b7d1, #96ceb4);
   background-size: 400% 400%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -229,7 +229,7 @@ body {
   left: 0;
   width: 0;
   height: 2px;
-  background: #ff6b6b;
+  background: #b40202;
   transition: width 0.3s ease;
 }
 
@@ -257,7 +257,7 @@ body {
 }
 
 .search-input:focus {
-  border-color: #ff6b6b;
+  border-color: #b40202;
   background: rgba(255, 255, 255, 0.1);
   outline: none;
 }
@@ -272,14 +272,14 @@ body {
 }
 
 .search-input:focus + .search-icon {
-  color: #ff6b6b;
+  color: #b40202;
 }
 
 /* Category Tags */
 .category-tag {
   display: inline-block;
   padding: 6px 12px;
-  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  background: linear-gradient(45deg, #b40202, #d40404);
   color: white;
   border-radius: 20px;
   font-size: 12px;
@@ -310,7 +310,7 @@ body {
 }
 
 .stat-item svg {
-  color: #ff6b6b;
+  color: #b40202;
 }
 
 /* Responsive Design */
@@ -377,7 +377,7 @@ body {
 
 /* Error States */
 .error-message {
-  background: linear-gradient(45deg, #ff4757, #ff6b6b);
+  background: linear-gradient(45deg, #8b0101, #b40202);
   color: white;
   padding: 12px 20px;
   border-radius: 8px;

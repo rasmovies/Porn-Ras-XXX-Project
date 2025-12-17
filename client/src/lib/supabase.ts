@@ -176,6 +176,36 @@ export interface ChannelSubscription {
   created_at: string;
 }
 
+export interface Poll {
+  id: string;
+  title: string;
+  type: 'best_model' | 'best_video' | 'content_preference' | 'satisfaction';
+  description: string | null;
+  is_active: boolean;
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  option_text: string;
+  option_value: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+export interface PollResponse {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  user_name: string;
+  user_ip: string | null;
+  created_at: string;
+}
+
 export interface UserPost {
   id: string;
   user_name: string;

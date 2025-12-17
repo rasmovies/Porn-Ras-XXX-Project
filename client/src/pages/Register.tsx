@@ -36,12 +36,12 @@ const Register: React.FC = () => {
     setError('');
     
     if (!formData.username || !formData.email || !formData.password) {
-      setError('Lütfen tüm alanları doldurun');
+      setError('Please fill in all fields');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Şifreler eşleşmiyor');
+      setError('Passwords do not match');
       return;
     }
     
@@ -63,15 +63,15 @@ const Register: React.FC = () => {
         data = responseText ? JSON.parse(responseText) : {};
       } catch (parseError) {
         console.error('JSON parse error:', parseError, 'Response:', responseText);
-        throw new Error('Sunucudan geçersiz yanıt alındı');
+        throw new Error('Invalid response from server');
       }
       
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Kayıt başarısız');
+        throw new Error(data.message || 'Registration failed');
       }
       
       if (!data.user) {
-        throw new Error('Kullanıcı bilgileri alınamadı');
+        throw new Error('User information could not be retrieved');
       }
       
       const userData = {
@@ -83,12 +83,12 @@ const Register: React.FC = () => {
       };
       
       login(userData);
-      toast.success('Hoş geldiniz!');
+      toast.success('Welcome!');
       navigate('/');
     } catch (error: any) {
       console.error('Register error:', error);
-      setError(error.message || 'Kayıt başarısız');
-      toast.error('Kayıt başarısız');
+      setError(error.message || 'Registration failed');
+      toast.error('Registration failed');
     }
   };
 

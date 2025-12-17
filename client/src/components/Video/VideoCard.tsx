@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardMedia, CardContent, Typography, Box, Chip } from '@mui/material';
-import { PlayArrow, Visibility, AccessTime } from '@mui/icons-material';
+import { Card, CardMedia, CardContent, Typography, Box } from '@mui/material';
+import { PlayArrow, AccessTime } from '@mui/icons-material';
 import { motion } from 'motion/react';
 
 interface VideoCardProps {
@@ -59,8 +59,16 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
           flexDirection: 'column',
           cursor: 'pointer',
           transition: 'box-shadow 0.3s ease',
+          position: 'relative',
           '&:hover': {
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+            '& .video-title': {
+              opacity: 1
+            },
+            '& .video-title-overlay': {
+              opacity: 1,
+              transform: 'translateY(0)'
+            }
           }
         }}
       >
@@ -131,13 +139,27 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
         </motion.div>
       </Box>
 
-      <CardContent className="video-info" sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
-        <Typography 
-          variant="h6" 
-          component="h3" 
-          className="video-title"
-          sx={{ 
-            mb: 1,
+      <CardContent 
+        className="video-info" 
+        sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          p: 2, 
+          bgcolor: 'rgba(26, 26, 26, 1)',
+          position: 'relative',
+          overflow: 'visible',
+          minHeight: '60px',
+          justifyContent: 'center',
+          '& .MuiTypography-root': {
+            color: '#ffffff !important'
+          }
+        }}
+      >
+        <Box
+          sx={{
+            width: '100%',
+            color: '#ffffff',
             fontSize: '16px',
             fontWeight: 600,
             lineHeight: 1.4,
@@ -145,40 +167,54 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            textOverflow: 'ellipsis',
+            wordBreak: 'break-word',
+            opacity: 1,
+            visibility: 'visible'
+          }}
+          className="video-title"
+        >
+          {video.title || 'Untitled Video'}
+        </Box>
+      </CardContent>
+      
+      {/* Hover Title Overlay - Shows on card hover */}
+      <Box
+        className="video-title-overlay"
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          bgcolor: 'rgba(0, 0, 0, 0.95)',
+          p: 1.5,
+          opacity: 0,
+          transition: 'opacity 0.3s ease, transform 0.3s ease',
+          pointerEvents: 'none',
+          zIndex: 100,
+          transform: 'translateY(100%)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: '#ffffff',
+            fontWeight: 600,
+            fontSize: '14px',
+            lineHeight: 1.4,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            wordBreak: 'break-word',
+            textAlign: 'center'
           }}
         >
           {video.title}
         </Typography>
-
-        <Box className="video-meta" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-          <Box className="video-views" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Visibility sx={{ fontSize: 16, color: '#aaa' }} />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>
-              {formatViews(video.views)}
-            </Typography>
-          </Box>
-          
-          <Typography variant="body2" color="text.secondary" className="video-date" sx={{ fontSize: '12px' }}>
-            {formatUploadDate(video.uploadDate)}
-          </Typography>
-        </Box>
-
-        <Box sx={{ mt: 1 }}>
-          <Chip 
-            label={video.category} 
-            size="small" 
-            className="category-tag"
-            sx={{
-              background: 'linear-gradient(45deg, #ff6b6b, #ff8e8e)',
-              color: 'white',
-              fontSize: '10px',
-              fontWeight: 600,
-              height: 20
-            }}
-          />
-        </Box>
-      </CardContent>
+      </Box>
     </Card>
     </motion.div>
   );

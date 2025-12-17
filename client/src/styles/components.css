@@ -52,15 +52,17 @@
 }
 
 .video-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
   margin-bottom: 8px;
   line-height: 1.4;
-  display: -webkit-box;
+  display: -webkit-box !important;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .video-meta {
@@ -96,7 +98,7 @@
 
 .category-item {
   flex-shrink: 0;
-  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  background: linear-gradient(45deg, #b40202, #d40404);
   color: white;
   padding: 12px 24px;
   border-radius: 25px;
@@ -140,7 +142,7 @@
 .navbar-brand {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  background: linear-gradient(45deg, #b40202, #4ecdc4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -171,7 +173,7 @@
 .nav-item:hover,
 .nav-item.active {
   background: rgba(255, 107, 107, 0.1);
-  color: #ff6b6b;
+  color: #b40202;
 }
 
 /* Sidebar */
@@ -202,7 +204,7 @@
 .sidebar-item:hover,
 .sidebar-item.active {
   background: rgba(255, 107, 107, 0.1);
-  color: #ff6b6b;
+  color: #b40202;
   transform: translateX(8px);
 }
 
@@ -247,7 +249,7 @@
 }
 
 .footer-links a:hover {
-  color: #ff6b6b;
+  color: #b40202;
 }
 
 .footer-bottom {
@@ -297,8 +299,8 @@
 
 .filter-chip:hover,
 .filter-chip.active {
-  background: #ff6b6b;
-  border-color: #ff6b6b;
+  background: #b40202;
+  border-color: #b40202;
   color: white;
 }
 
@@ -356,7 +358,7 @@
 }
 
 .action-button.primary {
-  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  background: linear-gradient(45deg, #b40202, #d40404);
   color: white;
 }
 
@@ -441,13 +443,13 @@
 
 .upload-area:hover,
 .upload-area.dragover {
-  border-color: #ff6b6b;
+  border-color: #b40202;
   background: rgba(255, 107, 107, 0.05);
 }
 
 .upload-icon {
   font-size: 48px;
-  color: #ff6b6b;
+  color: #b40202;
   margin-bottom: 1rem;
 }
 
@@ -477,7 +479,7 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid #ff6b6b;
+  border: 4px solid #b40202;
   object-fit: cover;
 }
 
@@ -510,7 +512,7 @@
 .profile-stat-number {
   font-size: 24px;
   font-weight: 700;
-  color: #ff6b6b;
+  color: #b40202;
 }
 
 .profile-stat-label {

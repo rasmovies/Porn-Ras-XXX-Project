@@ -8,6 +8,7 @@ let agent = null;
  */
 async function connectBluesky() {
   if (agent && agent.session) {
+    console.log('✅ Bluesky agent zaten bağlı, mevcut session kullanılıyor');
     return agent; // Zaten bağlı
   }
 
@@ -15,8 +16,12 @@ async function connectBluesky() {
   const BLUESKY_PASSWORD = process.env.BLUESKY_PASSWORD;
 
   if (!BLUESKY_HANDLE || !BLUESKY_PASSWORD) {
-    throw new Error('BLUESKY_HANDLE ve BLUESKY_PASSWORD environment variable\'ları ayarlanmalı');
+    const errorMsg = 'BLUESKY_HANDLE ve BLUESKY_PASSWORD environment variable\'ları ayarlanmalı';
+    console.error('❌', errorMsg);
+    throw new Error(errorMsg);
   }
+
+  console.log('🔌 Bluesky\'e bağlanılıyor...', { handle: BLUESKY_HANDLE });
 
   agent = new BskyAgent({
     service: 'https://bsky.social',
@@ -32,7 +37,12 @@ async function connectBluesky() {
     return agent;
   } catch (error) {
     console.error('❌ Bluesky bağlantı hatası:', error.message);
-    throw error;
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new Error(`Bluesky connection failed: ${error.message}`);
   }
 }
 
@@ -45,6 +55,12 @@ async function connectBluesky() {
  */
 async function postToBluesky(text, imageUrl = null, linkUrl = null) {
   try {
+    console.log('📝 Bluesky post oluşturuluyor...', {
+      textLength: text.length,
+      hasImage: !!imageUrl,
+      hasLink: !!linkUrl,
+    });
+    
     const agent = await connectBluesky();
 
     // Post içeriği oluştur
@@ -114,7 +130,12 @@ async function postToBluesky(text, imageUrl = null, linkUrl = null) {
     };
   } catch (error) {
     console.error('❌ Bluesky post hatası:', error.message);
-    throw error;
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new Error(`Bluesky post failed: ${error.message}`);
   }
 }
 
@@ -167,8 +188,8 @@ async function shareVideoToBluesky(videoData) {
   }
   postText += `\n\n🔗 ${videoUrl}`;
 
-  // Bluesky'de paylaş
-  return await postToBluesky(postText, thumbnail, videoUrl);
+  // Bluesky'de paylaş (linkUrl parametresini gönderme, çünkü zaten postText'te var)
+  return await postToBluesky(postText, thumbnail, null);
 }
 
 module.exports = {

@@ -36,7 +36,7 @@ const Login: React.FC = () => {
     setError('');
     
     if (!formData.emailOrUsername || !formData.password) {
-      setError('Lütfen tüm alanları doldurun');
+      setError('Please fill in all fields');
       return;
     }
     
@@ -58,15 +58,15 @@ const Login: React.FC = () => {
         data = responseText ? JSON.parse(responseText) : {};
       } catch (parseError) {
         console.error('JSON parse error:', parseError, 'Response:', responseText);
-        throw new Error('Sunucudan geçersiz yanıt alındı');
+        throw new Error('Invalid response from server');
       }
       
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Giriş başarısız');
+        throw new Error(data.message || 'Login failed');
       }
       
       if (!data.user) {
-        throw new Error('Kullanıcı bilgileri alınamadı');
+        throw new Error('User information could not be retrieved');
       }
       
       const userData = {
@@ -78,12 +78,12 @@ const Login: React.FC = () => {
       };
       
       login(userData);
-      toast.success('Hoş geldiniz!');
+      toast.success('Welcome!');
       navigate('/');
     } catch (error: any) {
       console.error('Login error:', error);
-      setError(error.message || 'Geçersiz email/kullanıcı adı veya şifre');
-      toast.error('Giriş başarısız');
+      setError(error.message || 'Invalid email/username or password');
+      toast.error('Login failed');
     }
   };
 
@@ -258,7 +258,7 @@ const Login: React.FC = () => {
             <Box component="form" onSubmit={handleFormSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <TextField
                   fullWidth
-                  label="Email veya Kullanıcı Adı"
+                  label="Email or Username"
                   name="emailOrUsername"
                   type="text"
                   value={formData.emailOrUsername}

@@ -24,6 +24,16 @@ module.exports = async function handler(req, res) {
   }
   
   try {
+    // Check if Bluesky credentials are configured
+    if (!process.env.BLUESKY_HANDLE || !process.env.BLUESKY_PASSWORD) {
+      console.error('❌ Bluesky credentials not configured');
+      return res.status(500).json({
+        success: false,
+        message: 'Bluesky credentials not configured',
+        error: 'BLUESKY_HANDLE and BLUESKY_PASSWORD environment variables are required',
+      });
+    }
+
     // Validation
     const validation = validateBody(req.body, [
       { field: 'title', required: true },
@@ -38,6 +48,15 @@ module.exports = async function handler(req, res) {
     
     const { title, description, thumbnail, slug, modelName, categoryName } = req.body;
     
+    console.log('📤 Bluesky share request:', {
+      title,
+      slug,
+      hasThumbnail: !!thumbnail,
+      hasDescription: !!description,
+      modelName,
+      categoryName,
+    });
+    
     // Share to Bluesky
     const result = await shareVideoToBluesky({
       title,
@@ -48,14 +67,31 @@ module.exports = async function handler(req, res) {
       categoryName,
     });
     
+    console.log('✅ Bluesky share successful:', result);
+    
     return res.json({
       success: true,
       message: 'Video Bluesky\'de paylaşıldı',
       data: result,
     });
   } catch (error) {
-    console.error('Bluesky share video error:', error);
-    return handleError(res, error, 'Bluesky paylaşımı başarısız');
+    console.error('❌ Bluesky share video error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+    
+    // Return more detailed error information
+    return res.status(500).json({
+      success: false,
+      message: 'Bluesky paylaşımı başarısız',
+      error: error.message || 'Unknown error',
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: error.stack,
+        details: error.toString(),
+      }),
+    });
   }
 }
 

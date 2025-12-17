@@ -3,9 +3,9 @@
 /* Color Palette */
 :root {
   /* Primary Colors */
-  --primary-red: #ff6b6b;
-  --primary-red-light: #ff8e8e;
-  --primary-red-dark: #ff5252;
+  --primary-red: #b40202;
+  --primary-red-light: #d40404;
+  --primary-red-dark: #8b0101;
   
   /* Secondary Colors */
   --secondary-teal: #4ecdc4;
@@ -27,13 +27,13 @@
   /* Border Colors */
   --border-primary: rgba(255, 255, 255, 0.1);
   --border-secondary: rgba(255, 255, 255, 0.05);
-  --border-accent: rgba(255, 107, 107, 0.3);
+  --border-accent: rgba(180, 2, 2, 0.3);
   
   /* Shadow Colors */
   --shadow-light: rgba(0, 0, 0, 0.1);
   --shadow-medium: rgba(0, 0, 0, 0.2);
   --shadow-heavy: rgba(0, 0, 0, 0.4);
-  --shadow-glow: rgba(255, 107, 107, 0.3);
+  --shadow-glow: rgba(180, 2, 2, 0.3);
   
   /* Status Colors */
   --success: #2ed573;

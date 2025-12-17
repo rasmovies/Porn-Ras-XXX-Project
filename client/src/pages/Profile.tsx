@@ -573,7 +573,7 @@ const ProfilePage: React.FC = () => {
           videos_watched: 1,
         });
       }
-      toast.success('Kapak görseli güncellendi.');
+      toast.success('Cover image updated.');
       setShowImageLibrary(false);
       setShowCoverModal(false);
       setCroppedLibraryImage(null);
@@ -606,7 +606,7 @@ const ProfilePage: React.FC = () => {
         }
         return updated;
       });
-      toast.success('Görsel silindi.');
+      toast.success('Image deleted.');
     } catch (error) {
       console.error('❌ Görsel silinemedi:', error);
       toast.error('Görsel silinemedi.');

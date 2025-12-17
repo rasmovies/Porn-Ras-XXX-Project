@@ -15,12 +15,12 @@ import {
   Snackbar,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { categoryService, modelService, channelService, profileService, banUserService, notificationService } from '../services/database';
+import { categoryService, modelService, channelService, profileService, banUserService, notificationService, pollService, pollOptionService, pollResponseService, videoService } from '../services/database';
 import { emailApi } from '../services/emailApi';
 import { metadataApi, ModelMetadata } from '../services/metadataApi';
-import { Category, Model, Channel, Profile, BanUser } from '../lib/supabase';
+import { Category, Model, Channel, Profile, BanUser, Poll, PollOption, Video } from '../lib/supabase';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, CircularProgress, Switch, FormControlLabel } from '@mui/material';
-import { Add, Delete, Edit, Save, Cancel, Visibility, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
+import { Add, Delete, Edit, Save, Cancel, Visibility, VisibilityOff, CloudUpload, Delete as DeleteIcon, Person, Block, CheckCircle, Search, Close } from '@mui/icons-material';
 import { validateImageFile } from '../utils/validation';
 import { toast } from 'react-hot-toast';
 
@@ -105,6 +105,16 @@ const Admin: React.FC = () => {
   const [metadataModalOpen, setMetadataModalOpen] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [scrapedMetadata, setScrapedMetadata] = useState<ModelMetadata | null>(null);
+  // Polls states
+  const [polls, setPolls] = useState<Poll[]>([]);
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
+  const [editingPoll, setEditingPoll] = useState<Poll | null>(null);
+  const [newPollTitle, setNewPollTitle] = useState('');
+  const [newPollType, setNewPollType] = useState<'best_model' | 'best_video' | 'content_preference' | 'satisfaction'>('best_model');
+  const [newPollDescription, setNewPollDescription] = useState('');
+  const [pollOptions, setPollOptions] = useState<{ text: string; value?: string }[]>([]);
+  const [allVideos, setAllVideos] = useState<Video[]>([]);
+  const [loadingPolls, setLoadingPolls] = useState(false);
 
   // Load data from localStorage and Supabase on component mount
   useEffect(() => {
@@ -169,6 +179,33 @@ const Admin: React.FC = () => {
     };
     
     loadCategories();
+    
+    // Load polls
+    const loadPolls = async () => {
+      setLoadingPolls(true);
+      try {
+        const pollsData = await pollService.getAll();
+        setPolls(pollsData);
+      } catch (error) {
+        console.error('Failed to load polls:', error);
+      } finally {
+        setLoadingPolls(false);
+      }
+    };
+    
+    loadPolls();
+    
+    // Load videos for poll options
+    const loadVideos = async () => {
+      try {
+        const videosData = await videoService.getAll();
+        setAllVideos(videosData);
+      } catch (error) {
+        console.error('Failed to load videos:', error);
+      }
+    };
+    
+    loadVideos();
   }, []);
 
 
@@ -891,6 +928,7 @@ const Admin: React.FC = () => {
             <Tab label="Channels" />
             <Tab label="Users" />
             <Tab label="Email Automation" />
+            <Tab label="Polls" />
           </Tabs>
         </Box>
 
@@ -2318,6 +2356,242 @@ const Admin: React.FC = () => {
           <Button onClick={handleCloseBanDialog}>Cancel</Button>
           <Button onClick={handleBanUser} variant="contained" color="error">
             Ban User
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Polls Tab Panel */}
+      <TabPanel value={tabValue} index={5}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h5">
+              Polls Management ({polls.length})
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setEditingPoll(null);
+                setNewPollTitle('');
+                setNewPollType('best_model');
+                setNewPollDescription('');
+                setPollOptions([]);
+                setPollDialogOpen(true);
+              }}
+            >
+              Create Poll
+            </Button>
+          </Box>
+
+          {loadingPolls ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : polls.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="body1" color="text.secondary">
+                No polls found. Create your first poll!
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {polls.map((poll) => (
+                <Card key={poll.id} sx={{ bgcolor: 'background.paper' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6">{poll.title}</Typography>
+                        <Chip 
+                          label={poll.type.replace('_', ' ').toUpperCase()} 
+                          size="small" 
+                          sx={{ mt: 1, mr: 1 }}
+                        />
+                        <Chip 
+                          label={poll.is_active ? 'Active' : 'Inactive'} 
+                          size="small" 
+                          color={poll.is_active ? 'success' : 'default'}
+                          sx={{ mt: 1 }}
+                        />
+                        {poll.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            {poll.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              await pollService.update(poll.id, { is_active: !poll.is_active });
+                              const updatedPolls = await pollService.getAll();
+                              setPolls(updatedPolls);
+                              showSnackbar(`Poll ${poll.is_active ? 'deactivated' : 'activated'} successfully`);
+                            } catch (error) {
+                              showSnackbar('Failed to update poll', 'error');
+                            }
+                          }}
+                        >
+                          {poll.is_active ? <Visibility /> : <VisibilityOff />}
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              await pollService.delete(poll.id);
+                              const updatedPolls = await pollService.getAll();
+                              setPolls(updatedPolls);
+                              showSnackbar('Poll deleted successfully');
+                            } catch (error) {
+                              showSnackbar('Failed to delete poll', 'error');
+                            }
+                          }}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </Box>
+      </TabPanel>
+
+      {/* Create/Edit Poll Dialog */}
+      <Dialog open={pollDialogOpen} onClose={() => setPollDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{editingPoll ? 'Edit Poll' : 'Create New Poll'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            <TextField
+              label="Poll Title"
+              value={newPollTitle}
+              onChange={(e) => setNewPollTitle(e.target.value)}
+              fullWidth
+              required
+            />
+            <FormControl fullWidth>
+              <InputLabel>Poll Type</InputLabel>
+              <Select
+                value={newPollType}
+                onChange={(e) => {
+                  setNewPollType(e.target.value as any);
+                  // Set default options based on type
+                  if (e.target.value === 'best_model') {
+                    setPollOptions(models.map(m => ({ text: m.name, value: m.id })));
+                  } else if (e.target.value === 'best_video') {
+                    setPollOptions(allVideos.slice(0, 10).map(v => ({ text: v.title, value: v.id })));
+                  } else if (e.target.value === 'content_preference') {
+                    setPollOptions([
+                      { text: 'Anal', value: 'anal' },
+                      { text: 'Oral', value: 'oral' },
+                      { text: 'Hardcore', value: 'hardcore' },
+                      { text: 'Lesbian', value: 'lesbian' },
+                      { text: 'Threesome', value: 'threesome' },
+                      { text: 'Group', value: 'group' }
+                    ]);
+                  } else if (e.target.value === 'satisfaction') {
+                    setPollOptions([
+                      { text: 'Very Satisfied', value: 'very_satisfied' },
+                      { text: 'Satisfied', value: 'satisfied' },
+                      { text: 'Neutral', value: 'neutral' },
+                      { text: 'Dissatisfied', value: 'dissatisfied' },
+                      { text: 'Very Dissatisfied', value: 'very_dissatisfied' }
+                    ]);
+                  }
+                }}
+                label="Poll Type"
+              >
+                <MenuItem value="best_model">Best Model of the Month</MenuItem>
+                <MenuItem value="best_video">Best Video of the Month</MenuItem>
+                <MenuItem value="content_preference">What Type of Content Would You Like to Watch?</MenuItem>
+                <MenuItem value="satisfaction">Are You Satisfied with the Content?</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Description (Optional)"
+              value={newPollDescription}
+              onChange={(e) => setNewPollDescription(e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+            />
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Poll Options</Typography>
+              {pollOptions.map((option, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={option.text}
+                    onChange={(e) => {
+                      const updated = [...pollOptions];
+                      updated[index].text = e.target.value;
+                      setPollOptions(updated);
+                    }}
+                    placeholder="Option text"
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setPollOptions(pollOptions.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <Delete />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                size="small"
+                startIcon={<Add />}
+                onClick={() => setPollOptions([...pollOptions, { text: '', value: '' }])}
+              >
+                Add Option
+              </Button>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPollDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!newPollTitle.trim() || pollOptions.length < 2) {
+                showSnackbar('Please fill in all required fields and add at least 2 options', 'error');
+                return;
+              }
+              try {
+                const poll = await pollService.create({
+                  title: newPollTitle,
+                  type: newPollType,
+                  description: newPollDescription || null,
+                  is_active: true,
+                  start_date: new Date().toISOString(),
+                  end_date: null
+                });
+                
+                await pollOptionService.createMultiple(
+                  pollOptions.map((opt, idx) => ({
+                    poll_id: poll.id,
+                    option_text: opt.text,
+                    option_value: opt.value || null,
+                    display_order: idx
+                  }))
+                );
+                
+                const updatedPolls = await pollService.getAll();
+                setPolls(updatedPolls);
+                setPollDialogOpen(false);
+                showSnackbar('Poll created successfully');
+              } catch (error: any) {
+                console.error('Failed to create poll:', error);
+                const errorMessage = error?.message || error?.code || 'Unknown error';
+                showSnackbar(`Failed to create poll: ${errorMessage}`, 'error');
+              }
+            }}
+          >
+            {editingPoll ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,4 +1,4 @@
-import { supabase, Category, Model, Video, Comment, Channel, Profile, BanUser, Notification, Settings, BackgroundImage, Subscription, ChannelSubscription, UserPost, UserGif, UserPlaylist } from '../lib/supabase';
+import { supabase, Category, Model, Video, Comment, Channel, Profile, BanUser, Notification, Settings, BackgroundImage, Subscription, ChannelSubscription, UserPost, UserGif, UserPlaylist, Poll, PollOption, PollResponse } from '../lib/supabase';
 
 // Categories
 export const categoryService = {
@@ -110,7 +110,7 @@ export const modelService = {
       .from('models')
         .select('id, name, image, created_at')
         .order('created_at', { ascending: false })
-        .limit(200); // Reduced limit to prevent timeout
+        .limit(50); // Further reduced limit to prevent timeout (was 200)
       
       if (error) {
         console.error('❌ Models fetch error:', error);
@@ -119,21 +119,22 @@ export const modelService = {
         console.error('   Error details:', error.details);
         console.error('   Error hint:', error.hint);
         
-        // Timeout hatası (57014)
-        if (error.code === '57014' || error.message?.includes('statement timeout') || error.message?.includes('timeout')) {
-          console.warn('⚠️ Supabase timeout hatası, boş array döndürülüyor');
+        // Timeout hatası (57014) veya 500 hatası (genellikle timeout'tan kaynaklanır)
+        if (error.code === '57014' || 
+            error.message?.includes('statement timeout') || 
+            error.message?.includes('timeout') ||
+            error.code === 'PGRST301' || 
+            error.message?.includes('500') || 
+            error.message?.includes('Internal Server Error')) {
+          console.warn('⚠️ Supabase timeout/server error, boş array döndürülüyor');
+          console.warn('   Error code:', error.code);
+          console.warn('   Error message:', error.message);
           return [];
         }
         
         // If table doesn't exist, return empty array instead of throwing
         if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
           console.warn('⚠️ Models table does not exist, returning empty array');
-          return [];
-        }
-        
-        // 500 hatası (server error) - Supabase'den gelen genel hata
-        if (error.code === 'PGRST301' || error.message?.includes('500') || error.message?.includes('Internal Server Error')) {
-          console.warn('⚠️ Supabase server error (500), boş array döndürülüyor');
           return [];
         }
         
@@ -148,9 +149,14 @@ export const modelService = {
       console.error('   Error code:', error?.code);
       console.error('   Error message:', error?.message);
       
-      // Timeout hatası kontrolü
-      if (error?.code === '57014' || error?.message?.includes('statement timeout') || error?.message?.includes('timeout')) {
-        console.warn('⚠️ Supabase timeout hatası (catch), boş array döndürülüyor');
+      // Timeout hatası kontrolü (57014) veya 500 hatası
+      if (error?.code === '57014' || 
+          error?.message?.includes('statement timeout') || 
+          error?.message?.includes('timeout') ||
+          error?.code === 'PGRST301' ||
+          error?.message?.includes('500') ||
+          error?.message?.includes('Internal Server Error')) {
+        console.warn('⚠️ Supabase timeout/server error (catch), boş array döndürülüyor');
         return [];
       }
       
@@ -1293,5 +1299,262 @@ export const userPlaylistService = {
       .eq('id', id);
     
     if (error) throw error;
+  }
+};
+
+// Polls
+export const pollService = {
+  // Get all polls
+  async getAll(): Promise<Poll[]> {
+    try {
+      const { data, error } = await supabase
+        .from('polls')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Polls fetch error:', error);
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          return [];
+        }
+        throw error;
+      }
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Polls service error:', error);
+      return [];
+    }
+  },
+
+  // Get active polls
+  async getActive(): Promise<Poll[]> {
+    try {
+      const { data, error } = await supabase
+        .from('polls')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        if (error.code === 'PGRST205') return [];
+        throw error;
+      }
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Active polls fetch error:', error);
+      return [];
+    }
+  },
+
+  // Get poll by ID
+  async getById(id: string): Promise<Poll | null> {
+    const { data, error } = await supabase
+      .from('polls')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
+    return data;
+  },
+
+  // Create poll
+  async create(poll: Omit<Poll, 'id' | 'created_at' | 'updated_at'>): Promise<Poll> {
+    try {
+      const { data, error } = await supabase
+        .from('polls')
+        .insert([poll])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Poll create error:', error);
+        console.error('   Error code:', error.code);
+        console.error('   Error message:', error.message);
+        console.error('   Error details:', error.details);
+        console.error('   Error hint:', error.hint);
+        throw error;
+      }
+      return data;
+    } catch (error: any) {
+      console.error('❌ Poll service create error:', error);
+      throw error;
+    }
+  },
+
+  // Update poll
+  async update(id: string, updates: Partial<Poll>): Promise<Poll> {
+    const { data, error } = await supabase
+      .from('polls')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete poll
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('polls')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+};
+
+// Poll Options
+export const pollOptionService = {
+  // Get options for a poll
+  async getByPollId(pollId: string): Promise<PollOption[]> {
+    try {
+      const { data, error } = await supabase
+        .from('poll_options')
+        .select('*')
+        .eq('poll_id', pollId)
+        .order('display_order', { ascending: true });
+      
+      if (error) {
+        if (error.code === 'PGRST205') return [];
+        throw error;
+      }
+      return data || [];
+    } catch (error: any) {
+      console.error('❌ Poll options fetch error:', error);
+      return [];
+    }
+  },
+
+  // Create poll option
+  async create(option: Omit<PollOption, 'id' | 'created_at'>): Promise<PollOption> {
+    const { data, error } = await supabase
+      .from('poll_options')
+      .insert([option])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Create multiple options
+  async createMultiple(options: Omit<PollOption, 'id' | 'created_at'>[]): Promise<PollOption[]> {
+    const { data, error } = await supabase
+      .from('poll_options')
+      .insert(options)
+      .select();
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Update poll option
+  async update(id: string, updates: Partial<PollOption>): Promise<PollOption> {
+    const { data, error } = await supabase
+      .from('poll_options')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete poll option
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('poll_options')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  // Delete all options for a poll
+  async deleteByPollId(pollId: string): Promise<void> {
+    const { error } = await supabase
+      .from('poll_options')
+      .delete()
+      .eq('poll_id', pollId);
+    
+    if (error) throw error;
+  }
+};
+
+// Poll Responses
+export const pollResponseService = {
+  // Submit response
+  async submit(pollId: string, optionId: string, userName: string | null): Promise<PollResponse> {
+    const { data, error } = await supabase
+      .from('poll_responses')
+      .insert([{
+        poll_id: pollId,
+        option_id: optionId,
+        user_name: userName || 'anonymous',
+        user_ip: null // Can be added later if needed
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      // If duplicate vote, update instead
+      if (error.code === '23505') {
+        const { data: updated } = await supabase
+          .from('poll_responses')
+          .update({ option_id: optionId })
+          .eq('poll_id', pollId)
+          .eq('user_name', userName || 'anonymous')
+          .select()
+          .single();
+        return updated!;
+      }
+      throw error;
+    }
+    return data;
+  },
+
+  // Get user's response for a poll
+  async getUserResponse(pollId: string, userName: string | null): Promise<PollResponse | null> {
+    const { data, error } = await supabase
+      .from('poll_responses')
+      .select('*')
+      .eq('poll_id', pollId)
+      .eq('user_name', userName || 'anonymous')
+      .single();
+    
+    if (error) return null;
+    return data;
+  },
+
+  // Get response counts for a poll
+  async getResponseCounts(pollId: string): Promise<Record<string, number>> {
+    const { data, error } = await supabase
+      .from('poll_responses')
+      .select('option_id')
+      .eq('poll_id', pollId);
+    
+    if (error) return {};
+    
+    const counts: Record<string, number> = {};
+    data?.forEach(response => {
+      counts[response.option_id] = (counts[response.option_id] || 0) + 1;
+    });
+    
+    return counts;
+  },
+
+  // Get total responses for a poll
+  async getTotalResponses(pollId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('poll_responses')
+      .select('*', { count: 'exact', head: true })
+      .eq('poll_id', pollId);
+    
+    if (error) return 0;
+    return count || 0;
   }
 };

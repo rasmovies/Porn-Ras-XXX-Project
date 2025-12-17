@@ -190,7 +190,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       
       if (!registerResponse.ok || !registerData.success) {
         // Show detailed error in development mode
-        let errorMessage = registerData.message || 'Kayıt başarısız. Lütfen tekrar deneyin.';
+        let errorMessage = registerData.message || 'Registration failed. Please try again.';
         if (process.env.NODE_ENV === 'development' && registerData.error) {
           console.error('Registration error details:', registerData.error);
           // Append error details in development
@@ -210,7 +210,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
           username: formData.username,
         });
         console.log('✅ Verification code sent');
-        toast.success('Kayıt başarılı! Doğrulama kodu email adresinize gönderildi.');
+        toast.success('Registration successful! Verification code has been sent to your email address.');
         
         // Store email and username for verification
         setRegisteredEmail(formData.email);
@@ -223,16 +223,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ open, onClose, onSwitchTo
       } catch (emailError: any) {
         console.error('⚠️ Verification code gönderilemedi:', emailError);
         // User is registered but email verification failed
-        toast('Kayıt başarılı ancak doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.', {
+        toast('Registration successful but verification code could not be sent. Please try again.', {
           icon: '⚠️',
           duration: 5000
         });
-        setError('Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
+        setError('Verification code could not be sent. Please try again.');
         setIsSubmitting(false);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      const errorMessage = error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.';
+      const errorMessage = error.message || 'Registration failed. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
       

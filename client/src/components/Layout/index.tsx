@@ -29,6 +29,7 @@ import { useAuth } from '../Auth/AuthProvider';
 import { adminUserService, notificationService, modelService, channelService } from '../../services/database';
 import { Model, Channel } from '../../lib/supabase';
 import Footer from '../Footer/Footer';
+import PollWidget from '../Poll/PollWidget';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -466,6 +467,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </motion.div>
         <Footer />
       </Box>
+      <PollWidget />
     </Box>
   );
 };

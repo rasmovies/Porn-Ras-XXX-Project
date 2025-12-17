@@ -56,7 +56,7 @@ const Footer: React.FC = () => {
                     }
                   }}
                   sx={{
-                    color: '#ff6b6b',
+                    color: '#b40202',
                     textDecoration: 'none',
                     fontSize: '0.875rem',
                     cursor: 'pointer',
@@ -100,7 +100,7 @@ const Footer: React.FC = () => {
                     }
                   }}
                   sx={{
-                    color: '#ff6b6b',
+                    color: '#b40202',
                     textDecoration: 'none',
                     fontSize: '0.875rem',
                     '&:hover': {
@@ -217,7 +217,7 @@ const Footer: React.FC = () => {
               <Box
                 onClick={() => setNoticeOpen(true)}
                 sx={{
-                  bgcolor: '#ff6b6b',
+                  bgcolor: '#b40202',
                   color: 'white',
                   px: 2,
                   py: 0.5,
@@ -225,7 +225,7 @@ const Footer: React.FC = () => {
                   fontSize: '0.875rem',
                   cursor: 'pointer',
                   '&:hover': {
-                    bgcolor: '#ff5252',
+                    bgcolor: '#8b0101',
                   },
                 }}
               >
@@ -251,7 +251,7 @@ const Footer: React.FC = () => {
         }}
       >
         <DialogContent sx={{ p: 4 }}>
-          <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#ff6b6b', mb: 3, fontWeight: 'bold' }}>
+          <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#b40202', mb: 3, fontWeight: 'bold' }}>
             Notice to Users
           </Typography>
           <Typography variant="h4" component="h3" gutterBottom sx={{ color: 'white', mb: 3, fontWeight: 'bold' }}>
@@ -278,7 +278,7 @@ const Footer: React.FC = () => {
             </Typography>
             <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
               Allow performers to request to have content they appear in removed from our Websites{' '}
-              <Link href="https://www.pornras.com/content-removal" target="_blank" rel="noopener" sx={{ color: '#ff6b6b' }}>
+              <Link href="https://www.pornras.com/content-removal" target="_blank" rel="noopener" sx={{ color: '#b40202' }}>
                 [https://www.pornras.com/content-removal]
               </Link>
             </Typography>
@@ -287,7 +287,7 @@ const Footer: React.FC = () => {
             </Typography>
             <Typography component="li" sx={{ mb: 1, lineHeight: 1.8 }}>
               Allow users to request removal of CSAM and/or NCM from our Websites{' '}
-              <Link href="https://www.pornras.com/content-removal" target="_blank" rel="noopener" sx={{ color: '#ff6b6b' }}>
+              <Link href="https://www.pornras.com/content-removal" target="_blank" rel="noopener" sx={{ color: '#b40202' }}>
                 [https://www.pornras.com/content-removal]
               </Link>
             </Typography>
@@ -306,8 +306,8 @@ const Footer: React.FC = () => {
               onClick={() => setNoticeOpen(false)}
               variant="contained"
               sx={{
-                bgcolor: '#ff6b6b',
-                '&:hover': { bgcolor: '#ff5555' }
+                bgcolor: '#b40202',
+                '&:hover': { bgcolor: '#8b0101' }
               }}
             >
               Close

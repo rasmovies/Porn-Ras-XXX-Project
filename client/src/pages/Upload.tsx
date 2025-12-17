@@ -93,6 +93,7 @@ const Upload: React.FC = () => {
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [newChannelThumbnailUrl, setNewChannelThumbnailUrl] = useState('');
   const [videoTagsArray, setVideoTagsArray] = useState<string[]>([]);
+  const [savedTags, setSavedTags] = useState<string[]>([]);
 
   // Upload Queue System (FileZilla-like)
   interface UploadItem {
@@ -128,6 +129,27 @@ const Upload: React.FC = () => {
         setModels(modelsData);
         setChannels(channelsData);
         setAllVideos(videosData);
+        
+        // Extract all tags from videos and save to localStorage
+        const allTagsSet = new Set<string>();
+        videosData.forEach((video: any) => {
+          if (video.tags) {
+            // Split tags by comma and trim
+            const tags = video.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+            tags.forEach((tag: string) => allTagsSet.add(tag.toLowerCase()));
+          }
+        });
+        
+        // Get existing saved tags from localStorage
+        const existingTags = JSON.parse(localStorage.getItem('savedVideoTags') || '[]');
+        existingTags.forEach((tag: string) => allTagsSet.add(tag.toLowerCase()));
+        
+        // Convert to array and sort alphabetically
+        const allTagsArray = Array.from(allTagsSet).sort();
+        
+        // Save to localStorage
+        localStorage.setItem('savedVideoTags', JSON.stringify(allTagsArray));
+        setSavedTags(allTagsArray);
       } catch (error) {
         console.error('Failed to load data:', error);
         // Fallback to localStorage if Supabase fails
@@ -142,6 +164,10 @@ const Upload: React.FC = () => {
           // Keep full model objects, not just names
           setModels(modelsData);
         }
+        
+        // Load saved tags from localStorage
+        const savedTagsFromStorage = JSON.parse(localStorage.getItem('savedVideoTags') || '[]');
+        setSavedTags(savedTagsFromStorage);
       } finally {
         setLoadingAllVideos(false);
       }
@@ -164,7 +190,7 @@ const Upload: React.FC = () => {
 
     try {
       await videoService.delete(videoToDelete);
-      toast.success('Video başarıyla silindi');
+      toast.success('Video deleted successfully');
       // Reload videos list
       const videos = await videoService.getAll();
       setAllVideos(videos);
@@ -469,6 +495,14 @@ const Upload: React.FC = () => {
       const tagToAdd = value.slice(0, -1).trim();
       if (tagToAdd && !videoTagsArray.includes(tagToAdd)) {
         setVideoTagsArray([...videoTagsArray, tagToAdd]);
+        
+        // Save tag to localStorage if not already saved
+        const tagLower = tagToAdd.toLowerCase();
+        if (!savedTags.includes(tagLower)) {
+          const updatedTags = [...savedTags, tagLower].sort();
+          localStorage.setItem('savedVideoTags', JSON.stringify(updatedTags));
+          setSavedTags(updatedTags);
+        }
       }
       setVideoTags('');
     } else {
@@ -488,8 +522,24 @@ const Upload: React.FC = () => {
       const tagToAdd = videoTags.trim();
       if (!videoTagsArray.includes(tagToAdd)) {
         setVideoTagsArray([...videoTagsArray, tagToAdd]);
+        
+        // Save tag to localStorage if not already saved
+        const tagLower = tagToAdd.toLowerCase();
+        if (!savedTags.includes(tagLower)) {
+          const updatedTags = [...savedTags, tagLower].sort();
+          localStorage.setItem('savedVideoTags', JSON.stringify(updatedTags));
+          setSavedTags(updatedTags);
+        }
       }
       setVideoTags('');
+    }
+  };
+
+  // Handle adding tag from saved tags
+  const handleAddSavedTag = (tag: string) => {
+    const tagToAdd = tag.trim();
+    if (tagToAdd && !videoTagsArray.includes(tagToAdd)) {
+      setVideoTagsArray([...videoTagsArray, tagToAdd]);
     }
   };
 
@@ -764,7 +814,7 @@ const Upload: React.FC = () => {
     // Validate title
     const titleValidation = validateTitle(videoTitle);
     if (!titleValidation.valid) {
-      toast.error(titleValidation.error || 'Başlık doğrulaması başarısız');
+      toast.error(titleValidation.error || 'Title validation failed');
       setValidationErrors((prev) => ({ ...prev, title: titleValidation.error || '' }));
       return;
     }
@@ -772,7 +822,7 @@ const Upload: React.FC = () => {
     // Validate description
     const descValidation = validateDescription(videoDescription);
     if (!descValidation.valid) {
-      toast.error(descValidation.error || 'Açıklama doğrulaması başarısız');
+      toast.error(descValidation.error || 'Description validation failed');
       setValidationErrors((prev) => ({ ...prev, description: descValidation.error || '' }));
       return;
     }
@@ -781,21 +831,21 @@ const Upload: React.FC = () => {
     if (embedMode === 'streamtape') {
       const urlValidation = validateStreamtapeUrl(streamtapeUrl);
       if (!urlValidation.valid) {
-        toast.error(urlValidation.error || 'Streamtape URL doğrulaması başarısız');
+        toast.error(urlValidation.error || 'Streamtape URL validation failed');
         setValidationErrors((prev) => ({ ...prev, streamtapeUrl: urlValidation.error || '' }));
         return;
       }
     } else {
       if (!selectedFile) {
-        toast.error('Lütfen bir video dosyası seçin');
-        setValidationErrors((prev) => ({ ...prev, videoFile: 'Video dosyası gereklidir' }));
+        toast.error('Please select a video file');
+        setValidationErrors((prev) => ({ ...prev, videoFile: 'Video file is required' }));
         return;
       }
 
       // Re-validate file in case it changed
       const fileValidation = validateVideoFile(selectedFile);
       if (!fileValidation.valid) {
-        toast.error(fileValidation.error || 'Video dosyası doğrulaması başarısız');
+        toast.error(fileValidation.error || 'Video file validation failed');
         setValidationErrors((prev) => ({ ...prev, videoFile: fileValidation.error || '' }));
         return;
       }
@@ -978,7 +1028,7 @@ const Upload: React.FC = () => {
                     finalStreamtapeUrl = embedUrl;
                     setUploadedStreamtapeUrl(finalStreamtapeUrl);
                     console.log('✅ File uploaded! Streamtape URL:', finalStreamtapeUrl);
-                    toast.success('Video Streamtape\'e başarıyla yüklendi!');
+                    toast.success('Video uploaded to Streamtape successfully!');
                     resolve();
                   } else {
                     console.error('❌ Could not extract file ID from response:', result);
@@ -1063,6 +1113,33 @@ const Upload: React.FC = () => {
       // Save to Supabase
       const savedVideo = await videoService.create(videoData);
 
+      // Save all tags to localStorage
+      allTags.forEach(tag => {
+        const tagLower = tag.toLowerCase();
+        if (!savedTags.includes(tagLower)) {
+          const updatedTags = [...savedTags, tagLower].sort();
+          localStorage.setItem('savedVideoTags', JSON.stringify(updatedTags));
+          setSavedTags(updatedTags);
+        }
+      });
+
+      // Show success notification for Streamtape embed mode
+      if (embedMode === 'streamtape') {
+        toast.success('Video upload success', {
+          position: 'bottom-right',
+          duration: 3000,
+        });
+        
+        // Show video URL notification after a short delay
+        setTimeout(() => {
+          const videoUrl = `${window.location.origin}/video/${videoSlug}`;
+          toast.success(`Video URL: ${videoUrl}`, {
+            position: 'bottom-right',
+            duration: 5000,
+          });
+        }, 500);
+      }
+
       // Send notifications to subscribers (non-blocking) BEFORE resetting form
       sendVideoNotifications(videoData, sanitizedTitle).catch(err => {
         console.error('Failed to send notifications:', err);
@@ -1122,7 +1199,7 @@ const Upload: React.FC = () => {
           stack: err?.stack,
         });
         // Show warning toast (not error, as video was saved successfully)
-        toast.error('⚠️ Video kaydedildi ancak Bluesky paylaşımı başarısız oldu. Lütfen manuel olarak paylaşın.', {
+        toast.error('⚠️ Video saved but Bluesky sharing failed. Please share manually.', {
           duration: 5000,
         });
       });
@@ -1198,7 +1275,7 @@ const Upload: React.FC = () => {
       // Update local state
       setAllVideos(allVideos.map(v => v.id === editingVideo.id ? updatedVideo : v));
       
-      toast.success('Video başarıyla güncellendi');
+      toast.success('Video updated successfully');
       setEditDialogOpen(false);
       setEditingVideo(null);
       setEditTitle('');
@@ -1214,7 +1291,7 @@ const Upload: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 2, md: 4 }, px: { xs: 2, md: 4 } }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 }, px: { xs: 2, md: 4 } }}>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1897,29 +1974,33 @@ const Upload: React.FC = () => {
             Video Details
           </Typography>
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <TextField
-              fullWidth
-              label="Title"
-              placeholder="Enter video title..."
-              variant="outlined"
-              value={videoTitle}
-              onChange={(e) => setVideoTitle(e.target.value)}
-              required
-            />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+              <TextField
+                fullWidth
+                label="Title"
+                placeholder="Enter video title..."
+                variant="outlined"
+                value={videoTitle}
+                onChange={(e) => setVideoTitle(e.target.value)}
+                required
+              />
+            </Box>
             
-            <TextField
-              fullWidth
-              label="Description"
-              placeholder="Describe your video..."
-              multiline
-              rows={4}
-              variant="outlined"
-              value={videoDescription}
-              onChange={(e) => setVideoDescription(e.target.value)}
-            />
+            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+              <TextField
+                fullWidth
+                label="Description"
+                placeholder="Describe your video..."
+                multiline
+                rows={4}
+                variant="outlined"
+                value={videoDescription}
+                onChange={(e) => setVideoDescription(e.target.value)}
+              />
+            </Box>
 
-                <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' }, display: 'flex', gap: 2 }}>
                   <FormControl fullWidth>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <InputLabel>Categories</InputLabel>
@@ -1968,7 +2049,7 @@ const Upload: React.FC = () => {
                         },
                       }}
                     >
-                      {customCategories.map((category) => (
+                      {[...customCategories].sort((a, b) => a.name.localeCompare(b.name)).map((category) => (
                         <MenuItem key={category.id} value={category.id}>
                           {category.name}
                         </MenuItem>
@@ -2024,7 +2105,7 @@ const Upload: React.FC = () => {
                         },
                       }}
                     >
-                      {models.map((model) => (
+                      {[...models].sort((a, b) => a.name.localeCompare(b.name)).map((model) => (
                         <MenuItem key={model.id} value={model.id}>
                           {model.name}
                         </MenuItem>
@@ -2082,7 +2163,7 @@ const Upload: React.FC = () => {
                         },
                       }}
                     >
-                      {channels.map((channel) => (
+                      {[...channels].sort((a, b) => a.name.localeCompare(b.name)).map((channel) => (
                         <MenuItem key={channel.id} value={channel.id}>
                           {channel.name}
                         </MenuItem>
@@ -2091,19 +2172,19 @@ const Upload: React.FC = () => {
                   </FormControl>
                 </Box>
 
-                <TextField
-                  fullWidth
-                  label="Video Duration"
-                  placeholder="e.g., 5:30, 12:45, 1:23:15"
-                  value={videoDuration}
-                  onChange={(e) => setVideoDuration(e.target.value)}
-                  variant="outlined"
-                  helperText="Format: MM:SS or HH:MM:SS"
-                />
+            <Box sx={{ gridColumn: { xs: '1', md: '1' } }}>
+              <TextField
+                fullWidth
+                label="Video Duration"
+                placeholder="e.g., 5:30, 12:45, 1:23:15"
+                value={videoDuration}
+                onChange={(e) => setVideoDuration(e.target.value)}
+                variant="outlined"
+                helperText="Format: MM:SS or HH:MM:SS"
+              />
+            </Box>
 
-
-
-            <Box>
+            <Box sx={{ gridColumn: { xs: '1', md: '2' } }}>
               <TextField
                 fullWidth
                 label="Tags"
@@ -2127,9 +2208,40 @@ const Upload: React.FC = () => {
                   ))}
                 </Box>
               )}
+              
+              {/* Saved Tags Suggestions */}
+              {savedTags.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, display: 'block' }}>
+                    Previously used tags:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {savedTags
+                      .filter(tag => !videoTagsArray.includes(tag) && !videoTagsArray.map(t => t.toLowerCase()).includes(tag.toLowerCase()))
+                      .map((tag, index) => (
+                        <Chip
+                          key={index}
+                          label={`+ ${tag}`}
+                          onClick={() => handleAddSavedTag(tag)}
+                          size="small"
+                          sx={{
+                            cursor: 'pointer',
+                            bgcolor: 'rgba(180, 2, 2, 0.1)',
+                            color: '#b40202',
+                            border: '1px solid rgba(180, 2, 2, 0.3)',
+                            '&:hover': {
+                              bgcolor: 'rgba(180, 2, 2, 0.2)',
+                              borderColor: 'rgba(180, 2, 2, 0.5)',
+                            }
+                          }}
+                        />
+                      ))}
+                  </Box>
+                </Box>
+              )}
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' }, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button variant="outlined" size="large">
                 Save Draft
               </Button>
@@ -2197,7 +2309,8 @@ const Upload: React.FC = () => {
                         views: video.views || 0,
                         duration: video.duration || '0:00',
                         category: (video as any).category || 'Uncategorized',
-                        uploadDate: video.created_at || new Date().toISOString()
+                        uploadDate: video.created_at || new Date().toISOString(),
+                        title: video.title || 'Untitled Video' // Ensure title is always present
                       }} 
                       onClick={() => handleVideoClick(video.slug || video.id)}
                     />
