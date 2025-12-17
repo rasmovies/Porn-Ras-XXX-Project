@@ -32,6 +32,7 @@ import Channels from './pages/Channels';
 import ChannelProfile from './pages/ChannelProfile';
 import Categories from './pages/Categories';
 import CategoryProfile from './pages/CategoryProfile';
+import Tag from './pages/Tag';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import DMCA from './pages/DMCA';
@@ -140,6 +141,7 @@ function App() {
                     <Route path="/channels/:channelName" element={<ChannelProfile />} />
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/categories/:categoryName" element={<CategoryProfile />} />
+                    <Route path="/tag/:tagName" element={<Tag />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/dmca" element={<DMCA />} />

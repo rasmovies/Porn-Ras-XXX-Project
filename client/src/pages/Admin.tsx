@@ -516,7 +516,19 @@ const Admin: React.FC = () => {
         const errorMessage = error?.message || 'Unknown error';
         const errorCode = error?.code || 'N/A';
         
-        // Fallback to local state only
+        console.error('❌ Model creation error:', error);
+        console.error('   Error code:', errorCode);
+        console.error('   Error status:', error?.status);
+        console.error('   Error message:', errorMessage);
+        
+        // Handle specific error codes (23505 = unique constraint, 409 = conflict)
+        if (errorCode === '23505' || error?.status === 409 || errorMessage?.includes('duplicate') || errorMessage?.includes('unique')) {
+          // Unique constraint violation - model name already exists
+          showSnackbar(`Model "${newModel.trim()}" already exists! Please use a different name.`, 'error');
+          return; // Don't save to localStorage for duplicate names
+        }
+        
+        // Fallback to local state only for other errors
         const imageToUse = modelImageUrl.trim() || null;
         const tempId = Date.now().toString();
         const newModelData: Model = {

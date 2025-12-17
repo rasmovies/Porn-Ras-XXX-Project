@@ -33,18 +33,30 @@ const PollWidget: React.FC = () => {
           
           // Check if user has voted
           if (user?.username) {
-            const userResponse = await pollResponseService.getUserResponse(poll.id, user.username);
-            if (userResponse) {
-              setHasVoted(true);
-              setSelectedOption(userResponse.option_id);
+            try {
+              const userResponse = await pollResponseService.getUserResponse(poll.id, user.username);
+              if (userResponse) {
+                setHasVoted(true);
+                setSelectedOption(userResponse.option_id);
+              }
+            } catch (error: any) {
+              console.warn('⚠️ Failed to get user response (may be RLS issue):', error);
+              // Continue without user response - user hasn't voted yet
             }
           }
           
           // Load response counts
-          const counts = await pollResponseService.getResponseCounts(poll.id);
-          setResponseCounts(counts);
-          const total = await pollResponseService.getTotalResponses(poll.id);
-          setTotalResponses(total);
+          try {
+            const counts = await pollResponseService.getResponseCounts(poll.id);
+            setResponseCounts(counts);
+            const total = await pollResponseService.getTotalResponses(poll.id);
+            setTotalResponses(total);
+          } catch (error: any) {
+            console.warn('⚠️ Failed to load response counts (may be RLS issue):', error);
+            // Continue with empty counts - RLS may be blocking access
+            setResponseCounts({});
+            setTotalResponses(0);
+          }
         }
       } catch (error) {
         console.error('Failed to load active poll:', error);
@@ -69,10 +81,15 @@ const PollWidget: React.FC = () => {
       setHasVoted(true);
       
       // Reload response counts
-      const counts = await pollResponseService.getResponseCounts(activePoll.id);
-      setResponseCounts(counts);
-      const total = await pollResponseService.getTotalResponses(activePoll.id);
-      setTotalResponses(total);
+      try {
+        const counts = await pollResponseService.getResponseCounts(activePoll.id);
+        setResponseCounts(counts);
+        const total = await pollResponseService.getTotalResponses(activePoll.id);
+        setTotalResponses(total);
+      } catch (error: any) {
+        console.warn('⚠️ Failed to reload response counts (may be RLS issue):', error);
+        // Continue with existing counts
+      }
       
       toast.success('Thank you for voting!');
     } catch (error: any) {

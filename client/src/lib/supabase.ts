@@ -82,6 +82,7 @@ export interface Video {
   favorites: number;
   created_at: string;
   slug: string;
+  tags?: string | null;
 }
 
 export interface Comment {

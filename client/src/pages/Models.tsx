@@ -112,9 +112,25 @@ const Models: React.FC = () => {
         
         // First try to load from Supabase
         console.log('🔍 Models Page: Loading models from Supabase...');
-        const modelsData = await modelService.getAll();
-        console.log('✅ Models Page: Models from Supabase:', modelsData.length);
-        console.log('   Models:', modelsData.map(m => m.name));
+        let modelsData: Model[] = [];
+        try {
+          modelsData = await modelService.getAll();
+          console.log('✅ Models Page: Models from Supabase:', modelsData.length);
+          if (modelsData.length > 0) {
+            console.log('   Models:', modelsData.map(m => m.name));
+          } else {
+            console.warn('⚠️ Models Page: No models returned from Supabase!');
+            console.warn('   This could be due to:');
+            console.warn('   1. RLS (Row Level Security) policies blocking access');
+            console.warn('   2. Models table is empty');
+            console.warn('   3. Timeout or connection error');
+          }
+        } catch (error: any) {
+          console.error('❌ Models Page: Error loading models from Supabase:', error);
+          console.error('   Error code:', error?.code);
+          console.error('   Error message:', error?.message);
+          modelsData = [];
+        }
         
         // Load trans models from localStorage (since column doesn't exist in DB)
         const transModelIds = JSON.parse(localStorage.getItem('transModels') || '[]');

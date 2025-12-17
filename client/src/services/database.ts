@@ -110,7 +110,7 @@ export const modelService = {
       .from('models')
         .select('id, name, image, created_at')
         .order('created_at', { ascending: false })
-        .limit(50); // Further reduced limit to prevent timeout (was 200)
+        // No limit - fetch all models (Supabase default limit is 1000)
       
       if (error) {
         console.error('❌ Models fetch error:', error);
@@ -118,6 +118,16 @@ export const modelService = {
         console.error('   Error message:', error.message);
         console.error('   Error details:', error.details);
         console.error('   Error hint:', error.hint);
+        const errorStatus = (error as any).status;
+        console.error('   Error status:', errorStatus);
+        
+        // 406 (Not Acceptable) - RLS policy issue
+        if (errorStatus === 406 || error.code === 'PGRST301') {
+          console.error('⚠️ RLS (Row Level Security) policy blocking access to models table!');
+          console.error('   Please check Supabase RLS policies for the "models" table.');
+          console.error('   The table should allow SELECT for authenticated or anonymous users.');
+          return [];
+        }
         
         // Timeout hatası (57014) veya 500 hatası (genellikle timeout'tan kaynaklanır)
         if (error.code === '57014' || 
@@ -140,6 +150,7 @@ export const modelService = {
         
         // Diğer hatalar için de boş array döndür (crash önleme)
         console.warn('⚠️ Models fetch hatası, boş array döndürülüyor');
+        console.warn('   This might be an RLS policy issue. Check Supabase dashboard.');
         return [];
       }
       console.log('✅ Models loaded:', data?.length || 0);
@@ -200,6 +211,15 @@ export const modelService = {
     }
     
     if (error) {
+      // Handle 409 (Conflict) or 23505 (Unique constraint violation) - duplicate model name
+      const errorStatus = (error as any).status;
+      if (error.code === '23505' || errorStatus === 409 || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        const duplicateError = new Error(`Model "${model.name}" already exists`);
+        (duplicateError as any).code = '23505';
+        (duplicateError as any).status = 409;
+        throw duplicateError;
+      }
+      
       // If error is about is_trans column not existing, try again without it
       if (error.message?.includes('is_trans') || error.code === '42703') {
         console.warn('⚠️ is_trans column does not exist, creating model without it');
@@ -209,7 +229,17 @@ export const modelService = {
           .select()
           .single();
         
-        if (retryError) throw retryError;
+        if (retryError) {
+          // Handle 409/23505 in retry as well
+          const retryErrorStatus = (retryError as any).status;
+          if (retryError.code === '23505' || retryErrorStatus === 409) {
+            const duplicateError = new Error(`Model "${model.name}" already exists`);
+            (duplicateError as any).code = '23505';
+            (duplicateError as any).status = 409;
+            throw duplicateError;
+          }
+          throw retryError;
+        }
         
         // Save is_trans to localStorage if it's true
         if (model.is_trans === true) {
@@ -1519,42 +1549,83 @@ export const pollResponseService = {
 
   // Get user's response for a poll
   async getUserResponse(pollId: string, userName: string | null): Promise<PollResponse | null> {
-    const { data, error } = await supabase
-      .from('poll_responses')
-      .select('*')
-      .eq('poll_id', pollId)
-      .eq('user_name', userName || 'anonymous')
-      .single();
-    
-    if (error) return null;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('poll_responses')
+        .select('*')
+        .eq('poll_id', pollId)
+        .eq('user_name', userName || 'anonymous')
+        .single();
+      
+      if (error) {
+        // 406 (Not Acceptable) or PGRST116 (No rows returned) - user hasn't voted yet
+        const errorStatus = (error as any).status;
+        if (error.code === 'PGRST116' || errorStatus === 406) {
+          return null;
+        }
+        console.error('❌ Error getting user response:', error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('❌ Exception getting user response:', error);
+      return null;
+    }
   },
 
   // Get response counts for a poll
   async getResponseCounts(pollId: string): Promise<Record<string, number>> {
-    const { data, error } = await supabase
-      .from('poll_responses')
-      .select('option_id')
-      .eq('poll_id', pollId);
-    
-    if (error) return {};
-    
-    const counts: Record<string, number> = {};
-    data?.forEach(response => {
-      counts[response.option_id] = (counts[response.option_id] || 0) + 1;
-    });
-    
-    return counts;
+    try {
+      const { data, error } = await supabase
+        .from('poll_responses')
+        .select('option_id')
+        .eq('poll_id', pollId);
+      
+      if (error) {
+        // 406 (Not Acceptable) - RLS policy issue, return empty counts
+        const errorStatus = (error as any).status;
+        if (errorStatus === 406) {
+          console.warn('⚠️ Poll responses access denied (406), returning empty counts');
+          return {};
+        }
+        console.error('❌ Error getting response counts:', error);
+        return {};
+      }
+      
+      const counts: Record<string, number> = {};
+      data?.forEach(response => {
+        counts[response.option_id] = (counts[response.option_id] || 0) + 1;
+      });
+      
+      return counts;
+    } catch (error) {
+      console.error('❌ Exception getting response counts:', error);
+      return {};
+    }
   },
 
   // Get total responses for a poll
   async getTotalResponses(pollId: string): Promise<number> {
-    const { count, error } = await supabase
-      .from('poll_responses')
-      .select('*', { count: 'exact', head: true })
-      .eq('poll_id', pollId);
-    
-    if (error) return 0;
-    return count || 0;
+    try {
+      const { count, error } = await supabase
+        .from('poll_responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('poll_id', pollId);
+      
+      if (error) {
+        // 406 (Not Acceptable) - RLS policy issue, return 0
+        const errorStatus = (error as any).status;
+        if (errorStatus === 406) {
+          console.warn('⚠️ Poll responses access denied (406), returning 0');
+          return 0;
+        }
+        console.error('❌ Error getting total responses:', error);
+        return 0;
+      }
+      return count || 0;
+    } catch (error) {
+      console.error('❌ Exception getting total responses:', error);
+      return 0;
+    }
   }
 };

@@ -46,7 +46,7 @@ const Upload: React.FC = () => {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [streamtapeUrl, setStreamtapeUrl] = useState<string>('');
-  const [embedMode, setEmbedMode] = useState<'file' | 'streamtape'>('file');
+  const [embedMode, setEmbedMode] = useState<'file' | 'streamtape'>('streamtape'); // Only Streamtape Embed mode
   const [videoTitle, setVideoTitle] = useState<string>('');
   const [videoDescription, setVideoDescription] = useState<string>('');
   const [videoCategory, setVideoCategory] = useState<string>('');
@@ -94,6 +94,48 @@ const Upload: React.FC = () => {
   const [newChannelThumbnailUrl, setNewChannelThumbnailUrl] = useState('');
   const [videoTagsArray, setVideoTagsArray] = useState<string[]>([]);
   const [savedTags, setSavedTags] = useState<string[]>([]);
+  
+  // Bluesky preview helper function
+  const generateBlueskyPreview = (title: string, description: string, thumbnail: string | null, modelIds: string[], categoryIds: string[], slug?: string) => {
+    const baseUrl = window.location.origin;
+    const videoSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const videoUrl = `${baseUrl}/video/${videoSlug}`;
+    
+    // Get model and category names
+    const modelName = modelIds.length > 0 ? models.find(m => m.id === modelIds[0])?.name : null;
+    const categoryName = categoryIds.length > 0 ? customCategories.find(c => c.id === categoryIds[0])?.name : null;
+    
+    // Create hashtags
+    const hashtags = [];
+    if (modelName) {
+      hashtags.push(`#${modelName.replace(/\s+/g, '').toLowerCase()}`);
+    }
+    if (categoryName) {
+      hashtags.push(`#${categoryName.replace(/\s+/g, '').toLowerCase()}`);
+    }
+    
+    // Truncate description
+    const maxDescriptionLength = 120;
+    const truncatedDescription = description 
+      ? description.substring(0, maxDescriptionLength) + (description.length > maxDescriptionLength ? '...' : '')
+      : '';
+    
+    // Build post text
+    let postText = `🎬 Yeni Video: ${title}`;
+    if (truncatedDescription) {
+      postText += `\n\n${truncatedDescription}`;
+    }
+    if (hashtags.length > 0) {
+      postText += `\n\n${hashtags.join(' ')}`;
+    }
+    postText += `\n\n🔗 ${videoUrl}`;
+    
+    return {
+      text: postText,
+      thumbnail: thumbnail || null,
+      videoUrl
+    };
+  };
 
   // Upload Queue System (FileZilla-like)
   interface UploadItem {
@@ -420,8 +462,20 @@ const Upload: React.FC = () => {
         setAddModelDialogOpen(false);
         toast.success('Model added successfully!');
       } catch (error: any) {
+        const errorCode = error?.code || 'unknown';
         const errorMessage = error?.message || 'Unknown error';
-        toast.error(`Failed to add model: ${errorMessage}`);
+        
+        console.error('❌ Model creation error:', error);
+        console.error('   Error code:', errorCode);
+        console.error('   Error message:', errorMessage);
+        
+        // Handle specific error codes
+        if (errorCode === '23505') {
+          // Unique constraint violation - model name already exists
+          toast.error(`Model "${newModelName.trim()}" already exists! Please use a different name.`);
+        } else {
+          toast.error(`Failed to add model: ${errorMessage}`);
+        }
       }
     } else if (models.some(m => m.name === newModelName.trim())) {
       toast.error('Model already exists!');
@@ -857,7 +911,7 @@ const Upload: React.FC = () => {
       // If file mode, upload file to Streamtape first
       let finalStreamtapeUrl = streamtapeUrl;
       
-      if (embedMode === 'file' && selectedFile) {
+      if (false && embedMode === 'file' && selectedFile) {
         setIsUploading(true);
         setUploadProgress(0);
         
@@ -908,11 +962,19 @@ const Upload: React.FC = () => {
           
           // Step 2: Upload file directly to Streamtape from browser (FileZilla-like)
           // This is much more efficient - no base64 encoding, no server in between
+          if (!selectedFile) {
+            throw new Error('No file selected');
+          }
+          
+          // TypeScript type narrowing: after null check, selectedFile is guaranteed to be non-null
+          // Using non-null assertion since we've already checked for null above
+          const fileToUpload: File = selectedFile!;
+          
           const formData = new FormData();
-          formData.append('file', selectedFile);
+          formData.append('file', fileToUpload);
           
           // Prepare headers with cookies if using cookie auth
-          const uploadHeaders: HeadersInit = {};
+          const uploadHeaders: Record<string, string> = {};
           if (streamtapeAuthMethod === 'cookie' && streamtapeCookies) {
             // Clean cookies (remove newlines, etc.)
             const cleanCookies = streamtapeCookies
@@ -1301,30 +1363,7 @@ const Upload: React.FC = () => {
           Upload Video
         </Typography>
         
-        {/* Upload Mode Selection */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
-            Upload Method
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant={embedMode === 'file' ? 'contained' : 'outlined'}
-              onClick={() => setEmbedMode('file')}
-              startIcon={<CloudUpload />}
-            >
-              Upload File
-            </Button>
-            <Button
-              variant={embedMode === 'streamtape' ? 'contained' : 'outlined'}
-              onClick={() => setEmbedMode('streamtape')}
-              startIcon={<VideoFile />}
-            >
-              Streamtape Embed
-            </Button>
-          </Box>
-        </Box>
-
-        {/* Upload Queue (FileZilla-like) */}
+        {/* Upload Queue (FileZilla-like) - Removed, only Streamtape Embed mode */}
         {uploadQueue.length > 0 && (
           <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
             <CardContent>
@@ -1481,10 +1520,10 @@ const Upload: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
           <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
-            {embedMode === 'file' ? 'Video File' : 'Streamtape URL'}
+            Streamtape URL
           </Typography>
           
-          {embedMode === 'file' ? (
+          {false && embedMode === 'file' ? (
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -1511,7 +1550,7 @@ const Upload: React.FC = () => {
                   >
                     <PlayArrow sx={{ fontSize: 48, mb: 2, color: 'success.main' }} />
                     <Typography variant="h6" gutterBottom color="success.main">
-                      Video Selected: {selectedFile.name}
+                      Video Selected: {selectedFile?.name || 'Unknown'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Click to change video
@@ -1784,7 +1823,7 @@ const Upload: React.FC = () => {
               transition={{ duration: 0.5 }}
             >
               <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
-                {embedMode === 'file' ? 'Video uploaded successfully!' : 'Streamtape URL added successfully!'}
+                Streamtape URL added successfully!
               </Alert>
               
               <Box sx={{ mt: 2 }}>
@@ -1792,34 +1831,20 @@ const Upload: React.FC = () => {
                   Video Preview
                 </Typography>
                 <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden' }}>
-                  {embedMode === 'file' ? (
-                    <video
-                      src={videoPreview || ''}
-                      controls
-                      style={{
-                        width: '100%',
-                        height: '400px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        backgroundColor: '#000'
-                      }}
-                    />
-                  ) : (
-                    <iframe
-                      src={getStreamtapeEmbedUrl(streamtapeUrl)}
-                      width="100%"
-                      height="400"
-                      allowFullScreen
-                      allowTransparency
-                      allow="autoplay"
-                      scrolling="no"
-                      frameBorder="0"
-                      style={{
-                        borderRadius: '8px',
-                        backgroundColor: '#000'
-                      }}
-                    />
-                  )}
+                  <iframe
+                    src={getStreamtapeEmbedUrl(streamtapeUrl)}
+                    width="100%"
+                    height="400"
+                    allowFullScreen
+                    allowTransparency
+                    allow="autoplay"
+                    scrolling="no"
+                    frameBorder="0"
+                    style={{
+                      borderRadius: '8px',
+                      backgroundColor: '#000'
+                    }}
+                  />
                   <Box
                     sx={{
                       position: 'absolute',
@@ -1841,19 +1866,6 @@ const Upload: React.FC = () => {
                   </Box>
                 </Box>
                 
-                {embedMode === 'file' && selectedFile && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>File:</strong> {selectedFile.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Size:</strong> {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Type:</strong> {selectedFile.type}
-                    </Typography>
-                  </Box>
-                )}
                 
                 {embedMode === 'streamtape' && streamtapeUrl && (
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
@@ -2204,6 +2216,16 @@ const Upload: React.FC = () => {
                       onDelete={() => handleDeleteTag(tag)}
                       color="primary"
                       variant="outlined"
+                      sx={{
+                        color: '#ffffff',
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        '& .MuiChip-label': {
+                          color: '#ffffff',
+                        },
+                        '& .MuiChip-deleteIcon': {
+                          color: '#ffffff',
+                        }
+                      }}
                     />
                   ))}
                 </Box>
@@ -2227,8 +2249,11 @@ const Upload: React.FC = () => {
                           sx={{
                             cursor: 'pointer',
                             bgcolor: 'rgba(180, 2, 2, 0.1)',
-                            color: '#b40202',
+                            color: '#ffffff',
                             border: '1px solid rgba(180, 2, 2, 0.3)',
+                            '& .MuiChip-label': {
+                              color: '#ffffff',
+                            },
                             '&:hover': {
                               bgcolor: 'rgba(180, 2, 2, 0.2)',
                               borderColor: 'rgba(180, 2, 2, 0.5)',
@@ -2240,6 +2265,64 @@ const Upload: React.FC = () => {
                 </Box>
               )}
             </Box>
+
+            {/* Bluesky Preview */}
+            {(videoTitle.trim() || streamtapeThumbnail || streamtapeThumbnailUrl) && (
+              <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' }, mt: 2 }}>
+                <Card sx={{ 
+                  bgcolor: 'rgba(255, 255, 255, 0.05)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: 2
+                }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                      📱 Bluesky Post Preview
+                    </Typography>
+                    <Box sx={{ 
+                      bgcolor: 'rgba(0, 0, 0, 0.3)', 
+                      borderRadius: 2, 
+                      p: 2,
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      {(() => {
+                        const preview = generateBlueskyPreview(
+                          videoTitle || 'Video Title',
+                          videoDescription,
+                          streamtapeThumbnail || streamtapeThumbnailUrl || null,
+                          selectedModelIds,
+                          selectedCategoryIds
+                        );
+                        return (
+                          <>
+                            {preview.thumbnail && (
+                              <Box sx={{ mb: 2, borderRadius: 1, overflow: 'hidden' }}>
+                                <img 
+                                  src={preview.thumbnail} 
+                                  alt="Thumbnail" 
+                                  style={{ width: '100%', maxHeight: '300px', objectFit: 'cover' }}
+                                />
+                              </Box>
+                            )}
+                            <Typography 
+                              variant="body1" 
+                              sx={{ 
+                                whiteSpace: 'pre-wrap',
+                                color: 'text.primary',
+                                fontFamily: 'monospace',
+                                fontSize: '0.9rem',
+                                lineHeight: 1.6
+                              }}
+                            >
+                              {preview.text}
+                            </Typography>
+                          </>
+                        );
+                      })()}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
 
             <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' }, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button variant="outlined" size="large">
@@ -2442,6 +2525,65 @@ const Upload: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
+            
+            {/* Bluesky Preview in Edit Dialog */}
+            {(editTitle.trim() || editThumbnailUrl) && (
+              <Box sx={{ mt: 2 }}>
+                <Card sx={{ 
+                  bgcolor: 'rgba(255, 255, 255, 0.05)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: 2
+                }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                      📱 Bluesky Post Preview
+                    </Typography>
+                    <Box sx={{ 
+                      bgcolor: 'rgba(0, 0, 0, 0.3)', 
+                      borderRadius: 2, 
+                      p: 2,
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      {(() => {
+                        const preview = generateBlueskyPreview(
+                          editTitle || 'Video Title',
+                          editDescription,
+                          editThumbnailUrl || null,
+                          editModelIds,
+                          editCategoryIds,
+                          editingVideo?.slug
+                        );
+                        return (
+                          <>
+                            {preview.thumbnail && (
+                              <Box sx={{ mb: 2, borderRadius: 1, overflow: 'hidden' }}>
+                                <img 
+                                  src={preview.thumbnail} 
+                                  alt="Thumbnail" 
+                                  style={{ width: '100%', maxHeight: '300px', objectFit: 'cover' }}
+                                />
+                              </Box>
+                            )}
+                            <Typography 
+                              variant="body1" 
+                              sx={{ 
+                                whiteSpace: 'pre-wrap',
+                                color: 'text.primary',
+                                fontFamily: 'monospace',
+                                fontSize: '0.9rem',
+                                lineHeight: 1.6
+                              }}
+                            >
+                              {preview.text}
+                            </Typography>
+                          </>
+                        );
+                      })()}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

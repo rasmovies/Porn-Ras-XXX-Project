@@ -87,6 +87,10 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'poll_responses' AND policyname = 'Allow public read responses') THEN
     CREATE POLICY "Allow public read responses" ON poll_responses FOR SELECT USING (true);
   END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'poll_responses' AND policyname = 'Allow public update responses') THEN
+    CREATE POLICY "Allow public update responses" ON poll_responses FOR UPDATE USING (true);
+  END IF;
 END $$;
 
 -- Create indexes for better performance

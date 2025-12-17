@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -16,7 +16,6 @@ import {
   TextField,
   Avatar,
 } from '@mui/material';
-import { Grid } from '@mui/material';
 import {
   Share,
   Favorite,
@@ -28,8 +27,8 @@ import {
   Reddit,
 } from '@mui/icons-material';
 import { motion } from 'motion/react';
-import { videoService, commentService } from '../services/database';
-import { Video, Comment } from '../lib/supabase';
+import { videoService, commentService, modelService } from '../services/database';
+import { Video, Comment, Model } from '../lib/supabase';
 import SEO from '../components/SEO/SEO';
 import { useAuth } from '../components/Auth/AuthProvider';
 
@@ -48,6 +47,9 @@ const VideoPlayer: React.FC = () => {
   const [showComments, setShowComments] = useState(true);
   const [commentLikes, setCommentLikes] = useState<Set<string>>(new Set());
   const [commentDislikes, setCommentDislikes] = useState<Set<string>>(new Set());
+  const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
+  const [videoModels, setVideoModels] = useState<Model[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
 
   // Load video data from Supabase
   useEffect(() => {
@@ -155,6 +157,39 @@ const VideoPlayer: React.FC = () => {
 
     loadVideoData();
   }, [id]);
+
+  // Load related videos and models
+  useEffect(() => {
+    const loadRelatedContent = async () => {
+      if (!video) return;
+      
+      try {
+        setLoadingRelated(true);
+        
+        // Load all videos and get random ones (excluding current video)
+        const allVideos = await videoService.getAll();
+        const filteredVideos = allVideos.filter(v => v.id !== video.id);
+        // Shuffle and take 4 random videos
+        const shuffled = filteredVideos.sort(() => 0.5 - Math.random());
+        setRelatedVideos(shuffled.slice(0, 4));
+        
+        // Load models for this video
+        if (video.model_id) {
+          const allModels = await modelService.getAll();
+          const modelsForVideo = allModels.filter(m => m.id === video.model_id);
+          setVideoModels(modelsForVideo);
+        }
+      } catch (error) {
+        console.error('Failed to load related content:', error);
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+
+    if (video) {
+      loadRelatedContent();
+    }
+  }, [video]);
 
   const handleFavoriteToggle = async () => {
     if (!video) return;
@@ -577,6 +612,38 @@ const VideoPlayer: React.FC = () => {
               <Typography variant="body1" sx={{ mb: 2 }}>
                 {video.description}
               </Typography>
+              
+              {/* Video Tags */}
+              {video.tags && (
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {video.tags.split(',').map((tag, index) => {
+                      const trimmedTag = tag.trim();
+                      if (!trimmedTag) return null;
+                      return (
+                        <Chip
+                          key={index}
+                          label={trimmedTag}
+                          component={Link}
+                          to={`/tag/${encodeURIComponent(trimmedTag.toLowerCase())}`}
+                          clickable
+                          size="small"
+                          sx={{
+                            bgcolor: 'rgba(180, 2, 2, 0.2)',
+                            color: '#ffffff',
+                            border: '1px solid rgba(180, 2, 2, 0.4)',
+                            textDecoration: 'none',
+                            '&:hover': {
+                              bgcolor: 'rgba(180, 2, 2, 0.3)',
+                              borderColor: 'rgba(180, 2, 2, 0.6)',
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
             </Box>
             
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -636,30 +703,74 @@ const VideoPlayer: React.FC = () => {
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Tags and Actors */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-        >
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Tags
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {['video', 'content', 'entertainment'].map((tag: string, index: number) => (
-                <Chip
-                  key={index}
-                  label={tag}
-                  variant="outlined"
-                  size="small"
-                  sx={{ cursor: 'pointer' }}
-                />
-              ))}
+        {/* Models Section - Below Tags */}
+        {videoModels.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+          >
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                Models
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                {videoModels.map((model) => (
+                  <motion.div
+                    key={model.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Card
+                      component={Link}
+                      to={`/models/${encodeURIComponent(model.name)}`}
+                      sx={{
+                        cursor: 'pointer',
+                        width: { xs: '150px', sm: '180px' },
+                        height: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        transition: 'all 0.3s ease',
+                        textDecoration: 'none',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          borderColor: 'rgba(180, 2, 2, 0.5)',
+                          boxShadow: '0 8px 24px rgba(180, 2, 2, 0.3)',
+                        }
+                      }}
+                    >
+                      <CardMedia
+                        component="img"
+                        height="240"
+                        image={model.image || '/PORNRAS.png'}
+                        alt={model.name}
+                        sx={{
+                          objectFit: 'cover',
+                          aspectRatio: '3/4'
+                        }}
+                      />
+                      <CardContent sx={{ p: 2 }}>
+                        <Typography 
+                          variant="subtitle1" 
+                          sx={{ 
+                            fontWeight: 600,
+                            color: 'white',
+                            textAlign: 'center',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {model.name}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
             </Box>
-          </Box>
-
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Comments Section */}
         <motion.div
@@ -1099,31 +1210,85 @@ const VideoPlayer: React.FC = () => {
         </motion.div>
 
         {/* Related Videos */}
-        <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
-          Related Videos
-        </Typography>
-        <Grid container spacing={3}>
-          {[1, 2, 3, 4].map((videoId) => (
-            <Box sx={{ width: { xs: '100%', sm: '50%', md: '25%' }, mb: 2 }} key={videoId}>
-              <Card sx={{ cursor: 'pointer' }}>
-                <CardMedia
-                  component="img"
-                  height="120"
-                  image={`https://via.placeholder.com/300x120/ff6b6b/ffffff?text=Related+${videoId}`}
-                  alt={`Related video ${videoId}`}
-                />
-                <CardContent>
-                  <Typography variant="subtitle2" noWrap>
-                    Related Video {videoId}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    123K views • 1 day ago
-                  </Typography>
-                </CardContent>
-              </Card>
+        {relatedVideos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+          >
+            <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' }, mb: 3 }}>
+              Related Videos
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(3, 1fr)',
+                  lg: 'repeat(4, 1fr)'
+                },
+                gap: 3
+              }}
+            >
+              {relatedVideos.map((relatedVideo) => (
+                <motion.div
+                  key={relatedVideo.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Card
+                    component={Link}
+                    to={`/video/${relatedVideo.slug || relatedVideo.id}`}
+                    sx={{
+                      cursor: 'pointer',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      transition: 'all 0.3s ease',
+                      textDecoration: 'none',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        borderColor: 'rgba(180, 2, 2, 0.5)',
+                        boxShadow: '0 8px 24px rgba(180, 2, 2, 0.3)',
+                      }
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={relatedVideo.thumbnail || '/PORNRAS.png'}
+                      alt={relatedVideo.title}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                      <Typography 
+                        variant="subtitle2" 
+                        sx={{ 
+                          mb: 1,
+                          color: 'white',
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {relatedVideo.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {relatedVideo.views?.toLocaleString() || '0'} views • {relatedVideo.created_at ? new Date(relatedVideo.created_at).toLocaleDateString() : 'Unknown date'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </Box>
-          ))}
-        </Grid>
+          </motion.div>
+        )}
       </Container>
     </>
   );
