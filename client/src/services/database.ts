@@ -110,7 +110,7 @@ export const modelService = {
       .from('models')
         .select('id, name, image, created_at')
         .order('created_at', { ascending: false })
-        // No limit - fetch all models (Supabase default limit is 1000)
+        .limit(500) // Timeout önleme için limit (500 model yeterli)
       
       if (error) {
         console.error('❌ Models fetch error:', error);
@@ -564,9 +564,9 @@ export const channelService = {
     try {
     const { data, error } = await supabase
       .from('channels')
-      .select('*')
+      .select('id, name, description, thumbnail, banner, subscriber_count, created_at')
         .order('created_at', { ascending: false })
-        .limit(500); // Timeout önleme için limit
+        .limit(300); // Timeout önleme için limit (300 channel yeterli)
       
       if (error) {
         console.error('❌ Channels fetch error:', error);
@@ -947,14 +947,41 @@ export const notificationService = {
 export const settingsService = {
   // Get setting by key
   async getByKey(key: string): Promise<Settings | null> {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('*')
-      .eq('key', key)
-      .single();
-    
-    if (error) return null;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('key', key)
+        .single();
+      
+      if (error) {
+        // Timeout hatası (57014)
+        if (error.code === '57014' || error.message?.includes('statement timeout')) {
+          console.warn(`⚠️ Settings getByKey timeout for key "${key}", returning null`);
+          return null;
+        }
+        // If no rows found (PGRST116), return null (not an error)
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        // If table doesn't exist, return null
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.warn('⚠️ Settings table does not exist, returning null');
+          return null;
+        }
+        console.warn(`⚠️ Settings getByKey error for key "${key}":`, error.message);
+        return null;
+      }
+      return data;
+    } catch (error: any) {
+      console.error('❌ Settings getByKey service error:', error);
+      // Timeout hatası kontrolü
+      if (error?.code === '57014' || error?.message?.includes('statement timeout')) {
+        console.warn(`⚠️ Settings getByKey timeout (catch) for key "${key}", returning null`);
+        return null;
+      }
+      return null;
+    }
   },
 
   // Get setting value

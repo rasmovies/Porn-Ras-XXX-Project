@@ -1,6 +1,7 @@
 const { Client } = require('basic-ftp');
 const fs = require('fs-extra');
 const path = require('path');
+const { sanitizePath, sanitizeFilename } = require('../_helpers/pathSecurity');
 
 // FTP Configuration
 const FTP_CONFIG = {
@@ -38,19 +39,30 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Dosya yolu ve içerik gerekli' });
   }
   
+  // Sanitize remotePath to prevent Path Traversal
+  const safeRemotePath = sanitizeFilename(remotePath);
+  if (!safeRemotePath || safeRemotePath === 'unnamed') {
+    return res.status(400).json({ success: false, error: 'Geçersiz dosya yolu' });
+  }
+  
   let tempPath = null;
   
   try {
-    console.log('FTP write endpoint called, path:', remotePath);
+    console.log('FTP write endpoint called, path:', safeRemotePath);
     await client.access(FTP_CONFIG);
     
-    // Geçici dosya oluştur
+    // Geçici dosya oluştur (Path Traversal koruması ile)
     const tempDir = '/tmp';
     await fs.ensureDir(tempDir);
-    tempPath = path.join(tempDir, path.basename(remotePath) + '_' + Date.now());
+    
+    const tempFileName = `${path.basename(safeRemotePath)}_${Date.now()}`;
+    tempPath = sanitizePath(path.join(tempDir, tempFileName), tempDir);
+    if (!tempPath) {
+      return res.status(400).json({ success: false, error: 'Geçersiz geçici dosya yolu' });
+    }
     
     await fs.writeFile(tempPath, content, 'utf8');
-    await client.uploadFrom(tempPath, remotePath);
+    await client.uploadFrom(tempPath, safeRemotePath);
     
     await fs.remove(tempPath).catch(() => {});
     await client.close();

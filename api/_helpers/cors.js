@@ -21,16 +21,19 @@ function setCorsHeaders(res, origin) {
     origin.includes('ras-projects-6ebe5a01')
   );
   
-  // Set CORS headers
+  // Set CORS headers - Only allow pornras.com domains and Vercel deployments
   if (isPornrasDomain || isVercelDeployment) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (origin) {
-    // If origin is provided but not allowed, still allow it for development
-    // (Remove this in production if you want stricter security)
-    res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
-    // Default to www.pornras.com for security
-    res.setHeader('Access-Control-Allow-Origin', 'https://www.pornras.com');
+    // In production, only allow pornras.com domains
+    // For development, allow localhost
+    const isLocalhost = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
+    if (isLocalhost && process.env.NODE_ENV !== 'production') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      // Default to www.pornras.com for security
+      res.setHeader('Access-Control-Allow-Origin', 'https://www.pornras.com');
+    }
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

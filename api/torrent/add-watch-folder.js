@@ -4,6 +4,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { sanitizePath, sanitizeFilename } = require('../_helpers/pathSecurity');
 
 /**
  * Add torrent using watch folder method
@@ -136,8 +137,15 @@ module.exports = async function handler(req, res) {
         // qBittorrent watch folder typically only detects .torrent files
         // For magnet links, we need to try different approaches
         // Option 1: Try .magnet extension (some qBittorrent versions support this)
-        const filename = `magnet_${Date.now()}.magnet`;
-        torrentFilePath = path.join(defaultWatchFolder, filename);
+        const filename = sanitizeFilename(`magnet_${Date.now()}.magnet`);
+        torrentFilePath = sanitizePath(path.join(defaultWatchFolder, filename), defaultWatchFolder);
+        
+        if (!torrentFilePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Geçersiz dosya yolu'
+          });
+        }
         
         // Write magnet link to file (plain text)
         fs.writeFileSync(torrentFilePath, torrentUrl, 'utf8');

@@ -75,6 +75,9 @@ const Upload: React.FC = () => {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
+  const [editDuration, setEditDuration] = useState('');
+  const [editTags, setEditTags] = useState<string>('');
+  const [editTagsArray, setEditTagsArray] = useState<string[]>([]);
   const [editCategoryIds, setEditCategoryIds] = useState<string[]>([]);
   const [editModelIds, setEditModelIds] = useState<string[]>([]);
   const [editChannelIds, setEditChannelIds] = useState<string[]>([]);
@@ -1304,6 +1307,16 @@ const Upload: React.FC = () => {
     setEditTitle(video.title);
     setEditDescription(video.description || '');
     setEditThumbnailUrl(video.thumbnail || '');
+    setEditDuration(video.duration || '');
+    // Parse tags from comma-separated string to array
+    if (video.tags) {
+      const tagsArray = video.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      setEditTagsArray(tagsArray);
+      setEditTags('');
+    } else {
+      setEditTagsArray([]);
+      setEditTags('');
+    }
     setEditCategoryIds(video.category_id ? [video.category_id] : []);
     setEditModelIds(video.model_id ? [video.model_id] : []);
     setEditChannelIds(video.channel_id ? [video.channel_id] : []);
@@ -1316,6 +1329,9 @@ const Upload: React.FC = () => {
     setEditTitle('');
     setEditDescription('');
     setEditThumbnailUrl('');
+    setEditDuration('');
+    setEditTags('');
+    setEditTagsArray([]);
     setEditCategoryIds([]);
     setEditModelIds([]);
     setEditChannelIds([]);
@@ -1325,10 +1341,19 @@ const Upload: React.FC = () => {
     if (!editingVideo) return;
 
     try {
+      // Combine tags array with current input
+      const allEditTags = [...editTagsArray];
+      if (editTags.trim()) {
+        allEditTags.push(editTags.trim());
+      }
+      const tagsString = allEditTags.length > 0 ? allEditTags.join(', ') : null;
+
       const updatedVideo = await videoService.update(editingVideo.id, {
         title: sanitizeInput(editTitle),
         description: sanitizeInput(editDescription),
         thumbnail: editThumbnailUrl || 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=Video',
+        duration: editDuration || null,
+        tags: tagsString,
         category_id: editCategoryIds[0] || null,
         model_id: editModelIds[0] || null,
         channel_id: editChannelIds[0] || null,
@@ -1343,6 +1368,9 @@ const Upload: React.FC = () => {
       setEditTitle('');
       setEditDescription('');
       setEditThumbnailUrl('');
+      setEditDuration('');
+      setEditTags('');
+      setEditTagsArray([]);
       setEditCategoryIds([]);
       setEditModelIds([]);
       setEditChannelIds([]);
@@ -2483,14 +2511,43 @@ const Upload: React.FC = () => {
               fullWidth
               placeholder="Enter thumbnail image URL"
             />
+            <TextField
+              label="Duration"
+              value={editDuration}
+              onChange={(e) => setEditDuration(e.target.value)}
+              fullWidth
+              placeholder="e.g., 10:30"
+              helperText="Enter video duration in format MM:SS or HH:MM:SS"
+            />
             <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
+              <InputLabel>Categories</InputLabel>
               <Select
-                value={editCategoryIds[0] || ''}
-                onChange={(e) => setEditCategoryIds(e.target.value ? [e.target.value] : [])}
+                multiple
+                value={editCategoryIds}
+                onChange={(e) => setEditCategoryIds(Array.isArray(e.target.value) ? e.target.value : [])}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => {
+                      const category = customCategories.find(c => c.id === value);
+                      return category ? (
+                        <Chip key={value} label={category.name} size="small" />
+                      ) : null;
+                    })}
+                  </Box>
+                )}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxHeight: 400,
+                      '& .MuiMenuItem-root': {
+                        minHeight: 'auto',
+                        padding: '8px 16px',
+                      },
+                    },
+                  },
+                }}
               >
-                <MenuItem value="">None</MenuItem>
-                {customCategories.map((category) => (
+                {[...customCategories].sort((a, b) => a.name.localeCompare(b.name)).map((category) => (
                   <MenuItem key={category.id} value={category.id}>
                     {category.name}
                   </MenuItem>
@@ -2498,13 +2555,34 @@ const Upload: React.FC = () => {
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel>Model</InputLabel>
+              <InputLabel>Models</InputLabel>
               <Select
-                value={editModelIds[0] || ''}
-                onChange={(e) => setEditModelIds(e.target.value ? [e.target.value] : [])}
+                multiple
+                value={editModelIds}
+                onChange={(e) => setEditModelIds(Array.isArray(e.target.value) ? e.target.value : [])}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => {
+                      const model = models.find(m => m.id === value);
+                      return model ? (
+                        <Chip key={value} label={model.name} size="small" />
+                      ) : null;
+                    })}
+                  </Box>
+                )}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxHeight: 400,
+                      '& .MuiMenuItem-root': {
+                        minHeight: 'auto',
+                        padding: '8px 16px',
+                      },
+                    },
+                  },
+                }}
               >
-                <MenuItem value="">None</MenuItem>
-                {models.map((model) => (
+                {[...models].sort((a, b) => a.name.localeCompare(b.name)).map((model) => (
                   <MenuItem key={model.id} value={model.id}>
                     {model.name}
                   </MenuItem>
@@ -2518,13 +2596,69 @@ const Upload: React.FC = () => {
                 onChange={(e) => setEditChannelIds(e.target.value ? [e.target.value] : [])}
               >
                 <MenuItem value="">None</MenuItem>
-                {channels.map((channel) => (
+                {[...channels].sort((a, b) => a.name.localeCompare(b.name)).map((channel) => (
                   <MenuItem key={channel.id} value={channel.id}>
                     {channel.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+            
+            {/* Tags Input */}
+            <TextField
+              fullWidth
+              label="Tags"
+              placeholder="Enter tags separated by commas or press Enter..."
+              variant="outlined"
+              helperText="Type a tag and press comma or Enter to add it"
+              value={editTags}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.endsWith(',')) {
+                  const tagToAdd = value.slice(0, -1).trim();
+                  if (tagToAdd && !editTagsArray.includes(tagToAdd)) {
+                    setEditTagsArray([...editTagsArray, tagToAdd]);
+                    setEditTags('');
+                  } else {
+                    setEditTags('');
+                  }
+                } else {
+                  setEditTags(value);
+                }
+              }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && editTags.trim()) {
+                  const tagToAdd = editTags.trim();
+                  if (!editTagsArray.includes(tagToAdd)) {
+                    setEditTagsArray([...editTagsArray, tagToAdd]);
+                  }
+                  setEditTags('');
+                }
+              }}
+            />
+            {editTagsArray.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {editTagsArray.map((tag, index) => (
+                  <Chip
+                    key={index}
+                    label={tag}
+                    onDelete={() => setEditTagsArray(editTagsArray.filter(t => t !== tag))}
+                    color="primary"
+                    variant="outlined"
+                    sx={{
+                      color: '#ffffff',
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                      '& .MuiChip-label': {
+                        color: '#ffffff',
+                      },
+                      '& .MuiChip-deleteIcon': {
+                        color: '#ffffff',
+                      }
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
             
             {/* Bluesky Preview in Edit Dialog */}
             {(editTitle.trim() || editThumbnailUrl) && (

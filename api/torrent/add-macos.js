@@ -4,6 +4,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { sanitizePath, sanitizeFilename } = require('../_helpers/pathSecurity');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
@@ -59,8 +60,14 @@ module.exports = async function handler(req, res) {
       // Handle magnet links
       if (torrentUrl.startsWith('magnet:')) {
         // For magnet links, save as .magnet file
-        const filename = `magnet_${Date.now()}.magnet`;
-        torrentFilePath = path.join(tempDir, filename);
+        const filename = sanitizeFilename(`magnet_${Date.now()}.magnet`);
+        torrentFilePath = sanitizePath(path.join(tempDir, filename), tempDir);
+        if (!torrentFilePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Geçersiz dosya yolu'
+          });
+        }
         fs.writeFileSync(torrentFilePath, torrentUrl, 'utf8');
       } else {
         // Download torrent file
@@ -79,11 +86,24 @@ module.exports = async function handler(req, res) {
         if (response.headers['content-disposition']) {
           const match = response.headers['content-disposition'].match(/filename="?([^"]+)"?/);
           if (match && match[1]) {
-            filename = match[1].replace(/[^a-zA-Z0-9._-]/g, '_');
+            // Sanitize filename from header
+            filename = sanitizeFilename(match[1]);
+            if (!filename || filename === 'unnamed') {
+              filename = `torrent_${Date.now()}.torrent`;
+            }
           }
+        } else {
+          filename = sanitizeFilename(filename);
         }
 
-        torrentFilePath = path.join(tempDir, filename);
+        // Sanitize torrent file path (Path Traversal koruması ile)
+        torrentFilePath = sanitizePath(path.join(tempDir, filename), tempDir);
+        if (!torrentFilePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Geçersiz torrent dosya yolu'
+          });
+        }
         fs.writeFileSync(torrentFilePath, Buffer.from(response.data));
       }
 

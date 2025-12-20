@@ -1,6 +1,7 @@
 const { Client } = require('basic-ftp');
 const fs = require('fs-extra');
 const path = require('path');
+const { sanitizePath, sanitizeFilename } = require('../_helpers/pathSecurity');
 
 // FTP Configuration
 const FTP_CONFIG = {
@@ -49,28 +50,48 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Eksik parametreler' });
     }
     
-    const chunkKey = `${fileName}-${chunkIndex}`;
+    // Sanitize fileName to prevent Path Traversal
+    const safeFileName = sanitizeFilename(fileName);
+    if (!safeFileName || safeFileName === 'unnamed') {
+      return res.status(400).json({ success: false, error: 'Geçersiz dosya adı' });
+    }
+    
+    // Validate chunkIndex
+    const chunkIdx = parseInt(chunkIndex, 10);
+    if (isNaN(chunkIdx) || chunkIdx < 0 || chunkIdx >= parseInt(totalChunks, 10)) {
+      return res.status(400).json({ success: false, error: 'Geçersiz chunk index' });
+    }
+    
+    const chunkKey = `${safeFileName}-${chunkIdx}`;
     
     // Chunk'ı base64'ten buffer'a çevir
     const chunkBuffer = Buffer.from(chunkData, 'base64');
     
-    // Chunk'ı geçici olarak kaydet
+    // Chunk'ı geçici olarak kaydet (Path Traversal koruması ile)
     const tempDir = '/tmp/chunks';
     await fs.ensureDir(tempDir);
-    const chunkFilePath = path.join(tempDir, chunkKey);
+    
+    // Sanitize chunk file path
+    const chunkFilePath = sanitizePath(path.join(tempDir, chunkKey), tempDir);
+    if (!chunkFilePath) {
+      return res.status(400).json({ success: false, error: 'Geçersiz dosya yolu' });
+    }
+    
     await fs.writeFile(chunkFilePath, chunkBuffer);
     
-    // Chunk bilgisini kaydet
-    if (!chunks.has(fileName)) {
-      chunks.set(fileName, {
-        totalChunks,
+    // Chunk bilgisini kaydet (sanitized fileName kullan)
+    if (!chunks.has(safeFileName)) {
+      // Sanitize remotePath if provided
+      const safeRemotePath = remotePath ? sanitizeFilename(remotePath) : `/${safeFileName}`;
+      chunks.set(safeFileName, {
+        totalChunks: parseInt(totalChunks, 10),
         chunks: [],
-        remotePath: remotePath || `/${fileName}`,
+        remotePath: safeRemotePath,
         startTime: Date.now()
       });
     }
     
-    const fileInfo = chunks.get(fileName);
+    const fileInfo = chunks.get(safeFileName);
     fileInfo.chunks.push({
       index: chunkIndex,
       path: chunkFilePath,
@@ -82,8 +103,12 @@ module.exports = async function handler(req, res) {
       // Chunk'ları sıraya göre sırala
       fileInfo.chunks.sort((a, b) => a.index - b.index);
       
-      // Dosyayı birleştir ve FTP'ye yükle
-      const finalFilePath = path.join('/tmp', fileName);
+      // Dosyayı birleştir ve FTP'ye yükle (Path Traversal koruması ile)
+      const finalFilePath = sanitizePath(path.join('/tmp', safeFileName), '/tmp');
+      if (!finalFilePath) {
+        chunks.delete(safeFileName);
+        return res.status(400).json({ success: false, error: 'Geçersiz dosya yolu' });
+      }
       const writeStream = fs.createWriteStream(finalFilePath);
       
       for (const chunk of fileInfo.chunks) {
@@ -112,17 +137,17 @@ module.exports = async function handler(req, res) {
         await fs.remove(finalFilePath).catch(() => {});
         
         // Chunk bilgisini temizle
-        chunks.delete(fileName);
+        chunks.delete(safeFileName);
         
         return res.status(200).json({ 
           success: true, 
-          fileName,
+          fileName: safeFileName,
           message: 'Dosya başarıyla yüklendi'
         });
       } catch (ftpError) {
         await client.close().catch(() => {});
         await fs.remove(finalFilePath).catch(() => {});
-        chunks.delete(fileName);
+        chunks.delete(safeFileName);
         throw ftpError;
       }
     }
@@ -130,10 +155,10 @@ module.exports = async function handler(req, res) {
     // Chunk alındı, devam ediyor
     res.status(200).json({ 
       success: true, 
-      chunkIndex,
-      totalChunks,
+      chunkIndex: chunkIdx,
+      totalChunks: parseInt(totalChunks, 10),
       received: fileInfo.chunks.length,
-      message: `Chunk ${chunkIndex + 1}/${totalChunks} alındı`
+      message: `Chunk ${chunkIdx + 1}/${totalChunks} alındı`
     });
     
   } catch (error) {

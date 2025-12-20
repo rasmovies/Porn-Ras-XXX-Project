@@ -152,9 +152,21 @@ module.exports = async function handler(req, res) {
 
       log(`📁 File received: ${filename} (${(fileBuffer.length / (1024 * 1024)).toFixed(2)} MB)`);
 
-      // Save file temporarily
+      // Save file temporarily (Path Traversal koruması ile)
       const tempDir = os.tmpdir();
-      const tempFilePath = path.join(tempDir, `upload-${Date.now()}-${filename}`);
+      const { sanitizePath, sanitizeFilename } = require('../_helpers/pathSecurity');
+      
+      // Sanitize filename
+      const safeFilename = sanitizeFilename(filename);
+      const tempFileName = `upload-${Date.now()}-${safeFilename}`;
+      const tempFilePath = sanitizePath(path.join(tempDir, tempFileName), tempDir);
+      
+      if (!tempFilePath) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Geçersiz dosya yolu' 
+        });
+      }
       
       try {
         await fs.promises.writeFile(tempFilePath, fileBuffer);
