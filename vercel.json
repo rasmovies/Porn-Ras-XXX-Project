@@ -55,7 +55,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://skybaggycollecting.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://www.googletagmanager.com https://*.vercel.app https://pornras.com https://www.pornras.com wss://*.supabase.co; frame-src 'self' https://streamtape.com https://*.streamtape.com; media-src 'self' https://streamtape.com https://*.streamtape.com blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://skybaggycollecting.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://www.googletagmanager.com https://*.vercel.app https://pornras.com https://www.pornras.com wss://*.supabase.co; frame-src 'self' https://streamtape.com https://*.streamtape.com; media-src 'self' https://streamtape.com https://*.streamtape.com blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests;"
         }
       ]
     }
