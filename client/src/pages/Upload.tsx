@@ -1292,7 +1292,8 @@ const Upload: React.FC = () => {
 
       // Show alert after form reset
       setTimeout(() => {
-        alert(`Video published successfully to database! You can view it at: http://localhost:3000/video/${videoSlug}`);
+        const videoUrl = `${window.location.origin}/video/${videoSlug}`;
+        alert(`Video published successfully to database! You can view it at: ${videoUrl}`);
       }, 100);
     } catch (error: any) {
       console.error('Failed to publish video:', error);
